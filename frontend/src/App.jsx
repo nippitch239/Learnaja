@@ -7,6 +7,7 @@ import Home from "./Home";
 import CreateCourse from "./CreateCourse";
 import AdminRoute from "./Routes/Admin";
 import Courses from "./Courses";
+// import "tailwindcss";
 
 function AppContent() {
 
@@ -17,9 +18,9 @@ function AppContent() {
       <nav>
         {!token && (
           <>
-            <Link to="/login">Login</Link>
+            {/* <Link to="/login">Login</Link>
             <br />
-            <Link to="/register">Register</Link>
+            <Link to="/register">Register</Link> */}
           </>
         )}
 
