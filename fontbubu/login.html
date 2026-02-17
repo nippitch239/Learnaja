@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Log in</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=SN+Pro:ital,wght@0,200..900;1,200..900&family=Sarabun:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <style>
+        * {
+            font-family: 'SN Pro', sans-serif;
+        }
+         .bg-custom {
+                width: 100%;
+                background-color: #FFBCD1;
+                height: 100vh;
+                /* background: url(bg.png), linear-gradient(to bottom,#F5F5F5, #FFBCD1,#FFBCD1, #FFBCD1, #F5F5F5); */
+                background: url(bg.png), url(bg_gradation_01_2.png) repeat-x top left, url(bg_gradation_01_2.png) repeat-x top left, #f5f5f5;
+            }
+    </style>
+</head>
+
+<body class="bg-custom flex items-center justify-center min-h-screen">
+    <div class="bg-[#fafafa] rounded-4xl shadow-lg p-10 mx-auto">
+        <h1 class="text-[60px] font-[800] mb-3 font-sans text-[#fb98b7]">Log in</h1>
+        <form action="" class="flex flex-col">
+            <input type="text" placeholder="Example@email.com" class="w-[436px] p-2 mb-2 border-none shadow-md rounded-full bg-[#FEFEFE] px-4 mt-3 focus:ring-2 focus:ring-[#FFBCD1] focus:outline-none">
+            <input type="password" placeholder="Password" class="w-[436px] p-2 mb-2 border-none shadow-md rounded-full bg-[#FEFEFE] px-4 mt-3 focus:ring-2 focus:ring-[#FFBCD1] focus:outline-none">
+            <button class="w-[200px] mx-auto bg-[#fb98b7] text-white px-4 py-2 text-[22px] rounded-xl font-semibold hover:bg-[#FF9DB8] shadow-md mt-5">Log in</button>
+            <label for="" class="text-[#000]/40 flex text-center mt-5 mx-auto">Don’t have an account? Sign up <a href="signup.html" class="block text-[#fb98b7] hover:underline pl-1">here.</a></label>
+        </form>
+    </div>
+    
+</body>
+</html>
