@@ -23,20 +23,13 @@
 /* 🌙 Dark mode (class strategy) */
 @custom-variant dark (&:where(.dark, .dark *));
 
-
-* {
-  font-family: "SN Pro", sans-serif;
-}
 .bg-custom {
+    font-family: 'SN Pro', sans-serif;
     width: 100%;
     background-color: #FFBCD1;
     height: 100vh;
     /* background: url(bg.png), linear-gradient(to bottom,#F5F5F5, #FFBCD1,#FFBCD1, #FFBCD1, #F5F5F5); */
     background: url(images/bg.png), url(images/bg_gradation_01_2.png) repeat-x top left, url(images/bg_gradation_01_2.png) repeat-x top left, #f5f5f5;
-}
-
-body {
-  font-family: 'Sarabun', sans-serif;
 }
 
 .glass {
@@ -49,7 +42,7 @@ body {
 }
 
 .bg-main {
-            font-family: 'Plus Jakarta Sans', sans-serif;
+            font-family: 'Sarabun', sans-serif;
             background-image: url(images/bg.png), radial-gradient(circle at 10% 20%, rgba(249, 168, 185, 0.05) 0%, transparent 20%),
                               radial-gradient(circle at 90% 80%, rgba(138, 180, 248, 0.05) 0%, transparent 20%);
         }
