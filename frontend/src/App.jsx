@@ -1,16 +1,23 @@
 import { BrowserRouter, Routes, Route, Link, Navigate } from "react-router-dom";
 import { useContext } from "react";
 import AuthProvider, { AuthContext } from "./context/AuthContext";
-import Login from "./Login";
-import Register from "./Register";
-import Home from "./Home";
-import CreateCourse from "./CreateCourse";
+import Login from "./pages/Login";
+import Register from "./pages/Register";
+import Home from "./pages/Home";
+import CreateCourse from "./pages/CreateCourse";
 import AdminRoute from "./Routes/Admin";
-import Courses from "./Courses";
+import Courses from "./pages/Courses";
+import CourseDetail from "./pages/CourseDetail";
+import CourseEdit from "./pages/CourseEdit";
+import RequireAuth from "./Routes/RequireAuth";
+import RequireRole from "./Routes/RequireRole";
+import RequireOwner from "./Routes/RequireOwner";
+
 
 function AppContent() {
 
-  const { token } = useContext(AuthContext);
+  const { token, user } = useContext(AuthContext);
+  console.log(user)
 
   return (
     <BrowserRouter>
@@ -23,7 +30,10 @@ function AppContent() {
           </>
         )}
 
+
         {token && <Link to="/">Home</Link>}
+        {token && <Link to="/courses">Courses</Link>}
+        {token && user?.roles?.includes("admin") && <Link to="/admin">Admin</Link>}
       </nav>
 
       <Routes>
@@ -54,6 +64,21 @@ function AppContent() {
         <Route
           path="/courses"
           element={token ? <Courses /> : <Navigate to="/login" />}
+        />
+
+        <Route
+          path="/courses/:id"
+          element={token ? <CourseDetail /> : <Navigate to="/login" />}
+        />
+        <Route
+          path="/courses/:id/edit"
+          element={
+            <RequireAuth>
+              <RequireOwner>
+                <CourseEdit />
+              </RequireOwner>
+            </RequireAuth>
+          }
         />
       </Routes>
 

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import api from "./services/api";
+import api from "../services/api";
 
 
 function Courses() {
@@ -22,24 +22,12 @@ function Courses() {
     }
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm("Delete this course?")) return;
-
-    try {
-      await api.delete(`/courses/${id}`);
-      setCourses(courses.filter(course => course.id !== id));
-    } catch (err) {
-      console.error(err);
-    }
-  };
 
   if (loading) return <p>Loading...</p>;
 
   return (
     <div>
       <h1>All Courses</h1>
-
-      <Link to="/create-course">+ Create Course</Link>
 
       <div style={{ marginTop: "20px" }}>
         {courses.length === 0 && <p>No courses found</p>}
@@ -49,6 +37,7 @@ function Courses() {
             <h3>{course.title}</h3>
             <p>{course.description}</p>
             <p>Price: {course.price} บาท</p>
+            <Link to={`/courses/${course.id}`}>View</Link>
           </div>
         ))}
       </div>
