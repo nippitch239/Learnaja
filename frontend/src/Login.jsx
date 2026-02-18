@@ -21,7 +21,7 @@ function Login() {
         console.log(res)
 
         login(res.data.token);
-        navigate("/");
+        navigate("/home");
     };
 
     return (

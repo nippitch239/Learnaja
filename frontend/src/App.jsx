@@ -7,6 +7,9 @@ import Home from "./Home";
 import CreateCourse from "./CreateCourse";
 import AdminRoute from "./Routes/Admin";
 import Courses from "./Courses";
+import Guest from "./Guest";
+import Navbar from "./components/Navbar";
+import Footer from "./components/Footer";
 // import "tailwindcss";
 
 function AppContent() {
@@ -15,6 +18,7 @@ function AppContent() {
 
   return (
     <BrowserRouter>
+    
       <nav>
         {!token && (
           <>
@@ -24,23 +28,29 @@ function AppContent() {
           </>
         )}
 
-        {token && <Link to="/">Home</Link>}
+        {token && <Link to="/home"><Navbar /></Link>}
+        
       </nav>
 
       <Routes>
         <Route
           path="/"
+          element={!token ? <Guest /> : <Navigate to="/home" />}
+        />
+        <Route
+          path="/home"
           element={token ? <Home /> : <Navigate to="/login" />}
         />
 
+
         <Route
           path="/login"
-          element={!token ? <Login /> : <Navigate to="/" />}
+          element={!token ? <Login /> : <Navigate to="/home" />}
         />
 
         <Route
           path="/register"
-          element={!token ? <Register /> : <Navigate to="/" />}
+          element={!token ? <Register /> : <Navigate to="/home" />}
         />
 
         <Route
@@ -58,9 +68,11 @@ function AppContent() {
         />
       </Routes>
 
+      <Footer />
 
     </BrowserRouter>
   );
+
 }
 
 export default function App() {
