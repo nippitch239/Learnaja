@@ -1,4 +1,55 @@
-:root {
+@import url('https://fonts.googleapis.com/css2?family=SN+Pro:ital,wght@0,200..900;1,200..900&family=Sarabun:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800&display=swap');
+@import "tailwindcss";
+
+@theme {
+  /* 🌸 Colors */
+  --color-primary: #fb98b7;
+  --color-background-light: #fdfeff;
+  --color-background-dark: #0f172a;
+  --color-accent-blue: #e0f2fe;
+  --color-accent-purple: #f3e8ff;
+  --color-accent-green: #dcfce7;
+
+  /* 🔤 Fonts */
+  --font-display: "Plus Jakarta Sans", sans-serif;
+  --font-sans: "Sarabun", sans-serif;
+
+  /* 🔘 Border radius */
+  --radius: 1rem;
+  --radius-xl: 1.5rem;
+  --radius-2xl: 2.5rem;
+}
+
+/* 🌙 Dark mode (class strategy) */
+@custom-variant dark (&:where(.dark, .dark *));
+
+.bg-custom {
+    font-family: 'SN Pro', sans-serif;
+    width: 100%;
+    background-color: #FFBCD1;
+    height: 100vh;
+    /* background: url(bg.png), linear-gradient(to bottom,#F5F5F5, #FFBCD1,#FFBCD1, #FFBCD1, #F5F5F5); */
+    background: url(images/bg.png), url(images/bg_gradation_01_2.png) repeat-x top left, url(images/bg_gradation_01_2.png) repeat-x top left, #f5f5f5;
+}
+
+.glass {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(10px);
+}
+
+.dark .glass {
+  background: rgba(15, 23, 42, 0.7);
+}
+
+.bg-main {
+            font-family: 'Sarabun', sans-serif;
+            background-image: url(images/bg.png), radial-gradient(circle at 10% 20%, rgba(249, 168, 185, 0.05) 0%, transparent 20%),
+                              radial-gradient(circle at 90% 80%, rgba(138, 180, 248, 0.05) 0%, transparent 20%);
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+/* :root {
   font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
   font-weight: 400;
@@ -66,4 +117,4 @@ button:focus-visible {
   button {
     background-color: #f9f9f9;
   }
-}
+} */

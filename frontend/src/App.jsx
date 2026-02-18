@@ -6,13 +6,15 @@ import Register from "./pages/Register";
 import Home from "./pages/Home";
 import CreateCourse from "./pages/CreateCourse";
 import AdminRoute from "./Routes/Admin";
-import Courses from "./pages/Courses";
+import Courses from "./Courses";
+import Guest from "./Guest";
+import Navbar from "./components/Navbar";
+import Footer from "./components/Footer";
 import CourseDetail from "./pages/CourseDetail";
 import CourseEdit from "./pages/CourseEdit";
 import RequireAuth from "./Routes/RequireAuth";
 import RequireRole from "./Routes/RequireRole";
 import RequireOwner from "./Routes/RequireOwner";
-
 
 function AppContent() {
 
@@ -21,35 +23,39 @@ function AppContent() {
 
   return (
     <BrowserRouter>
+    
       <nav>
         {!token && (
           <>
-            <Link to="/login">Login</Link>
+            {/* <Link to="/login">Login</Link>
             <br />
-            <Link to="/register">Register</Link>
+            <Link to="/register">Register</Link> */}
           </>
         )}
 
 
         {token && <Link to="/">Home</Link>}
-        {token && <Link to="/courses">Courses</Link>}
-        {token && user?.roles?.includes("admin") && <Link to="/admin">Admin</Link>}
       </nav>
 
       <Routes>
         <Route
           path="/"
+          element={!token ? <Guest /> : <Navigate to="/home" />}
+        />
+        <Route
+          path="/home"
           element={token ? <Home /> : <Navigate to="/login" />}
         />
 
+
         <Route
           path="/login"
-          element={!token ? <Login /> : <Navigate to="/" />}
+          element={!token ? <Login /> : <Navigate to="/home" />}
         />
 
         <Route
           path="/register"
-          element={!token ? <Register /> : <Navigate to="/" />}
+          element={!token ? <Register /> : <Navigate to="/home" />}
         />
 
         <Route
@@ -82,9 +88,11 @@ function AppContent() {
         />
       </Routes>
 
+      <Footer />
 
     </BrowserRouter>
   );
+
 }
 
 export default function App() {

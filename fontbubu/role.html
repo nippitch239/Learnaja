@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Role Selection</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=SN+Pro:ital,wght@0,200..900;1,200..900&family=Sarabun:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <style>
+        * {
+            font-family: 'SN Pro', sans-serif;
+        }
+         .bg-custom {
+                width: 100%;
+                height: 100%;
+                background: url(bg.png), url(bg_gradation_01_2.png) repeat-x top left, url(bg_gradation_01_2.png) repeat-x top left, #f5f5f5;
+            }
+    </style>
+</head>
+
+<body class="bg-custom">
+    <div class="bg-[#fafafa] rounded-4xl shadow-lg p-10 max-w-md mx-auto mt-20">
+        <h1 class="text-[50px] font-[700] mb-4 font-sans text-[#FFBCD1] text-center">Who are you?</h1>
+        <form action="" class="flex flex-col">
+            
+            <button class="option w-full p-3 mb-2 border-none shadow-md rounded-full bg-[#FEFEFE] px-6 mt-3 text-center text-lg cursor-pointer hover:bg-[#FFBCD1] hover:text-white transition-colors duration-300 " data-role="student">
+                Student
+            </button>
+            
+            <button class="option w-full p-3 mb-2 border-none shadow-md rounded-full bg-[#FEFEFE] px-6 mt-3 text-center text-lg cursor-pointer hover:bg-[#FFBCD1] hover:text-white transition-colors duration-300" data-role="teacher">
+                Teacher
+            </button>
+        </form>
+    </div>
+    
+</body>
+</html>
