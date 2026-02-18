@@ -34,7 +34,7 @@ function Courses() {
 
         {courses.map(course => (
           <div key={course.id} style={{ border: "1px solid #ccc", padding: "10px", marginBottom: "10px" }}>
-            <h3>{course.title}</h3>
+            <h3 className="text-slate-700 dark:text-slate-300 text-3xl">{course.title}</h3>
             <p>{course.description}</p>
             <p>Price: {course.price} บาท</p>
             <Link to={`/courses/${course.id}`}>View</Link>

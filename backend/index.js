@@ -72,11 +72,11 @@ router.post('/register', async (req, res) => {
 
     try {
         console.log(req.body)
-        const { username, name, email, password, school } = req.body;
+        const { username, name, email, password } = req.body;
 
 
 
-        if (!email || !password || !username || !name || !school) {
+        if (!email || !password || !username || !name) {
             return res.status(400).json({ message: "All fields required" });
         }
 
@@ -98,9 +98,9 @@ router.post('/register', async (req, res) => {
 
         const [userResult] = await connection.query(
             `insert into users 
-            (username, name, email, password, school, points) 
-            values (?, ?, ?, ?, ?, ?)`,
-            [username, name, email, hashedPassword, school, 0]
+            (username, name, email, password, points) 
+            values (?, ?, ?, ?, ?)`,
+            [username, name, email, hashedPassword, 0]
         );
 
         const userId = userResult.insertId;

@@ -14,7 +14,7 @@ function Home() {
 
     return (
         <>
-            <button onClick={handleLogout}>Logout</button>
+            <button className="bg-red-500 hover:bg-red-600 text-white py-2 px-4 rounded cursor-pointer" onClick={handleLogout}>Logout</button>
         </>
     );
 }
