@@ -15,6 +15,7 @@ import RequireAuth from "./Routes/RequireAuth";
 import RequireRole from "./Routes/RequireRole";
 import RequireOwner from "./Routes/RequireOwner";
 import Guest from "./pages/Guest";
+import CourseTeacher from "./pages/CourseTeacher";
 
 function AppContent() {
 
@@ -76,6 +77,10 @@ function AppContent() {
               </RequireOwner>
             </RequireAuth>
           }
+        />
+        <Route
+          path="/courses/teacher"
+          element={token ? <CourseTeacher /> : <Navigate to="/login" />}
         />
       </Routes>
 

@@ -24,7 +24,7 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 .bg-custom {
-    font-family: 'SN Pro', sans-serif;
+    font-family: 'Sarabun', sans-serif;
     width: 100%;
     background-color: #FFBCD1;
     height: 100vh;
@@ -43,12 +43,25 @@
 
 .bg-main {
             font-family: 'Sarabun', sans-serif;
-            background-image: url(images/bg.png), radial-gradient(circle at 10% 20%, rgba(249, 168, 185, 0.05) 0%, transparent 20%),
+            background-image: url(/images/bg.png), radial-gradient(circle at 10% 20%, rgba(249, 168, 185, 0.05) 0%, transparent 20%),
                               radial-gradient(circle at 90% 80%, rgba(138, 180, 248, 0.05) 0%, transparent 20%);
+
+            
         }
         .material-symbols-outlined {
             font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
         }
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(40px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
 /* :root {
   font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;

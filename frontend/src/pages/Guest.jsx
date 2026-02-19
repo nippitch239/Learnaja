@@ -26,7 +26,7 @@ function Guest() {
                         <div className="hidden md:flex flex-1 max-w-xl mx-8">
                             <div className="relative w-full">
                                 <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-[#fb90a9]">search</span>
-                                <input className="w-full bg-white/20 border-none rounded-full py-2 pl-12 pr-4 text-white placeholder-white/70 focus:ring-2 focus:ring-white/50 transition-all" placeholder="Search for courses..." type="text" />
+                                <input className="w-full bg-white/20 border-none rounded-full py-2 pl-12 pr-4 text-white placeholder-white/70 focus:ring-2 focus:ring-white/50 transition-all" placeholder="ค้นหาคอร์สเรียน..." type="text" />
                             </div>
                         </div>
                         <div className="flex items-center space-x-4">
@@ -39,7 +39,7 @@ function Guest() {
                 </nav>
                 <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
             <section
-                className="relative overflow-hidden rounded-3xl bg-linear-to-br from-primary/10 to-accent-purple/20 dark:from-primary/5 dark:to-slate-800 p-8 md:p-20 border border-primary/10 text-center mb-16">
+                className="relative overflow-hidden rounded-3xl bg-linear-to-br from-primary/10 to-accent-purple/20 dark:from-primary/5 dark:to-slate-800 p-8 md:p-20 border border-primary/10 text-center mb-16 opacity-0  animate-[slideUp_0.6s_ease-out_forwards]">
                 <div className="relative z-10 max-w-3xl mx-auto">
                     <span
                         className="inline-flex items-center px-4 py-1.5 rounded-full text-xs font-bold bg-primary/20 text-primary mb-6 tracking-wide uppercase">
@@ -52,7 +52,7 @@ function Guest() {
                     <div
                         className="flex flex-col sm:flex-row items-center justify-center gap-4">
                         <button
-                            className="w-full sm:w-auto px-10 py-4 bg-primary text-white font-bold font-sans rounded-2xl hover:shadow-xl hover:shadow-primary/30 transition-all text-lg tracking-wide">
+                            className="w-full sm:w-auto px-10 py-4 bg-primary text-white font-bold font-sans rounded-2xl hover:shadow-xl hover:shadow-primary/30 transition-all text-lg tracking-wide" onClick={handleLogin}>
                             เริ่มเรียนรู้เลย
                         </button>
 
@@ -63,7 +63,7 @@ function Guest() {
                 <div
                     className="absolute -bottom-24 -right-24 w-96 h-96 bg-accent-blue/30 rounded-full blur-3xl opacity-50"></div>
             </section>
-            <section className="mb-20">
+            <section className="mb-20 opacity-0  animate-[slideUp_0.6s_ease-out_forwards]">
                 <div className="text-center mb-12">
                     <h2
                         className="text-3xl font-sans font-bold text-slate-900 dark:text-white mb-4">
