@@ -3,11 +3,16 @@ import { Link } from "react-router-dom";
 function CourseTeacher() {
     return (
         <div className="  bg-background-light dark:bg-background-dark text-slate-800 dark:text-slate-100 bg-main">
-            <div className="bg-pink-50 pt-24 pb-12 hero-pattern dark:hero-pattern border-b border-pink-100 dark:border-slate-800 ">
-            <div className="max-w-7xl mx-auto px-6">
-                <div className="space-y-8">
+            <div className="bg-pink-100 dark:bg-background-dark pt-24 pb-12 hero-pattern dark:hero-pattern border-b border-pink-100 dark:border-slate-800 ">
+                <div className="max-w-7xl mx-auto px-6 mt-8">
+                    <button className="flex items-center space-x-2 text-primary font-bold dark:text-yellow-400 transition-colors mb-2">
+                        <span className="material-symbols-outlined">arrow_back</span>
+                        <span>ย้อนกลับ</span>
+                    </button>
+                <div className="space-y-8 ">
+                    
                     <div
-                        className="flex flex-col lg:flex-row lg:items-end justify-between gap-8">
+                        className=" flex flex-col lg:flex-row lg:items-end justify-between gap-8">
                         <div className="max-w-3xl space-y-4">
                             <h1
                                 className="text-4xl lg:text-5xl font-extrabold text-slate-900 dark:text-white leading-tight">
@@ -37,7 +42,7 @@ function CourseTeacher() {
                             </div>
                         </div>
                     </div>
-                    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6 p-6 bg-white/50 dark:from-slate-800 dark:to-slate-900 backdrop-blur rounded-3xl border border-white dark:border-slate-700">
+                    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6 p-6 bg-white/50 dark:from-slate-800 dark:to-slate-900 backdrop-blur rounded-3xl border border-white dark:border-slate-700 dark:bg-background-dark/50">
                         <div className="flex items-center space-x-3">
                             <span
                                 className="material-symbols-outlined text-primary p-2 bg-white dark:bg-slate-900 rounded-xl shadow-sm">schedule</span>
