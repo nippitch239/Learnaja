@@ -1,3 +1,5 @@
+import { Link } from "react-router-dom";
+
 function CourseTeacher() {
     return (
         <div className="  bg-background-light dark:bg-background-dark text-slate-800 dark:text-slate-100 bg-main">
@@ -27,13 +29,11 @@ function CourseTeacher() {
                                     className="flex-1 bg-primary text-white px-6 py-4 rounded-2xl font-bold text-lg shadow-lg shadow-pink-200 dark:shadow-none hover:-translate-y-0.5 transition-all">
                                     Enroll Now
                                 </button>
-                                <a
-                                    className="flex items-center justify-center space-x-2 bg-slate-900 dark:bg-white dark:text-slate-900 text-white px-6 py-4 rounded-2xl font-bold text-lg hover:opacity-90 transition-opacity border-2 border-transparent"
-                                    href="#manage-lessons">
+                                <Link to="/editInfo" className="flex items-center space-x-2 bg-slate-900 dark:bg-white dark:text-slate-900 text-white px-6 py-4 rounded-2xl font-bold text-lg hover:opacity-90 transition-opacity border-2 border-transparent">
                                     <span
                                         className="material-symbols-outlined">settings</span>
                                     <span>แก้ไขคอร์ส</span>
-                                </a>
+                                </Link>
                             </div>
                         </div>
                     </div>
@@ -109,7 +109,7 @@ function CourseTeacher() {
                                     </div>
                                     <div className="flex flex-col">
                                         <span
-                                            className="text-lg font-bold group-hover:text-primary transition-colors">Lesson
+                                            className="text-lg font-bold group-hover:text-primary transition-colors">บทที่
                                             1: Introduction to React &amp;
                                             Modern Web Ecosystem</span>
                                         <div
@@ -136,7 +136,7 @@ function CourseTeacher() {
                                     </div>
                                     <div className="flex flex-col">
                                         <span
-                                            className="text-lg font-bold group-hover:text-primary transition-colors">Lesson
+                                            className="text-lg font-bold group-hover:text-primary transition-colors">บทที่
                                             2: Understanding JSX and the Virtual
                                             DOM</span>
                                         <div
@@ -163,8 +163,7 @@ function CourseTeacher() {
                                     </div>
                                     <div className="flex flex-col">
                                         <span
-                                            className="text-lg font-bold group-hover:text-primary transition-colors">Lesson
-                                            3: Props vs State: The Core
+                                            className="text-lg font-bold group-hover:text-primary transition-colors">บทที่ 3: Props vs State: The Core
                                             Mechanics</span>
                                         <div
                                             className="flex items-center space-x-3 mt-1">
@@ -190,8 +189,7 @@ function CourseTeacher() {
                                     </div>
                                     <div className="flex flex-col">
                                         <span
-                                            className   ="text-lg font-bold group-hover:text-primary transition-colors">Lesson
-                                            4: Coding Exercise: Your First
+                                            className   ="text-lg font-bold group-hover:text-primary transition-colors">บทที่ 4: Coding Exercise: Your First
                                             Component</span>
                                         <div
                                             className="flex items-center space-x-3 mt-1">
@@ -217,8 +215,7 @@ function CourseTeacher() {
                                     </div>
                                     <div className="flex flex-col">
                                         <span
-                                            className="text-lg font-bold group-hover:text-primary transition-colors">Lesson
-                                            5: Hooks Deep Dive: useEffect &amp;
+                                            className="text-lg font-bold group-hover:text-primary transition-colors">บทที่ 5: Hooks Deep Dive: useEffect &amp;
                                             useState</span>
                                         <div
                                             className="flex items-center space-x-3 mt-1">
@@ -244,8 +241,7 @@ function CourseTeacher() {
                                     </div>
                                     <div className="flex flex-col">
                                         <span
-                                            className="text-lg font-bold group-hover:text-primary transition-colors">Lesson
-                                            6: Styling Components with Tailwind
+                                            className="text-lg font-bold group-hover:text-primary transition-colors">บทที่ 6: Styling Components with Tailwind
                                             CSS</span>
                                         <div
                                             className="flex items-center space-x-3 mt-1">

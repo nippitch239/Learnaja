@@ -16,6 +16,9 @@ import RequireRole from "./Routes/RequireRole";
 import RequireOwner from "./Routes/RequireOwner";
 import Guest from "./pages/Guest";
 import CourseTeacher from "./pages/CourseTeacher";
+import EditStudent from "./pages/EditStudent";
+import EditInfo from "./pages/EditInfo";
+import EditCurriculum from "./pages/EditCurriculum";
 
 function AppContent() {
 
@@ -78,9 +81,22 @@ function AppContent() {
             </RequireAuth>
           }
         />
+        {/* ทำไว้ดูดีไซน์เฉยๆ */}
         <Route
-          path="/courses/teacher"
+          path="/courseTeacher"
           element={token ? <CourseTeacher /> : <Navigate to="/login" />}
+        />
+        <Route
+          path="/editStudent"
+          element={token ? <EditStudent /> : <Navigate to="/login" />}
+        />
+        <Route
+          path="/editInfo"
+          element={token ? <EditInfo/> : <Navigate to="/login" />}
+        />
+        <Route
+          path="/editCurriculum"
+          element={token ? <EditCurriculum/> : <Navigate to="/login" />}
         />
       </Routes>
 

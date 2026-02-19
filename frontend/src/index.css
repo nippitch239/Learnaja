@@ -9,6 +9,8 @@
   --color-accent-blue: #e0f2fe;
   --color-accent-purple: #f3e8ff;
   --color-accent-green: #dcfce7;
+  --color-surface-light: #FFFFFF;
+  --color-surface-dark: #1E293B;
 
   /* 🔤 Fonts */
   --font-display: "Plus Jakarta Sans", sans-serif;
@@ -62,6 +64,37 @@
     transform: translateY(0);
   }
 }
+/* Setting Course */
+.nav-gradient {
+    background: linear-gradient(90deg, #F9A8BA 0%, #FBB6CE 100%);
+}
+.custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #F9A8BA;
+    border-radius: 10px;
+}
+
+.toggle-checkbox:checked + .toggle-label {
+    background-color: #F9A8BA;
+}
+.toggle-checkbox:checked + .toggle-label:after {
+    left: calc(100% - 2px);
+    transform: translateX(-100%);
+}
+.toggle-label:after {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 1.25rem;
+    height: 1.25rem;
+    background: white;
+    border-radius: 50%;
+    transition: all 0.3s;
+}
+
 /* :root {
   font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
