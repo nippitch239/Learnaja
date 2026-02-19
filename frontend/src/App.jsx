@@ -1,35 +1,31 @@
 import { BrowserRouter, Routes, Route, Link, Navigate } from "react-router-dom";
 import { useContext } from "react";
 import AuthProvider, { AuthContext } from "./context/AuthContext";
-import Login from "./Login";
-import Register from "./Register";
-import Home from "./Home";
-import CreateCourse from "./CreateCourse";
+import Login from "./pages/Login";
+import Register from "./pages/Register";
+import Home from "./pages/Home";
+import CreateCourse from "./pages/CreateCourse";
 import AdminRoute from "./Routes/Admin";
-import Courses from "./Courses";
-import Guest from "./Guest";
+import Courses from "./pages/Courses";
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
-// import "tailwindcss";
+import CourseDetail from "./pages/CourseDetail";
+import CourseEdit from "./pages/CourseEdit";
+import RequireAuth from "./Routes/RequireAuth";
+import RequireRole from "./Routes/RequireRole";
+import RequireOwner from "./Routes/RequireOwner";
+import Guest from "./pages/Guest";
 
 function AppContent() {
 
-  const { token } = useContext(AuthContext);
+  const { token, user } = useContext(AuthContext);
+  console.log(user)
 
   return (
     <BrowserRouter>
     
       <nav>
-        {!token && (
-          <>
-            {/* <Link to="/login">Login</Link>
-            <br />
-            <Link to="/register">Register</Link> */}
-          </>
-        )}
-
         {token && <Link to="/home"><Navbar /></Link>}
-        
       </nav>
 
       <Routes>
@@ -65,6 +61,21 @@ function AppContent() {
         <Route
           path="/courses"
           element={token ? <Courses /> : <Navigate to="/login" />}
+        />
+
+        <Route
+          path="/courses/:id"
+          element={token ? <CourseDetail /> : <Navigate to="/login" />}
+        />
+        <Route
+          path="/courses/:id/edit"
+          element={
+            <RequireAuth>
+              <RequireOwner>
+                <CourseEdit />
+              </RequireOwner>
+            </RequireAuth>
+          }
         />
       </Routes>
 

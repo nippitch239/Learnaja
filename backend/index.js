@@ -72,11 +72,11 @@ router.post('/register', async (req, res) => {
 
     try {
         console.log(req.body)
-        const { username, name, email, password, school } = req.body;
+        const { username, name, email, password } = req.body;
 
 
 
-        if (!email || !password || !username || !name || !school) {
+        if (!email || !password || !username || !name) {
             return res.status(400).json({ message: "All fields required" });
         }
 
@@ -98,9 +98,9 @@ router.post('/register', async (req, res) => {
 
         const [userResult] = await connection.query(
             `insert into users 
-            (username, name, email, password, school, points) 
-            values (?, ?, ?, ?, ?, ?)`,
-            [username, name, email, hashedPassword, school, 0]
+            (username, name, email, password, points) 
+            values (?, ?, ?, ?, ?)`,
+            [username, name, email, hashedPassword, 0]
         );
 
         const userId = userResult.insertId;
@@ -139,17 +139,22 @@ router.post('/register', async (req, res) => {
 
 // create course
 app.post("/courses", verifyToken, checkRole("admin"), async (req, res) => {
+    const connection = await db.getConnection();
     try {
+        await connection.beginTransaction();
+
         const { title, description } = req.body;
 
         if (!title) {
             return res.status(400).json({ message: "Title required" });
         }
 
-        const [result] = await db.query(
+        const [result] = await connection.query(
             "insert into courses (title, description, owner_id) values (?, ?, ?)",
             [title, description, req.user.id]
         );
+
+        await connection.commit();
 
         res.status(201).json({
             message: "Course created",
@@ -157,7 +162,10 @@ app.post("/courses", verifyToken, checkRole("admin"), async (req, res) => {
         });
 
     } catch (err) {
+        await connection.rollback();
         res.status(500).json({ error: err.message });
+    } finally {
+        connection.release();
     }
 }
 );
@@ -166,10 +174,7 @@ app.post("/courses", verifyToken, checkRole("admin"), async (req, res) => {
 app.get("/courses", async (req, res) => {
     try {
         const [rows] = await db.query(`
-            select c.*, u.name as owner_name
-            from courses c
-            join users u on c.owner_id = u.id
-            order by c.created_at desc
+            select * from courses order by created_at desc limit 10
         `);
 
         res.json(rows);
@@ -179,9 +184,99 @@ app.get("/courses", async (req, res) => {
     }
 });
 
+// get course (id)
+app.get("/courses/:id", async (req, res) => {
+    const [rows] = await db.query(
+        "select * from courses where id = ?",
+        [req.params.id]
+    );
 
+    if (rows.length === 0) return res.status(404).json({ message: "Not found" });
 
+    res.json(rows[0]);
+});
 
+// buy course
+app.post("/courses/:id/buy", verifyToken, async (req, res) => {
+    const connection = await db.getConnection();
+    try {
+        await connection.beginTransaction();
+
+        const [points] = await db.query(
+            "select points from users where id = ?",
+            [req.user.id]
+        );
+
+        const [price] = await db.query(
+            "select price from courses where id = ?",
+            [req.params.id]
+        );
+
+        if (points[0].points < price[0].price) {
+            return res.status(400).json({ message: "Not enough points" });
+        }
+
+        const [result] = await connection.query(
+            "insert into owner_courses (user_id, course_id) values (?, ?)",
+            [req.user.id, req.params.id]
+        );
+
+        await connection.commit();
+
+        res.status(201).json({
+            message: "Course purchased",
+            courseId: req.params.id
+        });
+
+    } catch (err) {
+        await connection.rollback();
+        res.status(500).json({ error: err.message });
+    } finally {
+        connection.release();
+    }
+});
+
+app.get('/courses/:id/owner', verifyToken, async (req, res) => {
+    try {
+        const [rows] = await db.query(
+            "select * from owner_courses where user_id = ? and course_id = ?",
+            [req.user.id, req.params.id]
+        );
+
+        res.json(rows.length > 0);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// edit course
+app.put("/courses/:id/edit", verifyToken, checkRole("admin"), async (req, res) => {
+    const connection = await db.getConnection();
+    try {
+        await connection.beginTransaction();
+        const { id } = req.params;
+        const { title, description } = req.body;
+
+        if (!title) {
+            return res.status(400).json({ message: "Title required" });
+        }
+
+        const [result] = await connection.query(
+            "update courses set title = ?, description = ? where id = ?",
+            [title, description, id]
+        );
+
+        await connection.commit();
+
+        res.status(200).json({
+            message: "Course updated",
+            courseId: id
+        });
+    } catch (err) {
+        await connection.rollback();
+        res.status(500).json({ error: err.message });
+    }
+});
 
 // middleware
 function verifyToken(req, res, next) {
@@ -227,6 +322,3 @@ app.listen(port, () => {
 
 
 
-
-
-// module.exports = router;
