@@ -2,7 +2,7 @@ import { useEffect, useState, useContext } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
 import api from "../services/api";
-import fetchCourse from "../services/fetchCourse";
+import {fetchCourse} from "../services/fetchCourse";
 
 function CourseDetail() {
   const { id } = useParams();
