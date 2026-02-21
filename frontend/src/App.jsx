@@ -4,17 +4,18 @@ import AuthProvider, { AuthContext } from "./context/AuthContext";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Home from "./pages/Home";
-import CreateCourse from "./pages/CreateCourse";
-import AdminRoute from "./Routes/Admin";
 import Courses from "./pages/Courses";
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
 import CourseDetail from "./pages/CourseDetail";
-import CourseEdit from "./pages/CourseEdit";
+import CourseEdit from "./pages/admin/CourseEdit";
 import RequireAuth from "./Routes/RequireAuth";
 import RequireRole from "./Routes/RequireRole";
 import RequireOwner from "./Routes/RequireOwner";
 import Guest from "./pages/Guest";
+import MyCourses from "./pages/MyCourses";
+import Admin from "./pages/admin/Admin";
+import MyDetailCourse from "./pages/MyDetailCourse";
 
 function AppContent() {
 
@@ -23,10 +24,10 @@ function AppContent() {
 
   return (
     <BrowserRouter>
-    
-      <nav>
-        {token && <Link to="/home"><Navbar /></Link>}
-      </nav>
+
+      {/* <nav> */}
+      {token && <Navbar />}
+      {/* </nav> */}
 
       <Routes>
         <Route
@@ -52,9 +53,11 @@ function AppContent() {
         <Route
           path="/admin"
           element={
-            <AdminRoute>
-              <CreateCourse />
-            </AdminRoute>
+            <RequireAuth>
+              <RequireRole role="admin">
+                <Admin />
+              </RequireRole>
+            </RequireAuth>
           }
         />
 
@@ -71,11 +74,28 @@ function AppContent() {
           path="/courses/:id/edit"
           element={
             <RequireAuth>
+
+              <CourseEdit />
+
+            </RequireAuth>
+          }
+        />
+
+        <Route
+          path="/mycourses/:id"
+          element={
+            <RequireAuth>
               <RequireOwner>
-                <CourseEdit />
+                <MyDetailCourse />
               </RequireOwner>
             </RequireAuth>
           }
+        />
+
+
+        <Route
+          path="/mycourses"
+          element={token ? <MyCourses /> : <Navigate to="/login" />}
         />
       </Routes>
 

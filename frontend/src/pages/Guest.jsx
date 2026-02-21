@@ -136,8 +136,7 @@ function Guest() {
                             className="material-symbols-outlined ml-1 group-hover:translate-x-1 transition-transform">chevron_right</span>
                     </a>
                 </div>
-                <div
-                    className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                     <div
                         className="group bg-white dark:bg-slate-800 rounded-2xl overflow-hidden border border-slate-100 dark:border-slate-700 hover:shadow-xl transition-all duration-300">
                         <div

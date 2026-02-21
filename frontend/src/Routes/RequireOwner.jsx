@@ -1,12 +1,19 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useContext } from "react";
 import { useParams, Navigate } from "react-router-dom";
 import api from "../services/api";
+import { AuthContext } from "../context/AuthContext";
 
 function RequireOwner({ children }) {
     const { id } = useParams();
     const [status, setStatus] = useState("loading");
+    const { user, loading } = useContext(AuthContext);
 
     useEffect(() => {
+        if (loading) return <p>Loading...</p>;
+        if (!user) {
+            setStatus("denied");
+            return;
+        }
         const checkOwner = async () => {
             try {
                 const res = await api.get(`/courses/${id}/owner`);
