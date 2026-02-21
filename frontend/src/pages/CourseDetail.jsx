@@ -2,11 +2,12 @@ import { useEffect, useState, useContext } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
 import api from "../services/api";
-import { fetchCourse, fetchMyCourses } from "../services/fetchCourse";
+import { fetchCourse, fetchMyCourses, fetchInstance } from "../services/fetchCourse";
 
 function CourseDetail() {
   const { id } = useParams();
   const [course, setCourse] = useState(null);
+  const [loading, setLoading] = useState(true);
   const [isowner, setIsOwner] = useState(false);
   const [ownedInstanceId, setOwnedInstanceId] = useState(null);
   const [message, setMessage] = useState("");
@@ -24,10 +25,24 @@ function CourseDetail() {
     }
   }, [id, user]);
 
+  useEffect(() => {
+        const loadInstance = async () => {
+            try {
+                const data = await fetchInstance(id);
+                setInstance(data);
+            } catch (err) {
+                console.error(err);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        loadInstance();
+    }, [id]);
+
   const calculateOwnership = async () => {
     try {
       const data = await fetchMyCourses();
-      // Find the specific instance of this template owned by the user
       const instance = data?.find(c => c.template_id === parseInt(id));
       if (instance) {
         setIsOwner(true);
