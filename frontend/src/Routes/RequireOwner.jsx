@@ -3,8 +3,11 @@ import { useParams, Navigate } from "react-router-dom";
 import api from "../services/api";
 import { AuthContext } from "../context/AuthContext";
 
+/**
+ * Validates that the user has access to a specific course instance (either as owner or student).
+ */
 function RequireOwner({ children }) {
-    const { id } = useParams();
+    const { id } = useParams(); // This is now the instance ID
     const [status, setStatus] = useState("loading");
     const { user, loading } = useContext(AuthContext);
 
@@ -14,30 +17,31 @@ function RequireOwner({ children }) {
             setStatus("denied");
             return;
         }
-        const checkOwner = async () => {
+
+        const checkAccess = async () => {
             try {
-                const res = await api.get(`/courses/owner`);
+                // We use our new endpoint which checks both ownership and student invitation
+                const res = await api.get(`/instances/${id}`);
 
-                const isOwned = res.data.some(c => c.template_id === parseInt(id));
-
-                if (isOwned) {
+                if (res.status === 200) {
                     setStatus("allowed");
                 } else {
                     setStatus("denied");
                 }
-
             } catch (err) {
+                console.error("Access check failed:", err);
                 setStatus("denied");
             }
         };
 
-        checkOwner();
-    }, [id]);
+        checkAccess();
+    }, [id, user, loading]);
 
-    if (status === "loading") return <p>Checking permission...</p>;
+    if (status === "loading") return <p className="m-6 text-xl">Checking permissions...</p>;
 
     if (status === "denied") {
-        return <Navigate to={`/courses/${id}`} replace />;
+        // If denied, redirect to main courses page or somewhere appropriate
+        return <Navigate to="/courses" replace />;
     }
 
     return children;

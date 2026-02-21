@@ -21,11 +21,9 @@ app.use(cors({
     credentials: true
 }));
 app.use(express.json());
-app.use(router);
 app.use(cookieParser());
 
-
-app.get('/', (req, res) => {
+router.get('/', (req, res) => {
     res.json({ message: 'Hello World!' });
 });
 
@@ -85,7 +83,7 @@ router.post('/login', async (req, res) => {
     }
 });
 
-app.post("/refresh", (req, res) => {
+router.post("/refresh", (req, res) => {
     const token = req.cookies.refreshToken;
 
     if (!token) return res.sendStatus(401);
@@ -188,7 +186,7 @@ router.post('/register', async (req, res) => {
 });
 
 // create course
-app.post("/courses", verifyToken, checkRole("admin"), async (req, res) => {
+router.post("/courses", verifyToken, checkRole("admin"), async (req, res) => {
     const connection = await db.getConnection();
     try {
         await connection.beginTransaction();
@@ -221,7 +219,7 @@ app.post("/courses", verifyToken, checkRole("admin"), async (req, res) => {
 );
 
 // get all course
-app.get("/courses", async (req, res) => {
+router.get("/courses", async (req, res) => {
     try {
         const [rows] = await db.query(`
             select * from courses order by created_at desc limit 10
@@ -236,7 +234,7 @@ app.get("/courses", async (req, res) => {
 });
 
 // get course (owner)
-app.get('/courses/owner', verifyToken, async (req, res) => {
+router.get('/courses/owner', verifyToken, async (req, res) => {
     try {
         const [rows] = await db.query(
             "select * from course_instances where owner_id = ?",
@@ -250,7 +248,7 @@ app.get('/courses/owner', verifyToken, async (req, res) => {
 });
 
 // get course (invited)
-app.get('/courses/invited', verifyToken, async (req, res) => {
+router.get('/courses/invited', verifyToken, async (req, res) => {
     try {
         const [rows] = await db.query(
             `select ci.* 
@@ -267,7 +265,7 @@ app.get('/courses/invited', verifyToken, async (req, res) => {
 });
 
 // get course (id)
-app.get("/courses/:id", async (req, res) => {
+router.get("/courses/:id", async (req, res) => {
     const [rows] = await db.query(
         "select * from courses where id = ?",
         [req.params.id]
@@ -278,8 +276,43 @@ app.get("/courses/:id", async (req, res) => {
     res.json(rows[0]);
 });
 
+// get instance (id) with access check
+router.get("/instances/:id", verifyToken, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const userId = req.user.id;
+
+        // Check if owner
+        const [ownerRows] = await db.query(
+            "select * from course_instances where id = ? and owner_id = ?",
+            [id, userId]
+        );
+
+        if (ownerRows.length > 0) {
+            return res.json({ ...ownerRows[0], role: 'owner' });
+        }
+
+        // Check if invited student
+        const [studentRows] = await db.query(
+            `select ci.* 
+             from instance_students ist
+             join course_instances ci on ist.instance_id = ci.id
+             where ci.id = ? and ist.user_id = ?`,
+            [id, userId]
+        );
+
+        if (studentRows.length > 0) {
+            return res.json({ ...studentRows[0], role: 'student' });
+        }
+
+        res.status(403).json({ message: "Access denied to this instance" });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // buy course
-app.post("/courses/:id/buy", verifyToken, async (req, res) => {
+router.post("/courses/:id/buy", verifyToken, async (req, res) => {
     const connection = await db.getConnection();
     try {
 
@@ -337,7 +370,7 @@ app.post("/courses/:id/buy", verifyToken, async (req, res) => {
 
 
 // edit course
-app.put("/courses/:id/edit", verifyToken, checkRole("admin"), async (req, res) => {
+router.put("/courses/:id/edit", verifyToken, checkRole("admin"), async (req, res) => {
     const connection = await db.getConnection();
     try {
         await connection.beginTransaction();
@@ -374,7 +407,7 @@ app.put("/courses/:id/edit", verifyToken, checkRole("admin"), async (req, res) =
 });
 
 // delete course
-app.delete("/courses/:id", verifyToken, checkRole("admin"), async (req, res) => {
+router.delete("/courses/:id", verifyToken, checkRole("admin"), async (req, res) => {
     const connection = await db.getConnection();
     try {
         await connection.beginTransaction();
@@ -398,7 +431,7 @@ app.delete("/courses/:id", verifyToken, checkRole("admin"), async (req, res) => 
 });
 
 // get all users
-app.get("/users", verifyToken, async (req, res) => {
+router.get("/users", verifyToken, async (req, res) => {
     try {
         const [rows] = await db.query("select id, username, points from users");
 
@@ -409,7 +442,7 @@ app.get("/users", verifyToken, async (req, res) => {
 });
 
 // add points
-app.post("/admin/users/:id/add-points", verifyToken, checkRole("admin"), async (req, res) => {
+router.post("/admin/users/:id/add-points", verifyToken, checkRole("admin"), async (req, res) => {
     const connection = await db.getConnection();
     try {
         await connection.beginTransaction();
@@ -438,7 +471,7 @@ app.post("/admin/users/:id/add-points", verifyToken, checkRole("admin"), async (
 });
 
 //instaces course (duplicated)
-app.get("/courses/:id/instances", verifyToken, async (req, res) => {
+router.get("/courses/:id/instances", verifyToken, async (req, res) => {
     try {
         const [rows] = await db.query(
             "select * from course_instances where template_id = ? and owner_id = ?",
@@ -452,7 +485,7 @@ app.get("/courses/:id/instances", verifyToken, async (req, res) => {
 });
 
 // get users for select
-app.get("/users/search", verifyToken, async (req, res) => {
+router.get("/users/search", verifyToken, async (req, res) => {
     try {
         const { q } = req.query;
         if (!q) return res.json([]);
@@ -468,13 +501,13 @@ app.get("/users/search", verifyToken, async (req, res) => {
     }
 });
 
-// invite student
-app.post("/courses/:id/invite", verifyToken, checkRole("teacher"), async (req, res) => {
+// invite student to instance
+router.post("/instances/:id/invite", verifyToken, checkRole("teacher"), async (req, res) => {
     const connection = await db.getConnection();
     try {
         await connection.beginTransaction();
 
-        const { id } = req.params;
+        const { id } = req.params; // Instance ID
         const { studentId } = req.body;
 
         if (!studentId) {
@@ -482,12 +515,12 @@ app.post("/courses/:id/invite", verifyToken, checkRole("teacher"), async (req, r
         }
 
         const [course] = await connection.query(
-            "select * from course_instances where template_id = ? and owner_id = ?",
+            "select * from course_instances where id = ? and owner_id = ?",
             [id, req.user.id]
         );
 
         if (course.length === 0) {
-            return res.status(404).json({ message: "Course not found" });
+            return res.status(404).json({ message: "Course instance not found" });
         }
 
         const instanceId = course[0].id;
@@ -523,15 +556,15 @@ app.post("/courses/:id/invite", verifyToken, checkRole("teacher"), async (req, r
     }
 });
 
-app.get('/courses/:id/owner', verifyToken, async (req, res) => {
+router.get('/instances/:id/students', verifyToken, async (req, res) => {
     try {
-        const { id } = req.params;
+        const { id } = req.params; // Instance ID
         const [course] = await db.query(
-            "select id from course_instances where template_id = ? and owner_id = ?",
+            "select id from course_instances where id = ? and owner_id = ?",
             [id, req.user.id]
         );
 
-        if (course.length === 0) return res.json([]);
+        if (course.length === 0) return res.status(404).json({ message: "Not found" });
 
         const instanceId = course[0].id;
 
@@ -549,7 +582,7 @@ app.get('/courses/:id/owner', verifyToken, async (req, res) => {
 })
 
 // delete invite
-app.delete('/courses/:id/invite', verifyToken, async (req, res) => {
+router.delete('/instances/:id/invite', verifyToken, async (req, res) => {
     const connection = await db.getConnection();
     try {
         const { id } = req.params;
@@ -561,7 +594,7 @@ app.delete('/courses/:id/invite', verifyToken, async (req, res) => {
         }
 
         const [course] = await connection.query(
-            "select id from course_instances where template_id = ? and owner_id = ?",
+            "select id from course_instances where id = ? and owner_id = ?",
             [id, req.user.id]
         );
 
@@ -626,6 +659,8 @@ function checkRole(requiredRole) {
         console.error("DB Connection Failed:", err.message);
     }
 })();
+
+app.use(router);
 
 app.listen(port, () => {
     console.log(`Server is running on port ${port}`);

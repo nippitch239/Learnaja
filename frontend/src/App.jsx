@@ -17,7 +17,6 @@ import MyCourses from "./pages/MyCourses";
 import Admin from "./pages/admin/Admin";
 import MyDetailCourse from "./pages/MyDetailCourse";
 import InviteStudent from "./pages/InviteStudent";
-import InstanceCourseDetail from "./pages/InstanceCourseDetail";
 
 function AppContent() {
 
@@ -109,19 +108,6 @@ function AppContent() {
                   <InviteStudent />
                 </RequireOwner>
               </RequireRole>
-            </RequireAuth>
-          }
-        />
-      </Routes>
-
-      <Routes>
-        <Route
-          path="/mycourses/:id/instance"
-          element={
-            <RequireAuth>
-              <RequireOwner>
-                <InstanceCourseDetail />
-              </RequireOwner>
             </RequireAuth>
           }
         />

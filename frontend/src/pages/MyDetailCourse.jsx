@@ -1,18 +1,18 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { fetchCourse } from "../services/fetchCourse";
+import { fetchInstance } from "../services/fetchCourse";
 
 function MyDetailCourse() {
-    const [course, setCourse] = useState(null);
+    const [instance, setInstance] = useState(null);
     const [loading, setLoading] = useState(true);
     const navigate = useNavigate();
     const { id } = useParams();
 
     useEffect(() => {
-        const loadCourse = async () => {
+        const loadInstance = async () => {
             try {
-                const data = await fetchCourse(id);
-                setCourse(data);
+                const data = await fetchInstance(id);
+                setInstance(data);
             } catch (err) {
                 console.error(err);
             } finally {
@@ -20,34 +20,43 @@ function MyDetailCourse() {
             }
         };
 
-        loadCourse();
+        loadInstance();
     }, [id]);
 
     if (loading) return <p>Loading...</p>;
-    if (!course) return <p>Course not found</p>;
+    if (!instance) return <p>Course Instance not found</p>;
 
     return (
         <div className="container mx-auto px-4 my-5">
-            <h1 className="text-3xl font-bold">My Detail Course</h1>
-            <div>
-                <p>{course.title}</p>
-                <p>{course.description}</p>
-                <p>{course.price}</p>
+            <h1 className="text-3xl font-bold">My Course Details</h1>
+            <div className="mt-5">
+                <p className="text-2xl font-semibold">{instance.title}</p>
+                <p className="text-slate-600 dark:text-slate-400">{instance.description}</p>
+                <p className="mt-2 font-bold">Role: <span className="capitalize">{instance.role}</span></p>
+                {instance.role === 'student' && (
+                    <p className="text-sm text-blue-500 mt-2">You are participating in this course as an invited student.</p>
+                )}
             </div>
-            <button
-                className="bg-[#4d4d4d] text-white px-4 py-2 rounded-xl hover:bg-[#a1a1a1] m-6 cursor-pointer"
-                onClick={() => navigate(-1)}
-            >
-                Back
-            </button>
 
-            <button
-                className="bg-[#76ff5b] text-white px-4 py-2 rounded-xl hover:bg-[#a1a1a1] m-6 cursor-pointer"
-                onClick={() => navigate(`/mycourses/${id}/invite`)}
-            >
-                Invite
-            </button>
+            <div className="mt-8 flex gap-4">
+                <button
+                    className="bg-[#4d4d4d] text-white px-6 py-2 rounded-xl hover:bg-[#a1a1a1] cursor-pointer"
+                    onClick={() => navigate(-1)}
+                >
+                    Back
+                </button>
+
+                {instance.role === 'owner' && (
+                    <button
+                        className="bg-[#76ff5b] text-white px-6 py-2 rounded-xl hover:bg-[#52d03b] cursor-pointer transition-colors"
+                        onClick={() => navigate(`/mycourses/${instance.id}/invite`)}
+                    >
+                        Invite Students
+                    </button>
+                )}
+            </div>
         </div>
     );
 }
+
 export default MyDetailCourse;

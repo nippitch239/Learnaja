@@ -35,10 +35,10 @@ function MyCourses() {
                     {courses.length === 0 && <p>No courses found</p>}
 
                     {courses.map(course => (
-                        <div key={course.id} onClick={(e) => { e.stopPropagation(); navigate(`/mycourses/${course.template_id}`) }} className="border border-slate-200 p-5 rounded-xl cursor-pointer hover:shadow-md transition-shadow">
+                        <div key={course.id} onClick={(e) => { e.stopPropagation(); navigate(`/mycourses/${course.id}`) }} className="border border-slate-200 p-5 rounded-xl cursor-pointer hover:shadow-md transition-shadow">
                             <h3 className="text-slate-700 dark:text-slate-300 text-3xl">{course.title}</h3>
                             <p className="mb-5">{course.description}</p>
-                            <Link className="bg-primary text-white px-6 py-2 rounded-xl hover:bg-[#FF9DB8]" to={`/mycourses/${course.template_id}`} onClick={(e) => { e.stopPropagation(); }}>View</Link>
+                            <Link className="bg-primary text-white px-6 py-2 rounded-xl hover:bg-[#FF9DB8]" to={`/mycourses/${course.id}`} onClick={(e) => { e.stopPropagation(); }}>View</Link>
                         </div>
                     ))}
                 </div>
@@ -52,10 +52,10 @@ function MyCourses() {
                     {invitedCourses.length === 0 && <p>No courses found</p>}
 
                     {invitedCourses.map(course => (
-                        <div key={course.id} onClick={(e) => { e.stopPropagation(); navigate(`/mycourses/${course.template_id}`) }} className="border border-slate-200 p-5 rounded-xl cursor-pointer hover:shadow-md transition-shadow">
+                        <div key={course.id} onClick={(e) => { e.stopPropagation(); navigate(`/mycourses/${course.id}`) }} className="border border-slate-200 p-5 rounded-xl cursor-pointer hover:shadow-md transition-shadow">
                             <h3 className="text-slate-700 dark:text-slate-300 text-3xl">{course.title}</h3>
                             <p className="mb-5">{course.description}</p>
-                            <Link className="bg-primary text-white px-6 py-2 rounded-xl hover:bg-[#FF9DB8]" to={`/mycourses/${course.template_id}`} onClick={(e) => { e.stopPropagation(); }}>View</Link>
+                            <Link className="bg-primary text-white px-6 py-2 rounded-xl hover:bg-[#FF9DB8]" to={`/mycourses/${course.id}`} onClick={(e) => { e.stopPropagation(); }}>View</Link>
                         </div>
                     ))}
                 </div>

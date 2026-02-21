@@ -1,26 +1,26 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { fetchCourse } from "../services/fetchCourse";
+import { fetchInstance } from "../services/fetchCourse";
 
 import AsyncSelect from "react-select/async";
 
 import api from "../services/api";
 
 function InviteStudent() {
-    const [course, setCourse] = useState(null);
+    const [instance, setInstance] = useState(null);
     const [loading, setLoading] = useState(true);
     const [message, setMessage] = useState("");
     const [students, setStudents] = useState([]);
     const navigate = useNavigate();
-    const { id } = useParams();
+    const { id } = useParams(); // Now Instance ID
 
     const [selectedOptions, setSelectedOptions] = useState([]);
 
     useEffect(() => {
         const loadInitialData = async () => {
             try {
-                const courseData = await fetchCourse(id);
-                setCourse(courseData);
+                const data = await fetchInstance(id);
+                setInstance(data);
             } catch (err) {
                 console.error(err);
             } finally {
@@ -54,7 +54,7 @@ function InviteStudent() {
         try {
             setLoading(true);
             const promises = selectedOptions.map(opt =>
-                api.post(`/courses/${id}/invite`, { studentId: opt.value })
+                api.post(`/instances/${id}/invite`, { studentId: opt.value })
             );
 
             await Promise.all(promises);
@@ -73,8 +73,7 @@ function InviteStudent() {
 
     const loadStudents = async () => {
         try {
-            const res = await api.get(`/courses/${id}/owner`);
-            console.log(res.data);
+            const res = await api.get(`/instances/${id}/students`);
             setStudents(res.data);
         } catch (err) {
             console.error(err);
@@ -89,7 +88,7 @@ function InviteStudent() {
         if (!confirm("Are you sure you want to remove this student?")) return;
         try {
             setLoading(true);
-            await api.delete(`/courses/${id}/invite`, { data: { studentId } });
+            await api.delete(`/instances/${id}/invite`, { data: { studentId } });
             setMessage("Student removed successfully!");
             loadStudents(); // Refresh the list
             setTimeout(() => setMessage(""), 3000);
@@ -101,66 +100,80 @@ function InviteStudent() {
         }
     };
 
-    if (loading && !course) return <p className="m-6">Loading...</p>;
-    if (!course) return <p className="m-6">Course not found</p>;
+    if (loading && !instance) return <p className="m-6 text-xl">Loading...</p>;
+    if (!instance) return <p className="m-6 text-xl text-red-500">Course Instance not found</p>;
 
     return (
         <div className="container mx-auto px-4 my-5">
-            <h1 className="text-3xl font-bold mb-4">Invite Student to {course.title}</h1>
+            <h1 className="text-3xl font-bold mb-4 text-slate-800 dark:text-white">Invite Students to {instance.title}</h1>
 
             {message && (
-                <div className={`px-4 py-3 rounded mb-4 ${message.includes("Error") ? "bg-red-100 border border-red-400 text-red-700" : "bg-blue-100 border border-blue-400 text-blue-700"}`}>
+                <div className={`px-4 py-3 rounded mb-4 transition-all ${message.includes("Error") ? "bg-red-100 border border-red-400 text-red-700" : "bg-blue-100 border border-blue-400 text-blue-700"}`}>
                     {message}
                 </div>
             )}
-            <div className="bg-white p-6 rounded-xl shadow-md">
-                <p className="font-semibold mb-2">Search students to invite</p>
+            <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-lg border border-slate-100 dark:border-slate-700">
+                <p className="font-semibold mb-2 text-slate-700 dark:text-slate-300">Search students by username or email</p>
                 <AsyncSelect
                     isMulti
                     cacheOptions
                     loadOptions={loadUsersOptions}
                     value={selectedOptions}
                     onChange={setSelectedOptions}
-                    placeholder="Type username to search..."
+                    placeholder="Type to search..."
                     className="my-4"
                 />
 
                 <button
                     onClick={handleInvite}
                     disabled={loading}
-                    className="bg-primary text-white px-6 py-2 rounded-xl hover:bg-[#FF9DB8] transition cursor-pointer"
+                    className="bg-primary text-white px-8 py-3 rounded-xl hover:bg-[#FF9DB8] transition-all cursor-pointer shadow-md disabled:opacity-50"
                 >
-                    {loading ? "Inviting..." : "Invite Selected Students"}
+                    {loading ? "Processing..." : "Invite Selected Students"}
                 </button>
             </div>
 
-            <button
-                className="bg-[#4d4d4d] text-white px-4 py-2 rounded-xl hover:bg-[#a1a1a1] mt-6 cursor-pointer"
-                onClick={() => navigate(-1)}
-            >
-                Back
-            </button>
+            <div className="mt-8 flex items-center justify-between">
+                <h2 className="text-2xl font-bold text-slate-800 dark:text-white">Current Students</h2>
+                <button
+                    className="bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 px-6 py-2 rounded-xl hover:bg-slate-300 dark:hover:bg-slate-600 transition-all cursor-pointer"
+                    onClick={() => navigate(-1)}
+                >
+                    Back to Course
+                </button>
+            </div>
 
-            <table className="mt-6 w-full">
-                <thead className="bg-gray-200 text-left">
-                    <tr className="text-left">
-                        <th className="px-4 py-2">Username</th>
-                        <th className="px-4 py-2">Email</th>
-                        <th className="px-4 py-2">Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {students.map(student => (
-                        <tr className="text-left not-odd:bg-gray-300" key={student.id}>
-                            <td className="px-4 py-2">{student.username}</td>
-                            <td className="px-4 py-2">{student.email}</td>
-                            <td className="px-4 py-2">
-                                <button onClick={() => handleDeleteInvite(student.id)} className="bg-red-500 text-white px-4 py-2 rounded-xl hover:bg-red-600 transition cursor-pointer">Remove</button>
-                            </td>
+            <div className="mt-4 overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm">
+                <table className="w-full text-left">
+                    <thead className="bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700">
+                        <tr>
+                            <th className="px-6 py-4 font-semibold text-slate-700 dark:text-slate-200">Username</th>
+                            <th className="px-6 py-4 font-semibold text-slate-700 dark:text-slate-200">Email</th>
+                            <th className="px-6 py-4 font-semibold text-slate-700 dark:text-slate-200">Actions</th>
                         </tr>
-                    ))}
-                </tbody>
-            </table>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
+                        {students.length === 0 ? (
+                            <tr>
+                                <td colSpan="3" className="px-6 py-8 text-center text-slate-500 italic">No students invited yet.</td>
+                            </tr>
+                        ) : students.map(student => (
+                            <tr className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors" key={student.id}>
+                                <td className="px-6 py-4 text-slate-800 dark:text-slate-300 font-medium">{student.username}</td>
+                                <td className="px-6 py-4 text-slate-600 dark:text-slate-400">{student.email}</td>
+                                <td className="px-6 py-4">
+                                    <button
+                                        onClick={() => handleDeleteInvite(student.id)}
+                                        className="text-red-500 hover:text-red-700 font-semibold transition-colors cursor-pointer"
+                                    >
+                                        Remove
+                                    </button>
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
         </div>
     );
 }
