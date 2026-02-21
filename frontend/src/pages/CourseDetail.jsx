@@ -2,7 +2,7 @@ import { useEffect, useState, useContext } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
 import api from "../services/api";
-import {fetchCourse} from "../services/fetchCourse";
+import { fetchCourse, fetchMyCourses } from "../services/fetchCourse";
 
 function CourseDetail() {
   const { id } = useParams();
@@ -18,21 +18,17 @@ function CourseDetail() {
     fetchCourse(id).then((res) => {
       setCourse(res);
     });
-    fetchIsOwner();
-  }, []);
-
-  useEffect(() => {
-    if (isowner) {
-      navigate(`/courses/${id}`);
+    if (user) {
+      fetchIsOwner();
     }
-  }, [isowner]);
-
-
+  }, [id, user]);
 
   const fetchIsOwner = async () => {
     try {
-      const res = await api.get(`/courses/${id}/owner`);
-      setIsOwner(res.data);
+      const data = await fetchMyCourses();
+      // Check if any owned course template_id matches the current course id
+      const owned = data?.some(c => c.template_id === parseInt(id));
+      setIsOwner(owned);
     } catch (err) {
       console.error(err);
     }

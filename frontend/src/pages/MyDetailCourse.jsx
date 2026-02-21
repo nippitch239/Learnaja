@@ -35,14 +35,14 @@ function MyDetailCourse() {
                 <p>{course.price}</p>
             </div>
             <button
-                className="bg-[#4d4d4d] text-white px-4 py-2 rounded-xl hover:bg-[#a1a1a1] m-6"
+                className="bg-[#4d4d4d] text-white px-4 py-2 rounded-xl hover:bg-[#a1a1a1] m-6 cursor-pointer"
                 onClick={() => navigate(-1)}
             >
                 Back
             </button>
 
             <button
-                className="bg-[#76ff5b] text-white px-4 py-2 rounded-xl hover:bg-[#a1a1a1] m-6"
+                className="bg-[#76ff5b] text-white px-4 py-2 rounded-xl hover:bg-[#a1a1a1] m-6 cursor-pointer"
                 onClick={() => navigate(`/mycourses/${id}/invite`)}
             >
                 Invite

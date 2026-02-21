@@ -1,34 +1,24 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import api from "../../services/api";
-import { fetchCourses } from "../../services/fetchCourse";
+import { fetchCourses } from "../../store/courseSlice";
+import { useDispatch, useSelector } from "react-redux";
 
 function AllCourse() {
-    const [courses, setCourses] = useState([]);
-    const [loading, setLoading] = useState(true);
     const navigate = useNavigate();
+    const dispatch = useDispatch();
+    const { courses, loading } = useSelector((state) => state.courses);
 
     useEffect(() => {
-        const loadCourses = async () => {
-            try {
-                const data = await fetchCourses();
-                setCourses(data);
-            } catch (err) {
-                console.error(err);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        loadCourses();
-    }, []);
+        dispatch(fetchCourses());
+    }, [dispatch]);
 
 
     const handleDelete = async (id) => {
         try {
             if (confirm("Are you sure you want to delete this course?")) {
                 await api.delete(`/courses/${id}`);
-                loadCourses();
+                dispatch(fetchCourses());
             }
         } catch (err) {
             console.error(err);
@@ -36,7 +26,12 @@ function AllCourse() {
     };
 
     if (loading) return <p>Loading...</p>;
-    if (!courses) return <p>Course not found</p>;
+    if (!courses || courses.length === 0) return (
+        <div className="container mx-auto px-4 mt-10">
+            <h1 className="text-xl font-bold text-primary">All Course</h1>
+            <p className="mt-5">No courses found.</p>
+        </div>
+    );
 
     return (
         <div className="container mx-auto px-4">

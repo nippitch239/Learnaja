@@ -9,16 +9,18 @@ function RequireOwner({ children }) {
     const { user, loading } = useContext(AuthContext);
 
     useEffect(() => {
-        if (loading) return <p>Loading...</p>;
+        if (loading) return;
         if (!user) {
             setStatus("denied");
             return;
         }
         const checkOwner = async () => {
             try {
-                const res = await api.get(`/courses/${id}/owner`);
+                const res = await api.get(`/courses/owner`);
 
-                if (res.data === true) {
+                const isOwned = res.data.some(c => c.template_id === parseInt(id));
+
+                if (isOwned) {
                     setStatus("allowed");
                 } else {
                     setStatus("denied");

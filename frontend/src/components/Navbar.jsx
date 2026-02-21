@@ -16,6 +16,7 @@ function Navbar() {
             <li><Link to="/courses" className="text-slate-700 dark:text-slate-300 hover:text-primary">Courses</Link></li>
             <li><Link to="/mentors" className="text-slate-700 dark:text-slate-300 hover:text-primary">Mentors</Link></li>
             <li><Link to="/contact" className="text-slate-700 dark:text-slate-300 hover:text-primary">Contact</Link></li>
+            <li><Link to="/mycourses" className="text-slate-700 dark:text-slate-300 hover:text-primary">My Courses</Link></li>
             {user?.roles?.includes("admin") && <li><Link to="/admin" className="text-slate-700 dark:text-slate-300 hover:text-primary">Admin</Link></li>}
             <div className="flex items-center">
               <img className="w-6 h-6 rounded-full" src={profile} alt="" />

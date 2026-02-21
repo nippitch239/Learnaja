@@ -2,14 +2,18 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../../services/api";
 
+import { useDispatch } from "react-redux";
+import { fetchCourses } from "../../store/courseSlice";
+
 function CreateCourse() {
+  const dispatch = useDispatch();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [price, setPrice] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
-
+  const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -30,6 +34,10 @@ function CreateCourse() {
 
       console.log(res.data);
       setMessage("Course created successfully");
+      setTimeout(() => {
+        setMessage("");
+        dispatch(fetchCourses());
+      }, 1000);
 
 
     } catch (err) {

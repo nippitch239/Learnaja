@@ -20,4 +20,24 @@ const fetchCourses = async () => {
     }
 };
 
-export { fetchCourse, fetchCourses };
+const fetchMyCourses = async () => {
+    try {
+        const res = await api.get(`/courses/owner`);
+        // console.log(res.data)
+        return res.data;
+    } catch (err) {
+        console.error(err);
+    }
+};
+
+const fetchInvitedCourses = async () => {
+    try {
+        const res = await api.get(`/courses/invited`);
+        // console.log(res.data)
+        return res.data;
+    } catch (err) {
+        console.error(err);
+    }
+};
+
+export { fetchCourse, fetchCourses, fetchMyCourses, fetchInvitedCourses };

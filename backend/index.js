@@ -235,6 +235,37 @@ app.get("/courses", async (req, res) => {
     }
 });
 
+// get course (owner)
+app.get('/courses/owner', verifyToken, async (req, res) => {
+    try {
+        const [rows] = await db.query(
+            "select * from course_instances where owner_id = ?",
+            [req.user.id]
+        );
+
+        res.json(rows);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// get course (invited)
+app.get('/courses/invited', verifyToken, async (req, res) => {
+    try {
+        const [rows] = await db.query(
+            `select ci.* 
+            from instance_students ist
+            join course_instances ci on ist.instance_id = ci.id
+            where ist.user_id = ?`,
+            [req.user.id]
+        );
+
+        res.json(rows);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // get course (id)
 app.get("/courses/:id", async (req, res) => {
     const [rows] = await db.query(
@@ -303,18 +334,7 @@ app.post("/courses/:id/buy", verifyToken, async (req, res) => {
     }
 });
 
-app.get('/courses/:id/owner', verifyToken, async (req, res) => {
-    try {
-        const [rows] = await db.query(
-            "select * from course_instances where owner_id = ? and template_id = ?",
-            [req.user.id, req.params.id]
-        );
 
-        res.json(rows.length > 0);
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
 
 // edit course
 app.put("/courses/:id/edit", verifyToken, checkRole("admin"), async (req, res) => {
@@ -378,7 +398,7 @@ app.delete("/courses/:id", verifyToken, checkRole("admin"), async (req, res) => 
 });
 
 // get all users
-app.get("/admin/users", verifyToken, checkRole("admin"), async (req, res) => {
+app.get("/users", verifyToken, async (req, res) => {
     try {
         const [rows] = await db.query("select id, username, points from users");
 
@@ -416,6 +436,158 @@ app.post("/admin/users/:id/add-points", verifyToken, checkRole("admin"), async (
         res.status(500).json({ error: err.message });
     }
 });
+
+//instaces course (duplicated)
+app.get("/courses/:id/instances", verifyToken, async (req, res) => {
+    try {
+        const [rows] = await db.query(
+            "select * from course_instances where template_id = ? and owner_id = ?",
+            [req.params.id, req.user.id]
+        );
+
+        res.json(rows);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// get users for select
+app.get("/users/search", verifyToken, async (req, res) => {
+    try {
+        const { q } = req.query;
+        if (!q) return res.json([]);
+
+        const [rows] = await db.query(
+            "select id, username, email from users where username like ? and id != ?",
+            [`%${q}%`, req.user.id]
+        );
+
+        res.json(rows);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// invite student
+app.post("/courses/:id/invite", verifyToken, checkRole("teacher"), async (req, res) => {
+    const connection = await db.getConnection();
+    try {
+        await connection.beginTransaction();
+
+        const { id } = req.params;
+        const { studentId } = req.body;
+
+        if (!studentId) {
+            return res.status(400).json({ message: "Student ID required" });
+        }
+
+        const [course] = await connection.query(
+            "select * from course_instances where template_id = ? and owner_id = ?",
+            [id, req.user.id]
+        );
+
+        if (course.length === 0) {
+            return res.status(404).json({ message: "Course not found" });
+        }
+
+        const instanceId = course[0].id;
+
+        const [result2] = await connection.query(
+            "select * from instance_students where instance_id = ? and user_id = ?",
+            [instanceId, studentId]
+        );
+
+        if (result2.length > 0) {
+            return res.status(400).json({ message: "Error: Student already invited" });
+        }
+
+        const [result] = await connection.query(
+            "insert into instance_students (instance_id, user_id) values (?, ?)",
+            [instanceId, studentId]
+        );
+
+
+
+        await connection.commit();
+
+        res.status(201).json({
+            message: "Student invited",
+            courseId: result.insertId
+        });
+    } catch (err) {
+        console.log(err.message)
+        await connection.rollback();
+        res.status(500).json({ error: err.message });
+    } finally {
+        connection.release();
+    }
+});
+
+app.get('/courses/:id/owner', verifyToken, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const [course] = await db.query(
+            "select id from course_instances where template_id = ? and owner_id = ?",
+            [id, req.user.id]
+        );
+
+        if (course.length === 0) return res.json([]);
+
+        const instanceId = course[0].id;
+
+        const [rows] = await db.query(
+            `select u.id, u.username, u.name, u.email
+            from instance_students ist
+            join users u on ist.user_id = u.id
+            where ist.instance_id = ?`,
+            [instanceId]
+        );
+        res.json(rows);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+})
+
+// delete invite
+app.delete('/courses/:id/invite', verifyToken, async (req, res) => {
+    const connection = await db.getConnection();
+    try {
+        const { id } = req.params;
+        const { studentId } = req.body;
+
+        await connection.beginTransaction();
+        if (!studentId) {
+            return res.status(400).json({ message: "Student ID required" });
+        }
+
+        const [course] = await connection.query(
+            "select id from course_instances where template_id = ? and owner_id = ?",
+            [id, req.user.id]
+        );
+
+        if (course.length === 0) {
+            return res.status(404).json({ message: "Course instance not found" });
+        }
+
+        const instanceId = course[0].id;
+
+        await connection.query(
+            "delete from instance_students where instance_id = ? and user_id = ?",
+            [instanceId, studentId]
+        );
+
+        await connection.commit();
+        res.status(200).json({
+            message: "Student removed",
+            courseId: id
+        });
+    } catch (err) {
+        await connection.rollback();
+        res.status(500).json({ error: err.message });
+    } finally {
+        connection.release();
+    }
+})
 
 // middleware
 function verifyToken(req, res, next) {

@@ -16,6 +16,8 @@ import Guest from "./pages/Guest";
 import MyCourses from "./pages/MyCourses";
 import Admin from "./pages/admin/Admin";
 import MyDetailCourse from "./pages/MyDetailCourse";
+import InviteStudent from "./pages/InviteStudent";
+import InstanceCourseDetail from "./pages/InstanceCourseDetail";
 
 function AppContent() {
 
@@ -81,6 +83,12 @@ function AppContent() {
           }
         />
 
+
+        <Route
+          path="/mycourses"
+          element={token ? <MyCourses /> : <Navigate to="/login" />}
+        />
+
         <Route
           path="/mycourses/:id"
           element={
@@ -92,10 +100,30 @@ function AppContent() {
           }
         />
 
-
         <Route
-          path="/mycourses"
-          element={token ? <MyCourses /> : <Navigate to="/login" />}
+          path="/mycourses/:id/invite"
+          element={
+            <RequireAuth>
+              <RequireRole role="teacher">
+                <RequireOwner>
+                  <InviteStudent />
+                </RequireOwner>
+              </RequireRole>
+            </RequireAuth>
+          }
+        />
+      </Routes>
+
+      <Routes>
+        <Route
+          path="/mycourses/:id/instance"
+          element={
+            <RequireAuth>
+              <RequireOwner>
+                <InstanceCourseDetail />
+              </RequireOwner>
+            </RequireAuth>
+          }
         />
       </Routes>
 
