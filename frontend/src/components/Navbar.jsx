@@ -37,7 +37,7 @@ function Navbar() {
                 </div>
                 <div className="flex items-center space-x-6 text-white font-medium">
                     <Link className="hidden lg:block hover:opacity-80 transition"
-                        to="/my-courses">My Courses</Link>
+                        to="/my-courses">คอร์สของฉัน</Link>
                     <div className="hidden lg:flex items-center space-x-1">
                         <span className="text-sm">1000P</span>
                         <span className="material-symbols-outlined text-xl">toll</span>
@@ -59,9 +59,9 @@ function Navbar() {
                                     </div>
                                     <hr className="mt-3 border-slate-200 dark:border-slate-700" />
                                 </li>
-                                <li className="px-4 py-2 hover:bg-primary/10  dark:hover:bg-slate-700 cursor-pointer text-primary list-none "><span className="material-symbols-outlined text-sm mr-2">school</span>My Courses</li>
-                                <li className="px-4 py-2 hover:bg-primary/10 dark:hover:bg-slate-700 cursor-pointer text-primary list-none"><span className="material-symbols-outlined text-sm mr-2">Settings</span>Settings</li>
-                                <li className="px-4 py-2 hover:bg-primary/10 dark:hover:bg-slate-700 cursor-pointer text-primary list-none "><button onClick={handleLogout}><span className="material-symbols-outlined text-sm mr-2">logout</span>Logout</button></li>
+                                <li className="px-4 py-2 hover:bg-primary/10  dark:hover:bg-slate-700 cursor-pointer text-primary list-none "><span className="material-symbols-outlined text-sm mr-2">school</span>คอร์สของฉัน</li>
+                                <li className="px-4 py-2 hover:bg-primary/10 dark:hover:bg-slate-700 cursor-pointer text-primary list-none"><span className="material-symbols-outlined text-sm mr-2">Settings</span>การตั้งค่า</li>
+                                <li className="px-4 py-2 hover:bg-primary/10 dark:hover:bg-slate-700 cursor-pointer text-primary list-none "><button onClick={handleLogout}><span className="material-symbols-outlined text-sm mr-2">logout</span>ออกจากระบบ</button></li>
                             </div>
                         </div>
                     </div>
