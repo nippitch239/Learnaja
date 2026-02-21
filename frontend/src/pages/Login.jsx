@@ -1,7 +1,5 @@
-import { useState } from "react";
-import { Link } from "react-router-dom";
-import { useNavigate } from "react-router-dom";
-import { useContext } from "react";
+import { useState, useContext } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
 import api from "../services/api";
 
@@ -13,15 +11,18 @@ function Login() {
     const navigate = useNavigate();
 
     const handleLogin = async () => {
-        const res = await api.post("/login", {
-            user,
-            password
-        });
+        try {
+            const res = await api.post("/login", {
+                user,
+                password
+            });
 
-        console.log(res)
-
-        login(res.data.token);
-        navigate("/home");
+            login(res.data.token);
+            navigate("/home");
+        } catch (err) {
+            alert("Try Again Later.");
+            console.log(err);
+        }
     };
 
     return (

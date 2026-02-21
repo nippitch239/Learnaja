@@ -1,8 +1,11 @@
+
+import { Link } from "react-router-dom";
 import { useContext } from "react";
-import { Link, useNavigate } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
+import profile from "../assets/profile.avif"
 
 function Navbar() {
+    const { user } = useContext(AuthContext);
     const { logout } = useContext(AuthContext);
     const navigate = useNavigate();
 
@@ -16,16 +19,14 @@ function Navbar() {
         dropdown.classList.toggle('hidden');
     }
   return (
-    <div className="bg-background-light dark:bg-background-dark text-slate-800 dark:text-slate-100">
+     <div className="bg-background-light dark:bg-background-dark text-slate-800 dark:text-slate-100">
         <nav className="fixed top-4 left-0 right-0 z-50 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <div
                 className="bg-primary rounded-2xl shadow-lg px-6 py-3 flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                    <span
-                        className="material-symbols-outlined text-white text-3xl">book_4</span>
-                    <span
-                        className="text-white font-bold text-2xl tracking-tight">Learnaja</span>
-                </div>
+                <Link to="/"><div className="flex items-center space-x-2">
+                    <span className="material-symbols-outlined text-white text-3xl">book_4</span>
+                    <span className="text-white font-bold text-2xl tracking-tight">Learnaja</span>
+                </div></Link>
                 <div className="hidden md:flex flex-1 max-w-xl mx-8">
                     <div className="relative w-full">
                         <span
@@ -59,8 +60,10 @@ function Navbar() {
                                     </div>
                                     <hr className="mt-3 border-slate-200 dark:border-slate-700" />
                                 </li>
-                                <li className="px-4 py-2 hover:bg-primary/10  dark:hover:bg-slate-700 cursor-pointer text-primary list-none "><span className="material-symbols-outlined text-sm mr-2">school</span>คอร์สของฉัน</li>
+                                <Link to="/mycourses"><li className="px-4 py-2 hover:bg-primary/10  dark:hover:bg-slate-700 cursor-pointer text-primary list-none "><span className="material-symbols-outlined text-sm mr-2">school</span>คอร์สของฉัน</li></Link>
+                                <Link to="/courses"><li className="px-4 py-2 hover:bg-primary/10  dark:hover:bg-slate-700 cursor-pointer text-primary list-none "><span className="material-symbols-outlined text-sm mr-2">school</span>คอร์สทั้งหมด</li></Link>
                                 <li className="px-4 py-2 hover:bg-primary/10 dark:hover:bg-slate-700 cursor-pointer text-primary list-none"><span className="material-symbols-outlined text-sm mr-2">Settings</span>การตั้งค่า</li>
+                                 {user?.roles?.includes("admin") && <li><Link to="/admin" className="text-slate-700 dark:text-slate-300 hover:text-primary">Admin</Link></li>}
                                 <li className="px-4 py-2 hover:bg-primary/10 dark:hover:bg-slate-700 cursor-pointer text-primary list-none "><button onClick={handleLogout}><span className="material-symbols-outlined text-sm mr-2">logout</span>ออกจากระบบ</button></li>
                             </div>
                         </div>
