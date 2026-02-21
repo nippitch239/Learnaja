@@ -44,11 +44,16 @@ function AllCourse() {
                         <div className="h-48 bg-accent-blue relative overflow-hidden">
                             <img alt={course.title}
                                 className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                                src={course.image}
+                                src={course.thumbnail_url}
                                 loading="lazy" />
                         </div>
                         <div className="p-5">
 
+                            <div className="flex justify-between items-start mb-2">
+                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest bg-slate-100 px-2 py-1 rounded">
+                                    {course.category || "General"}
+                                </span>
+                            </div>
                             <p className="text-xl font-bold text-primary uppercase tracking-wider mb-2">
                                 {course.title}
                             </p>

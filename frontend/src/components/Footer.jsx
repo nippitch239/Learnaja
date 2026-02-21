@@ -13,7 +13,7 @@ function Footer() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
           
-          {/* Logo */}
+    
           <div className="col-span-2 md:col-span-1">
             <div className="flex items-center space-x-2 mb-6">
               <span className="material-symbols-outlined text-primary text-2xl">
@@ -28,7 +28,7 @@ function Footer() {
             </p>
           </div>
 
-          {/* Platform */}
+     
           <div>
             <h5 className="font-bold text-slate-900 dark:text-white mb-6">Platform</h5>
             <ul className="space-y-4 text-sm text-slate-500 dark:text-slate-400">
@@ -39,7 +39,7 @@ function Footer() {
             </ul>
           </div>
 
-          {/* Support */}
+     
           <div>
             <h5 className="font-bold text-slate-900 dark:text-white mb-6">Support</h5>
             <ul className="space-y-4 text-sm text-slate-500 dark:text-slate-400">
@@ -50,7 +50,7 @@ function Footer() {
             </ul>
           </div>
 
-          {/* Social */}
+     
           <div>
             <h5 className="font-bold text-slate-900 dark:text-white mb-6">Social</h5>
             <div className="flex space-x-4">
@@ -64,7 +64,7 @@ function Footer() {
           </div>
         </div>
 
-        {/* Bottom */}
+    
         <div className="mt-12 pt-8 border-t border-slate-200 dark:border-slate-800 flex flex-col md:flex-row justify-between items-center text-sm text-slate-500">
           <p>© 2024 Learnaja. All rights reserved.</p>
 

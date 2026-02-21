@@ -26,19 +26,19 @@ function CourseDetail() {
   }, [id, user]);
 
   useEffect(() => {
-        const loadInstance = async () => {
-            try {
-                const data = await fetchInstance(id);
-                setInstance(data);
-            } catch (err) {
-                console.error(err);
-            } finally {
-                setLoading(false);
-            }
-        };
+    const loadInstance = async () => {
+      try {
+        const data = await fetchInstance(id);
+        setInstance(data);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-        loadInstance();
-    }, [id]);
+    loadInstance();
+  }, [id]);
 
   const calculateOwnership = async () => {
     try {
@@ -83,9 +83,12 @@ function CourseDetail() {
   return (
     <>
       <div className="bg-white p-6 rounded-xl shadow-2xl m-6">
+        {course.thumbnail_url && (
+          <img src={course.thumbnail_url} alt={course.title} className="w-full h-64 object-cover rounded-xl mb-6 shadow-md" />
+        )}
         <h1 className="text-3xl font-bold">{course.title}</h1>
-        <p>{course.description}</p>
-        <p>Price: {course.price} บาท</p>
+        <p className="text-slate-600 mt-2">{course.description}</p>
+        <p className="mt-4 font-bold text-xl text-primary">Price: {course.price} THB</p>
 
         {message && <p className="mt-2 text-blue-600">{message}</p>}
         {isowner && (

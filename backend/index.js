@@ -191,15 +191,15 @@ router.post("/courses", verifyToken, checkRole("admin"), async (req, res) => {
     try {
         await connection.beginTransaction();
 
-        const { title, description, price } = req.body;
+        const { title, description, price, category } = req.body;
 
         if (!title) {
             return res.status(400).json({ message: "Title required" });
         }
 
         const [result] = await connection.query(
-            "insert into courses (title, description, price) values (?, ?, ?)",
-            [title, description, price]
+            "insert into courses (title, description, price, category) values (?, ?, ?, ?)",
+            [title, description, price, category]
         );
 
         await connection.commit();
@@ -221,13 +221,19 @@ router.post("/courses", verifyToken, checkRole("admin"), async (req, res) => {
 // get all course
 router.get("/courses", async (req, res) => {
     try {
-        const [rows] = await db.query(`
-            select * from courses order by created_at desc limit 10
-        `);
+        const { search } = req.query;
+        let query = "select * from courses";
+        let params = [];
 
+        if (search) {
+            query += " where title like ? or category like ?";
+            params.push(`%${search}%`, `%${search}%`);
+        }
+
+        query += " order by created_at desc limit 10";
+
+        const [rows] = await db.query(query, params);
         res.json(rows);
-        console.log(rows)
-
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
@@ -274,6 +280,45 @@ router.get("/courses/:id", async (req, res) => {
     if (rows.length === 0) return res.status(404).json({ message: "Not found" });
 
     res.json(rows[0]);
+});
+
+// get full course content (id)
+router.get("/courses/:id/full", async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        // 1. Get Course
+        const [courseRows] = await db.query("select * from courses where id = ?", [id]);
+        if (courseRows.length === 0) return res.status(404).json({ message: "Course not found" });
+        const course = courseRows[0];
+
+        // 2. Get Modules
+        const [modules] = await db.query("select * from course_modules where course_id = ? order by order_index", [id]);
+
+        // 3. For each module, get lessons, quiz, and assignment
+        for (let module of modules) {
+            // Get Lessons
+            const [lessons] = await db.query("select * from course_lessons where module_id = ? order by order_index", [module.id]);
+            module.lessons = lessons;
+
+            // Get Quizzes
+            const [quizzes] = await db.query("select * from course_quizzes where module_id = ?", [module.id]);
+            for (let quiz of quizzes) {
+                const [questions] = await db.query("select * from course_quiz_questions where quiz_id = ?", [quiz.id]);
+                quiz.questions = questions;
+            }
+            module.quizzes = quizzes; // The spec says "quiz" (singular) but DB allows many
+
+            // Get Assignments
+            const [assignments] = await db.query("select * from course_assignments where module_id = ?", [module.id]);
+            module.assignments = assignments;
+        }
+
+        course.modules = modules;
+        res.json(course);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
 });
 
 // get instance (id) with access check
@@ -375,7 +420,7 @@ router.put("/courses/:id/edit", verifyToken, checkRole("admin"), async (req, res
     try {
         await connection.beginTransaction();
         const { id } = req.params;
-        const { title, description, price } = req.body;
+        const { title, description, price, thumbnail_url, category } = req.body;
 
         if (!title) {
             return res.status(400).json({ message: "Title required" });
@@ -390,8 +435,8 @@ router.put("/courses/:id/edit", verifyToken, checkRole("admin"), async (req, res
         }
 
         const [result] = await connection.query(
-            "update courses set title = ?, description = ?, price = ? where id = ?",
-            [title, description, price, id]
+            "update courses set title = ?, description = ?, price = ?, thumbnail_url = ?, category = ? where id = ?",
+            [title, description, price, thumbnail_url, category, id]
         );
 
         await connection.commit();
@@ -621,6 +666,123 @@ router.delete('/instances/:id/invite', verifyToken, async (req, res) => {
         connection.release();
     }
 })
+
+// --- Content Management (Admin Only) ---
+
+// Add Module
+router.post("/courses/:id/modules", verifyToken, checkRole("admin"), async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { title, order_index } = req.body;
+        const [result] = await db.query(
+            "insert into course_modules (course_id, title, order_index) values (?, ?, ?)",
+            [id, title, order_index || 0]
+        );
+        res.status(201).json({ message: "Module added", moduleId: result.insertId });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Add Lesson
+router.post("/modules/:id/lessons", verifyToken, checkRole("admin"), async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { title, type, duration_minutes, content, order_index } = req.body;
+        const [result] = await db.query(
+            "insert into course_lessons (module_id, title, type, duration_minutes, content, order_index) values (?, ?, ?, ?, ?, ?)",
+            [id, title, type, duration_minutes || 0, JSON.stringify(content), order_index || 0]
+        );
+        res.status(201).json({ message: "Lesson added", lessonId: result.insertId });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Add Quiz
+router.post("/modules/:id/quizzes", verifyToken, checkRole("admin"), async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { title, passing_score } = req.body;
+        const [result] = await db.query(
+            "insert into course_quizzes (module_id, title, passing_score) values (?, ?, ?)",
+            [id, title, passing_score || 70]
+        );
+        res.status(201).json({ message: "Quiz added", quizId: result.insertId });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Add Question to Quiz
+router.post("/quizzes/:id/questions", verifyToken, checkRole("admin"), async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { question, type, choices, correct_answer, points } = req.body;
+        const [result] = await db.query(
+            "insert into course_quiz_questions (quiz_id, question, type, choices, correct_answer, points) values (?, ?, ?, ?, ?, ?)",
+            [id, question, type || 'multiple_choice', JSON.stringify(choices), correct_answer, points || 10]
+        );
+        res.status(201).json({ message: "Question added", questionId: result.insertId });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Add Assignment
+router.post("/modules/:id/assignments", verifyToken, checkRole("admin"), async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { title, description, max_score, submission_type } = req.body;
+        const [result] = await db.query(
+            "insert into course_assignments (module_id, title, description, max_score, submission_type) values (?, ?, ?, ?, ?)",
+            [id, title, description, max_score || 100, submission_type || 'file_upload']
+        );
+        res.status(201).json({ message: "Assignment added", assignmentId: result.insertId });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Delete Module
+router.delete("/modules/:id", verifyToken, checkRole("admin"), async (req, res) => {
+    try {
+        await db.query("delete from course_modules where id = ?", [req.params.id]);
+        res.json({ message: "Module deleted" });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Delete Lesson
+router.delete("/lessons/:id", verifyToken, checkRole("admin"), async (req, res) => {
+    try {
+        await db.query("delete from course_lessons where id = ?", [req.params.id]);
+        res.json({ message: "Lesson deleted" });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Delete Quiz
+router.delete("/quizzes/:id", verifyToken, checkRole("admin"), async (req, res) => {
+    try {
+        await db.query("delete from course_quizzes where id = ?", [req.params.id]);
+        res.json({ message: "Quiz deleted" });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Delete Assignment
+router.delete("/assignments/:id", verifyToken, checkRole("admin"), async (req, res) => {
+    try {
+        await db.query("delete from course_assignments where id = ?", [req.params.id]);
+        res.json({ message: "Assignment deleted" });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
 
 // middleware
 function verifyToken(req, res, next) {
