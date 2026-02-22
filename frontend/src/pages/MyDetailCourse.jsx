@@ -16,15 +16,12 @@ function MyDetailCourse() {
     useEffect(() => {
         const loadData = async () => {
             try {
-                // 1. Fetch Instance details
                 const instanceData = await fetchInstance(id);
                 setInstance(instanceData);
 
-                // 2. Fetch Full Course Content from the template
                 const courseData = await fetchCourseFull(instanceData.template_id);
                 setFullCourse(courseData);
 
-                // Set first lesson as active by default if available
                 if (courseData.modules?.[0]?.lessons?.[0]) {
                     setActiveLesson(courseData.modules[0].lessons[0]);
                 }
@@ -83,7 +80,6 @@ function MyDetailCourse() {
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
-                {/* Main Content Area (Video Player) */}
                 <div className="lg:col-span-8 space-y-8">
                     {activeLesson ? (
                         <div className="space-y-6">
@@ -129,7 +125,6 @@ function MyDetailCourse() {
                     )}
                 </div>
 
-                {/* Sidebar (Curriculum) */}
                 <div className="lg:col-span-4 space-y-6">
                     <h3 className="text-2xl font-black text-slate-800 dark:text-white px-2">Course Curriculum</h3>
 
@@ -165,7 +160,6 @@ function MyDetailCourse() {
                                             </button>
                                         ))}
 
-                                        {/* Quizzes and Assignments in sidebar as well */}
                                         {module.quizzes?.map(quiz => (
                                             <div key={quiz.id} className="p-4 bg-amber-50 dark:bg-amber-900/10 rounded-2xl border-2 border-amber-100 dark:border-amber-900/20 flex items-center gap-4">
                                                 <div className="w-10 h-10 rounded-xl bg-amber-200/50 flex items-center justify-center text-amber-700">
