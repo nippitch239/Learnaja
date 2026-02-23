@@ -61,7 +61,7 @@ router.post('/login', async (req, res) => {
         const token = jwt.sign(
             { id: foundUser.id, roles: roleList },
             process.env.ACCESS_SECRET,
-            { expiresIn: "15m" }
+            { expiresIn: "1d" }
         );
 
         const refreshToken = jwt.sign(
@@ -595,7 +595,7 @@ router.post("/instances/:id/invite", verifyToken, checkRole("teacher"), async (r
 
 router.get('/instances/:id/students', verifyToken, async (req, res) => {
     try {
-        const { id } = req.params; 
+        const { id } = req.params;
         const [course] = await db.query(
             "select id from course_instances where id = ? and owner_id = ?",
             [id, req.user.id]
