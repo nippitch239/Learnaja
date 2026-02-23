@@ -1,0 +1,273 @@
+{
+    "lesson_id": "2",
+    "title": "Docker พื้นฐานสู่การใช้งานจริง",
+    "price": 890,
+    "thumbnail": "2.jpg",
+    "total_chapters": 10,
+    "total_time": 8,
+    "category": "DevOps",
+    "description": "คอร์สเรียน Docker ตั้งแต่พื้นฐานจนถึงระดับใช้งานจริง ออกแบบมาสำหรับนักพัฒนา (Developer) และ System Admin ที่ต้องการแก้ปัญหา 'It works on my machine' หรือโค้ดรันบนเครื่องตัวเองได้แต่พังบนเซิร์ฟเวอร์ ผู้เรียนจะได้เข้าใจคอนเซปต์ของ Container, การเขียน Dockerfile, การจัดการข้อมูล (Volumes), ระบบเครือข่าย (Network) และการรันระบบที่มีหลายๆ ส่วนประกอบพร้อมกันด้วย Docker Compose พร้อมเทคนิค Best Practices ที่ใช้กันในอุตสาหกรรมซอฟต์แวร์",
+    "objectives": [
+        "เข้าใจความแตกต่างระหว่าง Container และ Virtual Machine",
+        "สามารถใช้งานคำสั่งพื้นฐานของ Docker ในการจัดการ Image และ Container",
+        "เขียน Dockerfile เพื่อสร้าง Image สำหรับแอปพลิเคชันของตัวเองได้",
+        "จัดการข้อมูลด้วย Volumes และ Bind Mounts เพื่อไม่ให้ข้อมูลสูญหาย",
+        "สร้างและจัดการ Network เพื่อให้ Container สามารถสื่อสารกันได้",
+        "ใช้งาน Docker Compose เพื่อจำลองสภาพแวดล้อมที่ซับซ้อน (เช่น Web + Database)"
+    ],
+    "target_audience": [
+        "Software Developer ที่ต้องการแพ็กเกจแอปพลิเคชันของตนเอง",
+        "System Administrator / DevOps Engineer มือใหม่",
+        "นักศึกษาหรือผู้สนใจเทคโนโลยีด้าน Server และ Deployment"
+    ],
+    "chap1": [
+        {
+            "video": "https://www.youtube.com/embed/QlfG0qee07c?si=TWG0horw1DXe1Ahc" 
+        },
+        {
+            "heading": "แนะนำปัญหา 'It works on my machine'",
+            "content": "ปัญหาคลาสสิกของนักพัฒนาคือ โค้ดสามารถรันบนเครื่องตัวเองได้อย่างสมบูรณ์แบบ แต่พอนำไปใช้งานบนเซิร์ฟเวอร์จริงกลับพัง สาเหตุส่วนใหญ่มาจากเวอร์ชันของโปรแกรม, ระบบปฏิบัติการ, หรือการตั้งค่า Environment ที่ไม่เหมือนกัน Docker ถูกสร้างขึ้นมาเพื่อแก้ปัญหานี้โดยเฉพาะ"
+        },
+        {
+            "heading": "Docker คืออะไร?",
+            "content": "Docker เป็นแพลตฟอร์มแบบ Open-Source ที่ใช้ในการสร้าง, ทดสอบ, และรันแอปพลิเคชัน โดยทำการแพ็กเกจโค้ดและส่วนประกอบทั้งหมดที่จำเป็น (เช่น Library, Environment) ไว้ในกล่องที่เรียกว่า 'Container' ทำให้มั่นใจได้ว่าแอปพลิเคชันจะรันได้เหมือนเดิมทุกที่ไม่ว่าจะนำกล่องนี้ไปเปิดที่ไหน"
+        },
+        {
+            "heading": "Container vs Virtual Machine (VM)",
+            "content": " Virtual Machine (VM) เป็นการจำลองคอมพิวเตอร์ทั้งเครื่อง รวมถึงระบบปฏิบัติการ (Guest OS) ซึ่งกินทรัพยากรเยอะและบูตช้า ส่วน Container จะใช้ระบบปฏิบัติการร่วมกับเครื่องโฮสต์ (Host OS) แต่แยกสภาพแวดล้อมการรันออกจากกัน ทำให้ Container มีขนาดเล็ก ทำงานเร็ว และใช้ทรัพยากรน้อยกว่ามาก"
+        },
+        {
+            "heading": "สถาปัตยกรรมของ Docker",
+            "content": "Docker ทำงานแบบ Client-Server Architecture ประกอบด้วย Docker Client (ตัวรับคำสั่งจากผู้ใช้), Docker Daemon (เบื้องหลังที่คอยสร้างและรัน Container), และ Docker Registry (ที่เก็บไฟล์ Image เช่น Docker Hub)"
+        },
+        {
+            "heading": "การติดตั้ง Docker Desktop",
+            "content": "เริ่มต้นใช้งานด้วยการติดตั้ง Docker Desktop ซึ่งรองรับทั้ง Windows, Mac และ Linux เมื่อติดตั้งเสร็จ สามารถตรวจสอบการทำงานได้โดยเปิด Terminal (หรือ Command Prompt) แล้วพิมพ์คำสั่ง 'docker --version' เพื่อดูเวอร์ชันที่ติดตั้ง"
+        }
+    ],
+    "chap2": [
+        {
+            "video": "https://www.youtube.com/embed/QlfG0qee07c?si=TWG0horw1DXe1Ahc" 
+        },
+        {
+            "heading": "ทำความเข้าใจ Docker Image",
+            "content": "Image เปรียบเสมือน 'พิมพ์เขียว' (Blueprint) หรือแม่แบบที่เป็นแบบ Read-only ภายใน Image จะบรรจุ Source Code, ไลบรารี, และการตั้งค่าต่างๆ ที่แอปพลิเคชันต้องการใช้ในการทำงาน Image หนึ่งไฟล์สามารถนำไปสร้าง Container ได้ไม่จำกัดจำนวน"
+        },
+        {
+            "heading": "ทำความเข้าใจ Docker Container",
+            "content": "Container คือ Image ที่ถูกนำมา 'รัน' หรือทำงานจริงๆ เปรียบเหมือนเราเอาพิมพ์เขียวมาสร้างเป็นบ้าน บ้านแต่ละหลัง (Container) จะมีสถานะเป็นของตัวเอง สามารถถูกสั่งเปิด, ปิด, รีสตาร์ท หรือทำลายทิ้งได้ตลอดเวลาโดยไม่กระทบกับตัว Image ต้นทาง"
+        },
+        {
+            "heading": "Docker Hub และ Public Registry",
+            "content": "Docker Hub (hub.docker.com) คือคลังจัดเก็บ Image สาธารณะที่ใหญ่ที่สุดในโลก เปรียบเสมือน GitHub ของฝั่ง Docker นักพัฒนาสามารถเข้าไปดาวน์โหลด (Pull) Image ที่บริษัทชั้นนำทำเตรียมไว้ให้แล้ว เช่น Ubuntu, Nginx, MySQL, Node.js มาใช้งานได้ฟรี"
+        },
+        {
+            "heading": "การสร้างบัญชีและการใช้งานเบื้องต้น",
+            "content": "ผู้เรียนจะได้สมัครสมาชิก Docker Hub จากนั้นทำการล็อกอินผ่าน Terminal ด้วยคำสั่ง 'docker login' การมีบัญชีจะช่วยให้เราสามารถอัปโหลด (Push) Image ที่เราเขียนขึ้นเองไปเก็บไว้บนคลาวด์ เพื่อนำไปใช้กับเซิร์ฟเวอร์อื่นๆ ได้"
+        }
+    ],
+    "chap3": [
+        {
+            "video": "https://www.youtube.com/embed/QlfG0qee07c?si=TWG0horw1DXe1Ahc" 
+        },
+        {
+            "heading": "คำสั่ง docker pull และ docker run",
+            "content": "การเริ่มใช้งาน Image จาก Docker Hub ทำได้โดยใช้คำสั่ง 'docker pull <image_name>' เพื่อดาวน์โหลดลงเครื่อง และใช้ 'docker run <image_name>' เพื่อสร้างและรัน Container หากเราใช้คำสั่ง run โดยที่ยังไม่มี Image ในเครื่อง Docker จะทำการ pull ให้อัตโนมัติ"
+        },
+        {
+            "heading": "การรันแบบเบื้องหลัง (Detached Mode)",
+            "content": "ปกติเมื่อเรารัน Container หน้าต่าง Terminal จะค้างอยู่เพื่อแสดงผลลัพธ์ (Foreground) หากต้องการให้รันเป็น Background เพื่อใช้งาน Terminal ต่อได้ ให้เติม flag '-d' เข้าไป เช่น 'docker run -d nginx' ซึ่งจะคืนค่าเป็น Container ID แบบยาวกลับมาให้"
+        },
+        {
+            "heading": "การตรวจสอบสถานะ Container ด้วย docker ps",
+            "content": "คำสั่ง 'docker ps' ใช้สำหรับดูรายการ Container ที่กำลังรันอยู่ (แสดง Container ID, Image ที่ใช้, พอร์ต, และชื่อ) หากต้องการดู Container ทั้งหมดรวมถึงตัวที่หยุดทำงานไปแล้ว ให้ใช้คำสั่ง 'docker ps -a'"
+        },
+        {
+            "heading": "Lifecycle: start, stop, และ restart",
+            "content": "เราสามารถควบคุม Container ผ่าน Container ID หรือ ชื่อ (Name) โดยใช้คำสั่ง 'docker stop' เพื่อหยุดการทำงานอย่างปลอดภัย, 'docker start' เพื่อเปิดให้กลับมาทำงานใหม่, และ 'docker restart' เพื่อรีบูต Container"
+        },
+        {
+            "heading": "การดู Log และการเข้าไปใน Container",
+            "content": "เมื่อมี Error เกิดขึ้น เราสามารถดูบันทึกการทำงานได้ด้วยคำสั่ง 'docker logs <container_id>' และหากต้องการเข้าไปรันคำสั่งภายในเครื่อง Container ที่กำลังทำงานอยู่ (เสมือนการ SSH เข้าไป) สามารถใช้คำสั่ง 'docker exec -it <container_id> sh' (หรือ bash)"
+        },
+        {
+            "heading": "การลบ Container และ Image ทิ้ง",
+            "content": "พื้นที่ดิสก์มักเต็มเร็วเมื่อใช้ Docker การทำความสะอาดจึงสำคัญ ลบ Container ที่ไม่ได้ใช้ด้วย 'docker rm <container_id>' (ต้อง stop ก่อนลบ หรือใช้ -f เพื่อบังคับลบ) และลบ Image ออกจากเครื่องด้วย 'docker rmi <image_id>'"
+        }
+    ],
+    "chap4": [
+        {
+            "video": "https://www.youtube.com/embed/QlfG0qee07c?si=TWG0horw1DXe1Ahc" 
+        },
+        {
+            "heading": "Dockerfile คืออะไร?",
+            "content": "เมื่อเราเขียนโปรแกรมของตัวเอง (เช่น เขียนเว็บด้วย Python/Node.js) เราต้องสร้าง Image ของเราเองขึ้นมา Dockerfile คือไฟล์ Text ธรรมดาที่บรรจุคำสั่งทีละบรรทัด (Instruction) เพื่อบอก Docker ว่าให้ประกอบร่าง Image นี้ขึ้นมาอย่างไร"
+        },
+        {
+            "heading": "คำสั่งพื้นฐาน FROM และ WORKDIR",
+            "content": "ทุก Dockerfile ต้องเริ่มต้นด้วยคำสั่ง 'FROM' เพื่อกำหนด Base Image เช่น FROM python:3.9 (ขอใช้ Python 3.9 เป็นพื้นฐาน) จากนั้นใช้ 'WORKDIR /app' เพื่อกำหนดโฟลเดอร์หลักภายใน Container ที่คำสั่งต่อๆ ไปจะลงไปทำงาน"
+        },
+        {
+            "heading": "การจัดการไฟล์ด้วย COPY และ ADD",
+            "content": "เพื่อนำโค้ดจากเครื่องของเราเข้าไปใน Image เราจะใช้คำสั่ง 'COPY . .' ซึ่งหมายถึงการคัดลอกไฟล์ทั้งหมดในโฟลเดอร์ปัจจุบันบนเครื่องโฮสต์ ไปวางไว้ใน WORKDIR ภายใน Container"
+        },
+        {
+            "heading": "การติดตั้ง Dependency ด้วย RUN",
+            "content": "คำสั่ง 'RUN' ใช้สำหรับรันคำสั่งบน Terminal ในจังหวะที่กำลัง 'สร้าง' Image เช่น RUN pip install -r requirements.txt หรือ RUN apt-get update เพื่อติดตั้งไลบรารีที่จำเป็นให้พร้อมใช้งาน"
+        },
+        {
+            "heading": "การตั้งค่าพอร์ตและจุดเริ่มต้น (EXPOSE & CMD)",
+            "content": "ใช้ 'EXPOSE 8080' เพื่อประกาศเป็นเอกสารว่าแอปนี้ใช้พอร์ต 8080 และบรรทัดสุดท้ายมักจบด้วย 'CMD [\"python\", \"app.py\"]' ซึ่งเป็นคำสั่งเริ่มต้น (Default Command) ที่จะทำงาน 'ทันที' เมื่อมีคนนำ Image นี้ไปสั่ง docker run"
+        },
+        {
+            "heading": "การบิลด์ Image ด้วย docker build",
+            "content": "เมื่อเขียน Dockerfile เสร็จ ให้พิมพ์คำสั่ง 'docker build -t myapp:v1 .' เพื่อเริ่มกระบวนการสร้าง Image (-t ใช้สำหรับตั้งชื่อและกำหนด Tag หรือเวอร์ชัน ส่วนเครื่องหมายจุด . หมายถึงให้หา Dockerfile ในโฟลเดอร์ปัจจุบัน)"
+        }
+    ],
+    "chap5": [
+        {
+            "video": "https://www.youtube.com/embed/QlfG0qee07c?si=TWG0horw1DXe1Ahc" 
+        },
+        {
+            "heading": "ปัญหาเมื่อ Container ถูกทำลาย (Ephemeral)",
+            "content": "โดยธรรมชาติของ Container เมื่อเราสั่ง stop และลบทิ้งด้วยคำสั่ง rm ข้อมูลทุกอย่างที่เกิดขึ้นและถูกบันทึกไว้ข้างใน Container นั้น (เช่น รูปภาพที่ผู้ใช้อัปโหลด, ข้อมูล Database) จะถูกทำลายหายไปทั้งหมดแบบกู้คืนไม่ได้"
+        },
+        {
+            "heading": "การทำ Data Persistence",
+            "content": "เพื่อแก้ปัญหาข้อมูลหาย เราต้องหาวิธีแยกข้อมูลออกจาก Lifecycle ของ Container (Data Persistence) ใน Docker มีเครื่องมือหลัก 2 อย่างสำหรับจัดการข้อมูล คือ Docker Volumes และ Bind Mounts"
+        },
+        {
+            "heading": "รู้จักกับ Docker Volumes",
+            "content": "Volumes เป็นวิธีที่ Docker แนะนำมากที่สุด มันคือพื้นที่บน Harddisk ที่ Docker จัดการและดูแลให้เอง ปลอดภัยและแชร์ระหว่าง Container ได้ สร้างได้โดยคำสั่ง 'docker volume create my-vol' และใช้งานโดยเติม flag '-v my-vol:/path/in/container' ตอนรัน"
+        },
+        {
+            "heading": "รู้จักกับ Bind Mounts",
+            "content": "Bind Mounts คือการเชื่อมโยง (Map) โฟลเดอร์จริงๆ บนเครื่องของเรา (Host) เข้ากับโฟลเดอร์ใน Container เหมาะสำหรับฝั่งนักพัฒนา (Dev) เช่น ทำการ Map โฟลเดอร์ Source code เข้าไป เมื่อเราแก้โค้ดบนเครื่อง โค้ดใน Container จะอัปเดตตามทันทีโดยไม่ต้อง Build Image ใหม่"
+        },
+        {
+            "heading": "คำสั่งจัดการ Volume เบื้องต้น",
+            "content": "เราสามารถดู Volume ที่มีในเครื่องด้วย 'docker volume ls' ตรวจสอบรายละเอียดพาทที่เก็บข้อมูลจริงด้วย 'docker volume inspect <volume_name>' และลบ Volume ที่ไม่ใช้งานแล้วทิ้งด้วย 'docker volume rm'"
+        }
+    ],
+    "chap6": [
+        {
+            "video": "https://www.youtube.com/embed/QlfG0qee07c?si=TWG0horw1DXe1Ahc" 
+        },
+        {
+            "heading": "ทำไม Container ต้องคุยกัน?",
+            "content": "แอปพลิเคชันสมัยใหม่มักแยกส่วนการทำงาน (Microservices) เช่น มี Container สำหรับ Web Frontend, API Backend, และ Database ซึ่ง Container เหล่านี้จำเป็นต้องสื่อสารกันเองผ่านระบบเครือข่าย (Networking) ภายในของ Docker"
+        },
+        {
+            "heading": "ทำความเข้าใจ Port Mapping (Publishing)",
+            "content": "โดยค่าเริ่มต้น ภายนอกจะไม่สามารถเข้าถึง Container ได้เลย เราต้องทำการเจาะช่อง หรือ 'Port Mapping' โดยใช้ flag '-p' ตอนรัน เช่น 'docker run -p 8080:80 nginx' หมายถึง นำพอร์ต 8080 ของเครื่องเรา ไปเชื่อมกับพอร์ต 80 ภายใน Container"
+        },
+        {
+            "heading": "ประเภทของ Docker Networks (Drivers)",
+            "content": "Network ใน Docker มี 3 แบบหลักๆ คือ 1. Bridge (ค่าเริ่มต้น ใช้สำหรับ Container บนเครื่องเดียวกัน) 2. Host (ให้ Container ใช้ Network เดียวกับเครื่องโฮสต์เลย ไม่มีการแยก) 3. None (ปิดการเชื่อมต่อเครือข่ายทั้งหมดเพื่อความปลอดภัยสูงสุด)"
+        },
+        {
+            "heading": "การสร้างและจัดการ Custom Bridge Network",
+            "content": "การรัน Container บน Default Bridge Network จะทำให้มันคุยกันลำบาก เราควรสร้าง Network ของตัวเองด้วย 'docker network create my-net' และตอนรัน Container ให้ใส่ flag '--network my-net' เพื่อนำ Container เข้าไปอยู่ในวง LAN เดียวกัน"
+        },
+        {
+            "heading": "การสื่อสารผ่านชื่อ Container (DNS Resolution)",
+            "content": "ข้อดีที่ยอดเยี่ยมที่สุดของการใช้ Custom Network คือ Docker จะจำลองระบบ DNS ให้ภายในวงนั้น ทำให้ Container สามารถคุยกันโดยใช้ 'ชื่อ Container' แทน IP Address ได้เลย (เช่น Backend สามารถเชื่อมต่อ Database ผ่านโฮสต์ชื่อ 'db-server' ได้ทันที)"
+        }
+    ],
+    "chap7": [
+        {
+            "video": "https://www.youtube.com/embed/QlfG0qee07c?si=TWG0horw1DXe1Ahc" 
+        },
+        {
+            "heading": "Docker Compose คืออะไร?",
+            "content": "ถ้าโปรเจกต์ของคุณประกอบด้วย 3 Container (Web, API, DB) การต้องมาพิมพ์คำสั่ง docker run ยาวๆ พร้อมตั้งค่า network/volume ทีละตัวย่อมทำให้เกิดข้อผิดพลาดได้ง่าย 'Docker Compose' คือเครื่องมือที่ช่วยให้เรากำหนดและรันแอปพลิเคชันที่มีหลาย Container ได้ด้วยคำสั่งเดียว"
+        },
+        {
+            "heading": "โครงสร้างของไฟล์ docker-compose.yml",
+            "content": "Compose ทำงานโดยอาศัยไฟล์คอนฟิกนามสกุล .yml (YAML) ซึ่งอ่านง่ายคล้ายๆ JSON โครงสร้างหลักประกอบด้วยเวอร์ชัน (version), การกำหนดบริการต่างๆ (services), การสร้างเน็ตเวิร์ก (networks) และการจองพื้นที่ข้อมูล (volumes)"
+        },
+        {
+            "heading": "การแปลงคำสั่ง docker run เป็น Compose Service",
+            "content": "เราจะได้เรียนรู้วิธีการนำพารามิเตอร์ของคำสั่ง docker run (เช่น -p, -v, -e, --network) มาแปลงให้อยู่ในรูปแบบโครงสร้าง YAML ภายใต้บล็อก 'services' ซึ่งช่วยให้เราเก็บโครงสร้างพื้นฐานไว้เป็นรูปแบบโค้ด (Infrastructure as Code) ได้"
+        },
+        {
+            "heading": "การใช้งาน docker-compose up และ down",
+            "content": "เมื่อเขียนไฟล์ YAML เสร็จ การเปิดระบบทั้งหมดทำได้ง่ายๆ เพียงพิมพ์ 'docker-compose up -d' Docker จะสร้าง Network, Volumes, และรัน Container ทั้งหมดให้ตามลำดับ เมื่อเลิกใช้งานก็เพียงแค่พิมพ์ 'docker-compose down' ระบบก็จะปิดและทำความสะอาดตัวเองอย่างหมดจด"
+        },
+        {
+            "heading": "การ Build Image ผ่าน Compose",
+            "content": "นอกจากจะดึง Image จาก Docker Hub แล้ว Compose ยังสามารถสั่ง Build Dockerfile ให้เราอัตโนมัติได้ด้วย โดยใช้คีย์เวิร์ด 'build: .' ภายใต้ service นั้นๆ และเวลาอัปเดตโค้ดใหม่สามารถใช้คำสั่ง 'docker-compose up --build' เพื่อบังคับให้สร้าง Image ใหม่ทันที"
+        }
+    ],
+    "chap8": [
+        {
+            "video": "https://www.youtube.com/embed/QlfG0qee07c?si=TWG0horw1DXe1Ahc" 
+        },
+        {
+            "heading": "การจัดการ Environment Variables",
+            "content": "การฝังรหัสผ่านลงในโค้ดหรือ Dockerfile เป็นสิ่งที่ไม่ควรทำอย่างยิ่ง ใน Docker Compose เราสามารถส่งค่าตั้งค่าหรือรหัสผ่านผ่านตัวแปรสภาพแวดล้อม (Environment Variables) ภายใต้คีย์ 'environment' หรือดึงค่ามาจากไฟล์ '.env' ภายนอกเพื่อความปลอดภัย"
+        },
+        {
+            "heading": "การลำดับการทำงานด้วย depends_on",
+            "content": "ในระบบที่ซับซ้อน ลำดับการรันมีความสำคัญ เช่น API ไม่ควรรันจนกว่า Database จะพร้อมทำงาน เราสามารถใช้คีย์เวิร์ด 'depends_on' เพื่อบอก Compose ว่า Service นี้ต้องรอให้ Service ใดเริ่มทำงานก่อน จึงจะอนุญาตให้เริ่มรันตัวเองได้"
+        },
+        {
+            "heading": "การทำ Scaling และ Replica",
+            "content": "หากแอปพลิเคชันของเรามีผู้ใช้งานเพิ่มขึ้น เราสามารถจำลอง (Scale) ตัว Web Service ให้รันหลายๆ ตัวพร้อมกันได้ผ่าน Docker Compose (โดยต้องระวังเรื่อง Port ชนกัน) เพื่อกระจายภาระการทำงาน (Load Balancing) เบื้องต้น"
+        },
+        {
+            "heading": "การใช้ Healthcheck",
+            "content": "บางครั้ง Container รันติด (สถานะ Up) แต่โปรแกรมข้างในอาจจะค้างหรือล่ม เราสามารถเขียนบล็อก 'healthcheck' ใน Compose เพื่อให้ Docker คอยยิงทดสอบเป็นระยะๆ ว่าแอปเรายังปกติดีอยู่หรือไม่ หากตอบสนองช้าจะแสดงสถานะ Unhealthy"
+        }
+    ],
+    "chap9": [
+        {
+            "video": "https://www.youtube.com/embed/QlfG0qee07c?si=TWG0horw1DXe1Ahc" 
+        },
+        {
+            "heading": "เทคนิคการลดขนาด Docker Image",
+            "content": "Image ที่ใหญ่ทำให้เปลืองแบนด์วิดท์ตอนดาวน์โหลดและกินพื้นที่เซิร์ฟเวอร์ เทคนิคการลดขนาดเริ่มต้นที่การเลือก Base Image ที่เล็ก เช่น เลือกใช้แท็ก 'alpine' (Linux ขนาดจิ๋วเพียง 5MB) หรือ 'slim' แทนการใช้ Image ตัวเต็ม"
+        },
+        {
+            "heading": "การใช้ .dockerignore",
+            "content": "คล้ายกับ .gitignore การสร้างไฟล์ '.dockerignore' มีไว้เพื่อบอกคำสั่ง COPY ใน Dockerfile ให้ข้ามไฟล์ที่ใหญ่หรือไม่จำเป็นไป (เช่น โฟลเดอร์ node_modules, โฟลเดอร์ .git, หรือไฟล์ log) ช่วยให้กระบวนการ Build เร็วขึ้นและ Image เล็กฮวบ"
+        },
+        {
+            "heading": "เทคนิค Multi-stage Builds",
+            "content": "สำหรับภาษาตระกูลคอมไพล์ (เช่น Go, Java, C#) เราสามารถแบ่ง Dockerfile ออกเป็นหลายช่วง (Stage) ช่วงแรกติดตั้งเครื่องมือคอมไพล์โค้ดให้เสร็จ แล้วช่วงหลังทำการก็อปปี้เฉพาะ 'ไฟล์ผลลัพธ์ที่รันได้' ไปใส่ใน Image ตัวใหม่ที่สะอาดๆ ทำให้ได้ Image สุดท้ายที่เล็กและปลอดภัยมาก"
+        },
+        {
+            "heading": "ความปลอดภัย: ไม่ควรรันสิทธิ์ Root",
+            "content": "โดยค่าเริ่มต้น โปรแกรมใน Container จะรันด้วยสิทธิ์ 'root' (ผู้ดูแลระบบสูงสุด) ซึ่งเสี่ยงมากหากแฮ็กเกอร์เจาะเข้ามาได้ Best Practice คือการใช้คำสั่ง 'USER' ใน Dockerfile เพื่อสร้างและสลับไปใช้ User ธรรมดาที่สิทธิ์จำกัดก่อนที่จะสั่ง CMD รันแอป"
+        },
+        {
+            "heading": "การสแกนหาช่องโหว่ (Vulnerability Scanning)",
+            "content": "Image เก่าๆ มักจะมีช่องโหว่ซ่อนอยู่ในไลบรารี Docker มีคำสั่ง 'docker scout cves <image_name>' หรือเครื่องมือเสริมอื่นๆ สำหรับสแกนและรายงานหาช่องโหว่ความปลอดภัยก่อนนำ Image ไปใช้งานจริง (Production)"
+        }
+    ],
+    "chap10": [
+        {
+            "video": "https://www.youtube.com/embed/QlfG0qee07c?si=TWG0horw1DXe1Ahc" 
+        },
+        {
+            "heading": "ข้อจำกัดของการรัน Docker บนเครื่องเดียว",
+            "content": "Docker Compose มีประโยชน์มาก แต่ออกแบบมาให้รันบนเซิร์ฟเวอร์ (Host) เพียงเครื่องเดียว หากเครื่องนั้นไฟดับ ระบบทั้งหมดก็ล่มตาม สำหรับระบบขนาดใหญ่ (Enterprise) เราจึงต้องการเครื่องมือที่ช่วยรัน Container กระจายข้ามเครื่องเซิร์ฟเวอร์หลายๆ ตัวได้"
+        },
+        {
+            "heading": "รู้จักกับ Container Orchestration",
+            "content": "Container Orchestration คือระบบจัดการ Container อัตโนมัติขั้นสูง ทำหน้าที่เช็กว่า Container ไหนล่มก็ให้เปิดใหม่ (Auto-healing), กระจายโหลดให้สมดุล (Load Balancing), และเพิ่ม/ลดจำนวน Container ตามทราฟฟิก (Auto-scaling) แบบเรียลไทม์"
+        },
+        {
+            "heading": "Docker Swarm และ Kubernetes (K8s)",
+            "content": "Docker Swarm คือเครื่องมือ Orchestration พื้นฐานที่มีมาพร้อม Docker ใช้งานง่าย แต่ปัจจุบัน 'Kubernetes (K8s)' กลายเป็นมาตรฐานอันดับหนึ่งของโลก (De facto standard) แม้จะมีความซับซ้อนสูง แต่บริษัทเทคชั้นนำทุกที่ล้วนใช้ K8s ในการจัดการ Container บนคลาวด์"
+        },
+        {
+            "heading": "Docker ในกระบวนการ CI/CD",
+            "content": "เรียนรู้วิธีนำ Docker ไปประกอบร่างกับระบบ Continuous Integration/Continuous Deployment (เช่น GitHub Actions, GitLab CI) เมื่อนักพัฒนาผลักโค้ดขึ้นระบบ ระบบจะ Build Docker Image ให้ใหม่โดยอัตโนมัติ ทดสอบ และ Deploy นำขึ้นเซิร์ฟเวอร์จริงได้ทันทีแบบไม่ต้องใช้คนทำ"
+        },
+        {
+            "heading": "บทสรุปและเส้นทางศึกษาต่อ",
+            "content": "สรุปภาพรวมทั้งหมดที่ได้เรียนในคอร์ส ตั้งแต่การรันแบบเบสิกไปจนถึง Best Practices ก้าวต่อไปของผู้เรียนคือการนำโปรเจกต์ของตัวเองมาสร้างเป็น Image และศึกษาเพิ่มเติมเรื่อง Cloud Provider (AWS, Google Cloud) เพื่อนำ Container ขึ้นไปให้บริการผู้คนจริงๆ"
+        }
+    ]
+}
