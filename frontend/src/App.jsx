@@ -17,6 +17,11 @@ import MyCourses from "./pages/MyCourses";
 import Admin from "./pages/admin/Admin";
 import MyDetailCourse from "./pages/MyDetailCourse";
 import InviteStudent from "./pages/InviteStudent";
+import CourseTeacher from "./pages/CourseTeacher";
+import EditStudent from "./pages/EditStudent";
+import EditInfo from "./pages/EditInfo";
+import EditCurriculum from "./pages/EditCurriculum";
+import Profile from "./pages/Profile";
 
 function AppContent() {
 
@@ -110,6 +115,29 @@ function AppContent() {
               </RequireRole>
             </RequireAuth>
           }
+        />
+
+
+         {/* ทำไว้ดูดีไซน์เฉยๆ */}
+        <Route
+          path="/courseTeacher"
+          element={token ? <CourseTeacher /> : <Navigate to="/login" />}
+        />
+        <Route
+          path="/editStudent"
+          element={token ? <EditStudent /> : <Navigate to="/login" />}
+        />
+        <Route
+          path="/editInfo"
+          element={token ? <EditInfo/> : <Navigate to="/login" />}
+        />
+        <Route
+          path="/editCurriculum"
+          element={token ? <EditCurriculum/> : <Navigate to="/login" />}
+        />
+        <Route
+          path="/profile"
+          element={token ? <Profile/> : <Navigate to="/login" />}
         />
       </Routes>
 

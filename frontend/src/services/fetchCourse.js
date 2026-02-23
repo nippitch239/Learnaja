@@ -3,17 +3,24 @@ import api from "./api";
 const fetchCourse = async (id) => {
     try {
         const res = await api.get(`/courses/${id}`);
-        // console.log(res.data)
         return res.data;
     } catch (err) {
         console.error(err);
     }
 };
 
-const fetchCourses = async () => {
+const fetchCourseFull = async (id) => {
     try {
-        const res = await api.get("/courses");
-        // console.log(res.data)
+        const res = await api.get(`/courses/${id}/full`);
+        return res.data;
+    } catch (err) {
+        console.error(err);
+    }
+};
+
+const fetchCourses = async (search = "") => {
+    try {
+        const res = await api.get(`/courses${search ? `?search=${search}` : ""}`);
         return res.data;
     } catch (err) {
         console.error(err);
@@ -23,7 +30,6 @@ const fetchCourses = async () => {
 const fetchMyCourses = async () => {
     try {
         const res = await api.get(`/courses/owner`);
-        // console.log(res.data)
         return res.data;
     } catch (err) {
         console.error(err);
@@ -33,7 +39,6 @@ const fetchMyCourses = async () => {
 const fetchInvitedCourses = async () => {
     try {
         const res = await api.get(`/courses/invited`);
-        // console.log(res.data)
         return res.data;
     } catch (err) {
         console.error(err);
@@ -50,4 +55,4 @@ const fetchInstance = async (id) => {
     }
 }
 
-export { fetchCourse, fetchCourses, fetchMyCourses, fetchInvitedCourses, fetchInstance };
+export { fetchCourse, fetchCourseFull, fetchCourses, fetchMyCourses, fetchInvitedCourses, fetchInstance };

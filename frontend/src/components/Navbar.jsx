@@ -2,6 +2,7 @@
 import { Link } from "react-router-dom";
 import { useContext } from "react";
 import { AuthContext } from "../context/AuthContext";
+import { useNavigate } from "react-router-dom";
 import profile from "../assets/profile.avif"
 
 function Navbar() {
@@ -27,7 +28,7 @@ function Navbar() {
                     <span className="material-symbols-outlined text-white text-3xl">book_4</span>
                     <span className="text-white font-bold text-2xl tracking-tight">Learnaja</span>
                 </div></Link>
-                <div className="hidden md:flex flex-1 max-w-xl mx-8">
+                {/* <div className="hidden md:flex flex-1 max-w-xl mx-8">
                     <div className="relative w-full">
                         <span
                             className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-[#fb90a9]">search</span>
@@ -35,7 +36,7 @@ function Navbar() {
                             className="w-full bg-white/20 border-none rounded-full py-2 pl-12 pr-4 text-white placeholder-white/70 focus:ring-2 focus:ring-white/50 transition-all"
                             placeholder="ค้นหาคอร์สเรียน..." type="text" />
                     </div>
-                </div>
+                </div> */}
                 <div className="flex items-center space-x-6 text-white font-medium">
                     <Link className="hidden lg:block hover:opacity-80 transition"
                         to="/my-courses">คอร์สของฉัน</Link>
@@ -44,26 +45,29 @@ function Navbar() {
                         <span className="material-symbols-outlined text-xl">toll</span>
                     </div>
 
-                    <div
-                        className="flex items-center space-x-2 border-l border-white/20 pl-4">
+                    <div className="flex items-center space-x-2 border-l border-white/20 pl-4">
+                        <Link to="/profile">
                         <img alt="User profile"
                             className="h-9 w-9 rounded-full bg-white/20 border border-white/40 object-cover"
                             src="/images/user.png" />
+                        </Link>
                         <div>
                             <span
                                 className="material-symbols-outlined text-sm hover:opacity-80 transition cursor-pointer " onClick={toggleDropdown}>expand_more</span>
                             <div id="dropdown-menu" className="absolute right-4 mt-2 w-48 bg-white dark:bg-slate-800 rounded-lg shadow-lg py-2 hidden group-hover:block">
                                 <li className="px-4 py-2  text-primary list-none">
-                                    <div className="flex items-center">
-                                        <img src="/images/user.png" alt="user profile" className="h-8 w-8 rounded-full bg-white/20 border border-white/40 object-cover inline-block mr-2"/>
-                                        <span className="align-middle">bubu</span>
-                                    </div>
+                                    <Link to="/profile">
+                                        <div className="flex items-center">
+                                            <img src="/images/user.png" alt="user profile" className="h-8 w-8 rounded-full bg-white/20 border border-white/40 object-cover inline-block mr-2"/>
+                                            <span className="align-middle">bubu</span>
+                                        </div>
+                                    </Link>
                                     <hr className="mt-3 border-slate-200 dark:border-slate-700" />
                                 </li>
-                                <Link to="/mycourses"><li className="px-4 py-2 hover:bg-primary/10  dark:hover:bg-slate-700 cursor-pointer text-primary list-none "><span className="material-symbols-outlined text-sm mr-2">school</span>คอร์สของฉัน</li></Link>
+                                <Link to="/mycourses"><li className="px-4 py-2 hover:bg-primary/10  dark:hover:bg-slate-700 cursor-pointer text-primary list-none "><span className="material-symbols-outlined text-sm mr-2">Book</span>คอร์สของฉัน</li></Link>
                                 <Link to="/courses"><li className="px-4 py-2 hover:bg-primary/10  dark:hover:bg-slate-700 cursor-pointer text-primary list-none "><span className="material-symbols-outlined text-sm mr-2">school</span>คอร์สทั้งหมด</li></Link>
                                 <li className="px-4 py-2 hover:bg-primary/10 dark:hover:bg-slate-700 cursor-pointer text-primary list-none"><span className="material-symbols-outlined text-sm mr-2">Settings</span>การตั้งค่า</li>
-                                 {user?.roles?.includes("admin") && <li><Link to="/admin" className="text-slate-700 dark:text-slate-300 hover:text-primary">Admin</Link></li>}
+                                 {user?.roles?.includes("admin") && <li className="px-4 py-2 hover:bg-primary/10  dark:hover:bg-slate-700 cursor-pointer text-primary list-none "><Link to="/admin"><span className="material-symbols-outlined text-sm mr-2">admin_panel_settings</span>Admin</Link></li>}
                                 <li className="px-4 py-2 hover:bg-primary/10 dark:hover:bg-slate-700 cursor-pointer text-primary list-none "><button onClick={handleLogout}><span className="material-symbols-outlined text-sm mr-2">logout</span>ออกจากระบบ</button></li>
                             </div>
                         </div>

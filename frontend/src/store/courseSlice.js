@@ -5,6 +5,7 @@ export const fetchCourses = createAsyncThunk(
     "courses/fetchCourses",
     async () => {
         const res = await api.get("/courses");
+        console.log(res.data)
         return res.data;
     }
 );
