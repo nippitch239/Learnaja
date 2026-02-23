@@ -53,7 +53,7 @@ function Navbar() {
                         </Link>
                         <div>
                             <span
-                                className="material-symbols-outlined text-sm hover:opacity-80 transition cursor-pointer " onClick={toggleDropdown}>expand_more</span>
+                                className="material-symbols-outlined text-sm hover:opacity-80 transition cursor-pointer align-middle" onClick={toggleDropdown}>expand_more</span>
                             <div id="dropdown-menu" className="absolute right-4 mt-2 w-48 bg-white dark:bg-slate-800 rounded-lg shadow-lg py-2 hidden group-hover:block">
                                 <li className="px-4 py-2  text-primary list-none">
                                     <Link to="/profile">
@@ -64,11 +64,11 @@ function Navbar() {
                                     </Link>
                                     <hr className="mt-3 border-slate-200 dark:border-slate-700" />
                                 </li>
-                                <Link to="/mycourses"><li className="px-4 py-2 hover:bg-primary/10  dark:hover:bg-slate-700 cursor-pointer text-primary list-none "><span className="material-symbols-outlined text-sm mr-2">Book</span>คอร์สของฉัน</li></Link>
-                                <Link to="/courses"><li className="px-4 py-2 hover:bg-primary/10  dark:hover:bg-slate-700 cursor-pointer text-primary list-none "><span className="material-symbols-outlined text-sm mr-2">school</span>คอร์สทั้งหมด</li></Link>
-                                <li className="px-4 py-2 hover:bg-primary/10 dark:hover:bg-slate-700 cursor-pointer text-primary list-none"><span className="material-symbols-outlined text-sm mr-2">Settings</span>การตั้งค่า</li>
-                                 {user?.roles?.includes("admin") && <li className="px-4 py-2 hover:bg-primary/10  dark:hover:bg-slate-700 cursor-pointer text-primary list-none "><Link to="/admin"><span className="material-symbols-outlined text-sm mr-2">admin_panel_settings</span>Admin</Link></li>}
-                                <li className="px-4 py-2 hover:bg-primary/10 dark:hover:bg-slate-700 cursor-pointer text-primary list-none "><button onClick={handleLogout}><span className="material-symbols-outlined text-sm mr-2">logout</span>ออกจากระบบ</button></li>
+                                <Link to="/mycourses"><li className="px-4 py-2 hover:bg-primary/10  dark:hover:bg-slate-700 cursor-pointer text-primary list-none "><span className="material-symbols-outlined text-sm mr-2 align-middle">Book</span>คอร์สของฉัน</li></Link>
+                                <Link to="/courses"><li className="px-4 py-2 hover:bg-primary/10  dark:hover:bg-slate-700 cursor-pointer text-primary list-none "><span className="material-symbols-outlined text-sm mr-2 align-middle">school</span>คอร์สทั้งหมด</li></Link>
+                                <li className="px-4 py-2 hover:bg-primary/10 dark:hover:bg-slate-700 cursor-pointer text-primary list-none"><span className="material-symbols-outlined text-sm mr-2 align-middle">Settings</span>การตั้งค่า</li>
+                                 {user?.roles?.includes("admin") && <li className="px-4 py-2 hover:bg-primary/10  dark:hover:bg-slate-700 cursor-pointer text-primary list-none "><Link to="/admin"><span className="material-symbols-outlined text-sm mr-2 align-middle ">admin_panel_settings</span>Admin</Link></li>}
+                                <li className="px-4 py-2 hover:bg-primary/10 dark:hover:bg-slate-700 cursor-pointer text-primary list-none "><button onClick={handleLogout}><span className="material-symbols-outlined text-sm mr-2 align-middle">logout</span>ออกจากระบบ</button></li>
                             </div>
                         </div>
                     </div>
