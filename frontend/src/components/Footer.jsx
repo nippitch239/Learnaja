@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import GitHubIcon from '@mui/icons-material/GitHub';
 
 function Footer() {
   const [darkMode, setDarkMode] = useState(false);
@@ -9,7 +10,7 @@ function Footer() {
   }, [darkMode]);
 
   return (
-    <footer className="bg-slate-50 dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 mt-20">
+    <footer className="bg-slate-50 dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 ">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
           
@@ -24,7 +25,7 @@ function Footer() {
               </span>
             </div>
             <p className="text-slate-500 dark:text-slate-400 text-sm leading-relaxed">
-              Empowering learners worldwide with accessible, high-quality education and modern course management.
+              ระบบการเรียนรู้ออนไลน์ที่มุ่งเน้นการพัฒนาทักษะและความรู้ในหลากหลายสาขา หลักสูตรที่ออกแบบโดยผู้เชี่ยวชาญและเนื้อหาที่ทันสมัย ช่วยให้คุณก้าวสู่ความสำเร็จในเส้นทางการเรียนรู้ของคุณได้อย่างมั่นใจ!
             </p>
           </div>
 
@@ -55,11 +56,9 @@ function Footer() {
             <h5 className="font-bold text-slate-900 dark:text-white mb-6">Social</h5>
             <div className="flex space-x-4">
               <div className="h-10 w-10 bg-white dark:bg-slate-800 rounded-full flex items-center justify-center border">
-                T
+                <GitHubIcon className="text-slate-900 dark:text-white" /> 
               </div>
-              <div className="h-10 w-10 bg-white dark:bg-slate-800 rounded-full flex items-center justify-center border">
-                IG
-              </div>
+            
             </div>
           </div>
         </div>

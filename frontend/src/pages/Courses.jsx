@@ -28,14 +28,194 @@ function Courses() {
     }
   };
 
+
+  if (loading) return <p className="text-center h-screen">Loading...</p>;
+
   return (
-    <div className="container mx-auto px-4 py-10">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-12">
-        <div>
-          <h1 className="text-4xl font-black text-slate-900 dark:text-white uppercase tracking-tight">Explore Courses</h1>
-          <p className="text-slate-500 mt-2 font-medium">Find the perfect course to advance your skills.</p>
-        </div>
-        <div className="relative w-full md:w-96 group">
+    <>
+    <div>
+      <h1>All Courses</h1>
+
+      <div style={{ marginTop: "20px" }}>
+        {courses.length === 0 && <p>No courses found</p>}
+
+        {courses.map(course => (
+            <>
+          <main className="pt-28 pb-12 max-w-7xl mx-auto px-4 lg:px-6">
+            <div className="flex flex-col space-y-8">
+                <div
+                    className="flex flex-col md:flex-row items-center justify-between bg-white dark:bg-surface-dark p-4 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 gap-4">
+                    <div className="flex items-center space-x-4 w-full md:w-auto">
+                        <div className="relative group">
+                            <button
+                                className="flex items-center space-x-2 px-6 py-2.5 bg-slate-50 dark:bg-slate-800 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors font-semibold text-sm">
+                                <span
+                                    className="material-symbols-outlined text-xl">grid_view</span>
+                                <span>หมวดหมู่</span>
+                                <span
+                                    className="material-symbols-outlined text-sm">expand_more</span>
+                            </button>
+                        </div>
+                        <button
+                            className="flex items-center space-x-2 px-6 py-2.5 bg-primary text-white rounded-xl hover:opacity-90 transition-opacity font-semibold text-sm">
+                            <span
+                                className="material-symbols-outlined text-xl">tune</span>
+                            <span>ฟิลเตอร์</span>
+                        </button>
+                    </div>
+                    <div
+                        className="flex items-center space-x-6 w-full md:w-auto justify-between md:justify-end">
+                        <div className="hidden sm:flex items-center space-x-4">
+                            <span
+                                className="text-xs font-bold uppercase tracking-wider text-slate-400">แท็กยอดนิยม :</span>
+                            <div className="flex space-x-2">
+                                <span
+                                    className="px-3 py-1 bg-primary/10 text-primary text-xs font-bold rounded-full">React</span>
+                                <span
+                                    className="px-3 py-1 bg-slate-100 dark:bg-slate-800 text-slate-500 text-xs font-bold rounded-full">Python</span>
+                                <span
+                                    className="px-3 py-1 bg-slate-100 dark:bg-slate-800 text-slate-500 text-xs font-bold rounded-full">UI
+                                    Design</span>
+                            </div>
+                        </div>
+                        <div className="flex items-center space-x-2 text-sm">
+                            <span className="text-slate-400">เรียงตาม:</span>
+                            <select
+                                className="bg-transparent border-none font-bold text-slate-700 dark:text-slate-300 focus:ring-0 cursor-pointer p-0">
+                                <option>ยอดนิยม</option>
+                                <option>ใหม่ล่าสุด</option>
+                                <option>คะแนน: ต่ำไปสูง</option>
+                                <option>คะแนน: สูงไปต่ำ</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div className="flex items-center justify-between mb-4">
+                    <h1 className="text-3xl font-bold">คอร์สเรียนทั้งหมด</h1>
+                    <p className="text-slate-400 text-sm">แสดง {courses.length} ผลลัพธ์</p>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                    <div className="bg-white dark:bg-surface-dark rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 border border-slate-100 dark:border-slate-800 group">
+                        <div className="relative h-48 overflow-hidden">
+                            <img alt="Web Dev Course"
+                                className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                                src="https://lh3.googleusercontent.com/aida-public/AB6AXuA5k3oDnPNE0cNDaQeMrmbImR8VvlDhRRoX06smqaeAa6T4aIjY881l5p9shU9yoE3TF-45Fcqb0C-9ebJqIVEe3knAJc22d4XCtkr4cNLnWpAWQqolxqYl_8MhBX0_lyEdx515Nc1cKYvBfepc4TWQXMo_CsIYhW0ilBmgcjdAUQtoG65dN_3WVzHiLHJ0G58YiH_KKdcs3uydCTIjyjOKDbtL8F7x4Xhx5NERh28woYFfI1pALMbZwIZdQNZeSuKC_vsHLdLP9dg" />
+
+                        </div>
+                        <div className="p-5">
+                            <h4
+                                className="font-bold text-lg mb-2 line-clamp-2 group-hover:text-primary transition-colors">Master
+                                React.js &amp; Modern Web Standards 2024</h4>
+                                <p className="text-slate-500 dark:text-slate-400 text-sm mb-4">Programming</p>
+                            <div className="flex items-center space-x-1 mb-4">
+                                <span
+                                    className="material-symbols-outlined text-yellow-400 text-[18px] fill-[1]">star</span>
+                                <span className="font-bold text-sm">4.9</span>
+                                <span
+                                    className="text-slate-400 text-sm">(12,430)</span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                                <div className="flex flex-col">
+                                    <span
+                                        className="text-2xl font-black text-primary">850P</span>
+                                </div>
+                                <Link to={`/courses/${course.id}`} className="bg-primary/10 text-primary hover:bg-primary hover:text-white p-3 rounded-xl transition-all">
+                                    ดูรายละเอียด
+                                </Link>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="bg-white dark:bg-surface-dark rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 border border-slate-100 dark:border-slate-800 group">
+                        <div className="relative h-48 overflow-hidden">
+                            <img alt="Python Course"
+                                className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                                src="https://lh3.googleusercontent.com/aida-public/AB6AXuDEhIDCagTLtvXQ9aHRwwY68q2wAcCRPeV79ucnrv4ITBdGbFnrvgMkG1TtRyQDWRs93eHeU0MiYkulA1sfDJRsvx5UpMMUdKn5oRyWIRg6f1xffjUW7xAJDtGxuzZIqjQfDiaaI7eeEyAbeHrFuI-2Z9JiW2uaJdVfA8qruS6T-sVEHXz7NFo6SngK8Dng-ES4prZbOH_qIorwjtjTU1x9xBPNTo0THLgNK06fUVMaUz3c_E4FpVCOVFPtfqm3XojTwF00aQBDvA4" />
+                        </div>
+                        <div className="p-5">
+                            <h4
+                                className="font-bold text-lg mb-2 line-clamp-2 group-hover:text-primary transition-colors">Python
+                                for Data Science and Machine Learning</h4>
+                            <p className="text-slate-500 dark:text-slate-400 text-sm mb-4">Data Science</p>
+
+                            <div className="flex items-center space-x-1 mb-4">
+                                <span
+                                    className="material-symbols-outlined text-yellow-400 text-[18px] fill-[1]">star</span>
+                                <span className="font-bold text-sm">4.8</span>
+                                <span
+                                    className="text-slate-400 text-sm">(8,122)</span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                                <div className="flex flex-col">
+                                    <span
+                                        className="text-2xl font-black text-primary">700P</span>
+                                </div>
+                                <Link to={`/courses/${course.id}`} className="bg-primary/10 text-primary hover:bg-primary hover:text-white p-3 rounded-xl transition-all">
+                                    ดูรายละเอียด
+                                </Link>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="bg-white dark:bg-surface-dark rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 border border-slate-100 dark:border-slate-800 group">
+                        <div className="relative h-48 overflow-hidden">
+                            <img alt="Python Course"
+                                className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                                src="/images/user.png" />
+                        </div>
+                        <div className="p-5">
+                            <h4
+                                className="font-bold text-lg mb-2 line-clamp-2 group-hover:text-primary transition-colors">{course.title}</h4>
+                            <p className="text-slate-500 dark:text-slate-400 text-sm mb-4">Data Science</p>
+
+                            <div className="flex items-center space-x-1 mb-4">
+                                <span
+                                    className="material-symbols-outlined text-yellow-400 text-[18px] fill-[1]">star</span>
+                                <span className="font-bold text-sm">4.8</span>
+                                <span
+                                    className="text-slate-400 text-sm">(8,122)</span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                                <div className="flex flex-col">
+                                    <span
+                                        className="text-2xl font-black text-primary">{course.price}P</span>
+                                </div>
+                                <Link to={`/courses/${course.id}`} className="bg-primary/10 text-primary hover:bg-primary hover:text-white p-3 rounded-xl transition-all">
+                                    ดูรายละเอียด
+                                </Link>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div className="mt-12 flex justify-center space-x-2">
+                    <button
+                        className="w-10 h-10 flex items-center justify-center rounded-xl bg-white dark:bg-surface-dark border border-slate-100 dark:border-slate-800 hover:text-primary transition-colors">
+                        <span
+                            className="material-symbols-outlined">chevron_left</span>
+                    </button>
+                    <button
+                        className="w-10 h-10 flex items-center justify-center rounded-xl bg-primary text-white font-bold shadow-md">1</button>
+                    <button
+                        className="w-10 h-10 flex items-center justify-center rounded-xl bg-white dark:bg-surface-dark border border-slate-100 dark:border-slate-800 hover:text-primary transition-colors">2</button>
+                    <button
+                        className="w-10 h-10 flex items-center justify-center rounded-xl bg-white dark:bg-surface-dark border border-slate-100 dark:border-slate-800 hover:text-primary transition-colors">3</button>
+                    <span
+                        className="w-10 h-10 flex items-center justify-center text-slate-400">...</span>
+                    <button
+                        className="w-10 h-10 flex items-center justify-center rounded-xl bg-white dark:bg-surface-dark border border-slate-100 dark:border-slate-800 hover:text-primary transition-colors">12</button>
+                    <button
+                        className="w-10 h-10 flex items-center justify-center rounded-xl bg-white dark:bg-surface-dark border border-slate-100 dark:border-slate-800 hover:text-primary transition-colors">
+                        <span
+                            className="material-symbols-outlined">chevron_right</span>
+                    </button>
+                </div>
+            </div>
+        </main>
+        </>
+        ))}
+      </div>
+    </div>
+
+
+    <div className="relative w-full md:w-96 group">
           <input
             type="text"
             placeholder="Search by title or category..."
@@ -45,67 +225,7 @@ function Courses() {
           />
           <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-primary transition-colors">search</span>
         </div>
-      </div>
-
-      {loading && searchTerm === "" ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-          {[1, 2, 3, 4].map(n => (
-            <div key={n} className="animate-pulse bg-slate-100 dark:bg-slate-800 h-80 rounded-3xl"></div>
-          ))}
-        </div>
-      ) : (
-        <>
-          {courses.length === 0 ? (
-            <div className="text-center py-20 bg-slate-50 dark:bg-slate-800/50 rounded-[3rem] border-4 border-dashed border-slate-200 dark:border-slate-700">
-              <span className="material-symbols-outlined text-6xl text-slate-300 mb-4 block">sentiment_dissatisfied</span>
-              <p className="text-xl text-slate-500 font-bold">No courses found matching "{searchTerm}"</p>
-              <button onClick={() => setSearchTerm("")} className="mt-4 text-primary font-bold hover:underline">Clear search</button>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-              {courses.map(course => (
-                <div
-                  key={course.id}
-                  onClick={() => { navigate(`/courses/${course.id}`) }}
-                  className="group bg-white dark:bg-slate-800 rounded-4xl overflow-hidden border border-slate-100 dark:border-slate-700 hover:shadow-2xl transition-all duration-500 cursor-pointer transform hover:-translate-y-2"
-                >
-                  <div className="h-48 relative overflow-hidden">
-                    <img
-                      alt={course.title}
-                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
-                      src={course.thumbnail_url || "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80"}
-                    />
-                    <div className="absolute top-4 left-4">
-                      <span className="px-4 py-1.5 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md text-slate-900 dark:text-white text-[10px] font-black uppercase tracking-widest rounded-full shadow-sm">
-                        {course.category || "General"}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="p-6">
-                    <h3 className="font-black text-slate-900 dark:text-white text-xl mb-2 line-clamp-1 group-hover:text-primary transition-colors">
-                      {course.title}
-                    </h3>
-                    <p className="text-slate-500 dark:text-slate-400 text-sm mb-4 line-clamp-2 font-medium">
-                      {course.description}
-                    </p>
-
-                    <div className="flex items-center justify-between pt-6 border-t border-slate-50 dark:border-slate-700 mt-2">
-                      <div className="flex flex-col">
-                        <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Price</span>
-                        <span className="font-black text-slate-900 dark:text-white text-xl">{course.price} P</span>
-                      </div>
-                      <div className="w-10 h-10 rounded-full bg-slate-900 dark:bg-white text-white dark:text-slate-900 flex items-center justify-center group-hover:bg-primary group-hover:text-white transition-all duration-300">
-                        <span className="material-symbols-outlined font-bold">arrow_forward</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </>
-      )}
-    </div>
+    </>
   );
 }
 
