@@ -23,6 +23,7 @@ import EditInfo from "./pages/EditInfo";
 import EditCurriculum from "./pages/EditCurriculum";
 import Profile from "./pages/Profile";
 import EditProfile from "./pages/EditProfile";
+import Lesson from "./pages/Lesson";
 
 function AppContent() {
 
@@ -141,6 +142,10 @@ function AppContent() {
         <Route
           path="/edit-profile"
           element={token ? <EditProfile /> : <Navigate to="/login" />}
+        />
+        <Route
+          path="/module"
+          element={token ? <Lesson /> : <Navigate to="/login" />}
         />
       </Routes>
 

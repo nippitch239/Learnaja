@@ -95,6 +95,33 @@
     transition: all 0.3s;
 }
 
+  .nav-gradient {
+    background: linear-gradient(90deg, #F9A8BA 0%, #FBB6CE 100%);
+  }
+  .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+  .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+  .custom-scrollbar::-webkit-scrollbar-thumb { background: #D1D5DB; border-radius: 10px; }
+
+  #sidebar-toggle { display: none; }
+  #sidebar-toggle:checked ~ main #lesson-sidebar { display: none; }
+  #sidebar-toggle:checked ~ main #toggle-icon {
+    content: "side_navigation";
+    transform: scaleX(-1);
+  }
+
+  .module-items { display: none; flex-direction: column; gap: 2px; }
+  .module-items.open { display: flex; }
+  .chevron { transition: transform 0.25s ease; }
+  .module-toggle.is-open .chevron { transform: rotate(180deg); }
+
+  .lesson-current::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 6px; bottom: 6px;
+    width: 3px;
+    background: var(--primary-dark);
+    border-radius: 99px;
+  }
 
 
 /* :root {
