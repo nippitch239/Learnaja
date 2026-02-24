@@ -17,6 +17,8 @@ import MyCourses from "./pages/MyCourses";
 import Admin from "./pages/admin/Admin";
 import MyDetailCourse from "./pages/MyDetailCourse";
 import InviteStudent from "./pages/InviteStudent";
+import Profile from "./pages/Profile";
+import EditProfile from "./pages/EditProfile";
 // import CourseTeacher from "./pages/CourseTeacher";
 // import EditStudent from "./pages/EditStudent";
 // import EditInfo from "./pages/EditInfo";
@@ -115,6 +117,16 @@ function AppContent() {
             </RequireAuth>
           }
         />
+
+        <Route
+          path="/profile"
+          element={token ? <Profile /> : <Navigate to="/login" />}
+        />
+        <Route
+          path="/edit-profile"
+          element={token ? <EditProfile /> : <Navigate to="/login" />}
+        />
+
         {/* ทำไว้ดูดีไซน์เฉยๆ */}
         {/* <Route
           path="/courseTeacher"
@@ -133,6 +145,10 @@ function AppContent() {
           element={token ? <EditCurriculum /> : <Navigate to="/login" />}
         /> */}
       </Routes>
+
+      
+        
+ 
 
       <Footer />
 

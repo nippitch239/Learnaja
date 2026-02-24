@@ -197,15 +197,15 @@ router.post("/courses", verifyToken, checkRole("admin"), async (req, res) => {
     try {
         await connection.beginTransaction();
 
-        const { title, description, price, category } = req.body;
+        const { title, description, price, category, rating, rating_count } = req.body;
 
         if (!title) {
             return res.status(400).json({ message: "Title required" });
         }
 
         const [result] = await connection.query(
-            "insert into courses (title, description, price, category) values (?, ?, ?, ?)",
-            [title, description, price, category]
+            "insert into courses (title, description, price, category, rating, rating_count) values (?, ?, ?, ?, ?, ?)",
+            [title, description, price, category, rating || 0, rating_count || 0]
         );
 
         await connection.commit();
@@ -227,7 +227,7 @@ router.post("/courses", verifyToken, checkRole("admin"), async (req, res) => {
 // get all course
 router.get("/courses", async (req, res) => {
     try {
-        const { search } = req.query;
+        const { search, sortBy, limit } = req.query;
         let query = "select * from courses";
         let params = [];
 
@@ -236,7 +236,24 @@ router.get("/courses", async (req, res) => {
             params.push(`%${search}%`, `%${search}%`);
         }
 
-        query += " order by created_at desc limit 10";
+        if (sortBy === 'popular') {
+            query += " order by (select count(*) from course_instances where template_id = courses.id) desc";
+        } else if (sortBy === 'rating_desc') {
+            query += " order by rating desc";
+        } else if (sortBy === 'rating_asc') {
+            query += " order by rating asc";
+        } else if (sortBy === 'rating') { // backward compatibility
+            query += " order by rating desc";
+        } else {
+            query += " order by created_at desc";
+        }
+
+        if (limit) {
+            query += " limit ?";
+            params.push(parseInt(limit));
+        } else {
+            query += " limit 20";
+        }
 
         const [rows] = await db.query(query, params);
         res.json(rows);
@@ -483,7 +500,7 @@ router.put("/courses/:id/edit", verifyToken, checkRole("admin"), async (req, res
     try {
         await connection.beginTransaction();
         const { id } = req.params;
-        const { title, description, price, thumbnail_url, category } = req.body;
+        const { title, description, price, thumbnail_url, category, rating, rating_count } = req.body;
 
         if (!title) {
             return res.status(400).json({ message: "Title required" });
@@ -493,13 +510,13 @@ router.put("/courses/:id/edit", verifyToken, checkRole("admin"), async (req, res
             return res.status(400).json({ message: "Description required" });
         }
 
-        if (!price || price < 0) {
+        if (price < 0) {
             return res.status(400).json({ message: "Price must be positive" });
         }
 
         const [result] = await connection.query(
-            "update courses set title = ?, description = ?, price = ?, thumbnail_url = ?, category = ? where id = ?",
-            [title, description, price, thumbnail_url, category, id]
+            "update courses set title = ?, description = ?, price = ?, thumbnail_url = ?, category = ?, rating = ?, rating_count = ? where id = ?",
+            [title, description, price, thumbnail_url, category, rating || 0, rating_count || 0, id]
         );
 
         await connection.commit();
@@ -521,22 +538,46 @@ router.delete("/courses/:id", verifyToken, checkRole("admin"), async (req, res) 
         await connection.beginTransaction();
         const { id } = req.params;
 
-        const [result] = await connection.query(
-            "delete from courses where id = ?",
-            [id]
-        );
+        const [instances] = await connection.query("SELECT id FROM course_instances WHERE template_id = ?", [id]);
+        const instanceIds = instances.map(i => i.id);
+
+        if (instanceIds.length > 0) {
+            const [enrolledStudents] = await connection.query(
+                "SELECT COUNT(*) as count FROM instance_students WHERE instance_id IN (?)",
+                [instanceIds]
+            );
+            if (enrolledStudents[0].count > 0) {
+                await connection.rollback();
+                return res.status(409).json({
+                    message: `ไม่สามารถลบคอร์สได้ เนื่องจากมีนักเรียน ${enrolledStudents[0].count} คนลงทะเบียนอยู่`,
+                    enrolled_count: enrolledStudents[0].count
+                });
+            }
+
+            await connection.query("DELETE FROM course_progress WHERE instance_id IN (?)", [instanceIds]);
+            await connection.query("DELETE FROM course_quiz_results WHERE instance_id IN (?)", [instanceIds]);
+            await connection.query("DELETE FROM course_instances WHERE id IN (?)", [instanceIds]);
+        }
+
+        await connection.query("DELETE FROM course_ratings WHERE course_id = ?", [id]);
+
+        await connection.query("DELETE FROM courses WHERE id = ?", [id]);
 
         await connection.commit();
 
         res.status(200).json({
-            message: "Course deleted",
+            message: "Course deleted successfully",
             courseId: id
         });
     } catch (err) {
         await connection.rollback();
-        res.status(500).json({ error: err.message });
+        console.error("Delete error:", err);
+        res.status(500).json({ error: "Failed to delete course: " + err.message });
+    } finally {
+        connection.release();
     }
 });
+
 
 // get all users
 router.get("/users", verifyToken, async (req, res) => {
@@ -942,6 +983,119 @@ router.delete("/questions/:id", verifyToken, verifyQuestionAccess, async (req, r
     }
 });
 
+// --- Course Ratings ---
+
+// Rate a course
+router.post("/courses/:id/rate", verifyToken, async (req, res) => {
+    const connection = await db.getConnection();
+    try {
+        await connection.beginTransaction();
+        const courseId = req.params.id;
+        const userId = req.user.id;
+        const { rating, comment } = req.body;
+
+        if (!rating || rating < 1 || rating > 5) {
+            return res.status(400).json({ message: "Invalid rating" });
+        }
+
+        const [instances] = await connection.query(
+            `select ci.id 
+             from course_instances ci
+             left join instance_students ist on ci.id = ist.instance_id
+             where ci.template_id = ? and (ci.owner_id = ? or ist.user_id = ?)`,
+            [courseId, userId, userId]
+        );
+
+        if (instances.length === 0) {
+            return res.status(403).json({ message: "You must be enrolled in this course to rate it" });
+        }
+
+        const instanceId = instances[0].id;
+
+        const [modules] = await connection.query(
+            "select id from course_modules where course_id = ? or instance_id = ?",
+            [courseId, instanceId]
+        );
+        const moduleIds = modules.map(m => m.id);
+
+        let totalItems = 0;
+        if (moduleIds.length > 0) {
+            const [lessons] = await connection.query("select count(*) as count from course_lessons where module_id in (?)", [moduleIds]);
+            const [quizzes] = await connection.query("select count(*) as count from course_quizzes where module_id in (?)", [moduleIds]);
+            const [assignments] = await connection.query("select count(*) as count from course_assignments where module_id in (?)", [moduleIds]);
+            totalItems = lessons[0].count + quizzes[0].count + assignments[0].count;
+        }
+
+        const [progressRows] = await connection.query(
+            "select count(*) as count from course_progress where user_id = ? and instance_id = ?",
+            [userId, instanceId]
+        );
+        const [quizRows] = await connection.query(
+            "select count(*) as count from course_quiz_results where user_id = ? and instance_id = ? and passed = 1",
+            [userId, instanceId]
+        );
+
+        const completedItems = progressRows[0].count + quizRows[0].count;
+
+        if (totalItems > 0 && completedItems < totalItems) {
+            return res.status(403).json({ message: "Please finish the course content before rating" });
+        }
+
+        await connection.query(
+            "INSERT INTO course_ratings (course_id, user_id, rating, comment) VALUES (?, ?, ?, ?) ON DUPLICATE KEY UPDATE rating = ?, comment = ?",
+            [courseId, userId, rating, comment || "", rating, comment || ""]
+        );
+
+        const [stats] = await connection.query(
+            "SELECT AVG(rating) as avg_r, COUNT(*) as count_r FROM course_ratings WHERE course_id = ?",
+            [courseId]
+        );
+
+        await connection.query(
+            "UPDATE courses SET rating = ?, rating_count = ? WHERE id = ?",
+            [stats[0].avg_r || 0, stats[0].count_r || 0, courseId]
+        );
+
+        await connection.commit();
+        res.json({ message: "Rating submitted successfully", averageRating: stats[0].avg_r });
+    } catch (err) {
+        await connection.rollback();
+        res.status(500).json({ error: err.message });
+    } finally {
+        connection.release();
+    }
+});
+
+// Get user's rating for a specific course
+router.get("/courses/:id/my-rating", verifyToken, async (req, res) => {
+    try {
+        const [rows] = await db.query(
+            "SELECT rating, comment FROM course_ratings WHERE course_id = ? AND user_id = ?",
+            [req.params.id, req.user.id]
+        );
+        res.json(rows[0] || null);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Get all ratings for a course
+router.get("/courses/:id/ratings", async (req, res) => {
+    try {
+        const [rows] = await db.query(
+            `select cr.*, u.name, u.username, u.image_profile 
+             from course_ratings cr
+             join users u on cr.user_id = u.id
+             where cr.course_id = ?
+             order by cr.rating desc`,
+            [req.params.id]
+        );
+        res.json(rows);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // --- Progress Tracking ---
 
 // Save Lesson/Assignment Progress
@@ -1001,6 +1155,87 @@ router.get("/instances/:id/progress", verifyToken, async (req, res) => {
             assignments: progressRows.filter(r => r.content_type === 'assignment').map(r => r.content_id),
             quizzes: quizRows
         });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// --- Profile Management ---
+
+// GET user profile and stats
+router.get("/profile/me", verifyToken, async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const [userRows] = await db.query(
+            "select id, username, name, email, points, image_profile from users where id = ?",
+            [userId]
+        );
+        if (userRows.length === 0) return res.status(404).json({ message: "User not found" });
+
+        const user = userRows[0];
+
+        const [ownedInstances] = await db.query("select count(*) as count from course_instances where owner_id = ?", [userId]);
+        const [invitedInstances] = await db.query("select count(*) as count from instance_students where user_id = ?", [userId]);
+
+        const [progressCount] = await db.query("select count(*) as count from course_progress where user_id = ? and content_type = 'lesson'", [userId]);
+
+        res.json({
+            ...user,
+            stats: {
+                points: user.points || 0,
+                learning: ownedInstances[0].count + invitedInstances[0].count,
+                completed: Math.floor(progressCount[0].count / 5)
+            }
+        });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+router.put("/profile/update", verifyToken, async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const { name } = req.body;
+        if (!name) return res.status(400).json({ message: "Name is required" });
+
+        await db.query("update users set name = ? where id = ?", [name, userId]);
+        res.json({ message: "Profile updated success" });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Change password
+router.put("/profile/password", verifyToken, async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const { currentPassword, newPassword } = req.body;
+
+        if (!currentPassword || !newPassword) {
+            return res.status(400).json({ message: "All fields required" });
+        }
+
+        const [userRows] = await db.query("select password from users where id = ?", [userId]);
+        const user = userRows[0];
+
+        const match = await bcrypt.compare(currentPassword, user.password);
+        if (!match) return res.status(400).json({ message: "Incorrect current password" });
+
+        const hashed = await bcrypt.hash(newPassword, 10);
+        await db.query("update users set password = ? where id = ?", [hashed, userId]);
+
+        res.json({ message: "Password updated successfully" });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Delete account
+router.delete("/profile/account", verifyToken, async (req, res) => {
+    try {
+        const userId = req.user.id;
+        await db.query("delete from users where id = ?", [userId]);
+        res.json({ message: "Account deleted" });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }

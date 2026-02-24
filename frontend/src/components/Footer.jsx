@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import GitHubIcon from '@mui/icons-material/GitHub';
+import { Link } from "react-router-dom";
 
 function Footer() {
   const [darkMode, setDarkMode] = useState(false);
@@ -56,7 +57,9 @@ function Footer() {
             <h5 className="font-bold text-slate-900 dark:text-white mb-6">Social</h5>
             <div className="flex space-x-4">
               <div className="h-10 w-10 bg-white dark:bg-slate-800 rounded-full flex items-center justify-center border">
+                <Link to="https://github.com/nippitch239/Learnaja">
                 <GitHubIcon className="text-slate-900 dark:text-white" /> 
+                </Link>
               </div>
             
             </div>

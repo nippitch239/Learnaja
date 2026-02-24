@@ -21,6 +21,8 @@ function AllCourse() {
                 dispatch(fetchCourses());
             }
         } catch (err) {
+            const msg = err.response?.data?.message || "เกิดข้อผิดพลาดในการลบคอร์ส";
+            alert(msg);
             console.error(err);
         }
     };

@@ -10,19 +10,19 @@ function CourseEdit() {
     const [loading, setLoading] = useState(true);
     const [message, setMessage] = useState("");
     const [submitting, setSubmitting] = useState(false);
-    const [activeTab, setActiveTab] = useState("info"); // info, curriculum, students
+    const [activeTab, setActiveTab] = useState("info");
 
     const [newModuleName, setNewModuleName] = useState("");
-    const [expandedQuizzes, setExpandedQuizzes] = useState({}); // { quizId: true/false }
+    const [expandedQuizzes, setExpandedQuizzes] = useState({});
 
-    // Question Modal state
+
     const [isQuestionModalOpen, setIsQuestionModalOpen] = useState(false);
     const [qModalData, setQModalData] = useState({
         quizId: null,
         question: "",
         type: "single_choice",
         choices: ["", ""],
-        correctAnswers: [], // Array of indices
+        correctAnswers: [],
         points: 10
     });
 
@@ -44,7 +44,7 @@ function CourseEdit() {
 
     const safeParse = (str, fallback = []) => {
         if (!str) return fallback;
-        if (typeof str !== 'string') return str; // Already parsed
+        if (typeof str !== 'string') return str;
         try {
             return JSON.parse(str);
         } catch (e) {
@@ -63,7 +63,9 @@ function CourseEdit() {
                 description: course.description,
                 price: course.price,
                 thumbnail_url: course.thumbnail_url,
-                category: course.category
+                category: course.category,
+                rating: course.rating,
+                rating_count: course.rating_count
             });
             setMessage("บันทึกข้อมูลทั่วไปเรียบร้อยแล้ว!");
             setTimeout(() => setMessage(""), 3000);
@@ -203,7 +205,6 @@ function CourseEdit() {
         if (qModalData.correctAnswers.length === 0) return alert("กรุณาเลือกคำตอบที่ถูกต้อง");
 
         try {
-            // Store correct answers as indices (string or JSON array of indices)
             let correctAnswer;
             if (qModalData.type === 'single_choice' || qModalData.type === 'true_false') {
                 correctAnswer = qModalData.correctAnswers[0].toString();
@@ -242,7 +243,6 @@ function CourseEdit() {
     const updateQForm = (field, value) => {
         setQModalData(prev => {
             const newData = { ...prev, [field]: value };
-            // Reset correct answers if type changes
             if (field === 'type') {
                 if (value === 'true_false') {
                     newData.choices = ["ใช่ (True)", "ไม่ใช่ (False)"];
@@ -331,13 +331,6 @@ function CourseEdit() {
                                     <span className="material-symbols-outlined">menu_book</span>
                                     <span>จัดการคอร์สเรียน</span>
                                 </button>
-                                <button
-                                    onClick={() => setActiveTab("students")}
-                                    className={`cursor-pointer w-full flex items-center space-x-3 px-4 py-3 rounded-xl font-semibold transition-colors ${activeTab === 'students' ? 'bg-primary/10 text-primary' : 'text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800'}`}
-                                >
-                                    <span className="material-symbols-outlined">group</span>
-                                    <span>จัดการนักเรียน</span>
-                                </button>
                             </nav>
                             <div className="mt-6 pt-6 border-t border-slate-100 dark:border-slate-800">
                                 <button
@@ -367,12 +360,10 @@ function CourseEdit() {
                                     <h1 className="text-2xl font-bold">
                                         {activeTab === 'info' && "จัดการรายละเอียดคอร์สเรียน"}
                                         {activeTab === 'curriculum' && "จัดการเนื้อหาหลักสูตร"}
-                                        {activeTab === 'students' && "จัดการนักเรียน"}
                                     </h1>
                                     <p className="text-slate-400 text-sm">
                                         {activeTab === 'info' && "จัดการรายละเอียด ชื่อคอร์สเรียน และภาพหน้าปกของคอร์สเรียน"}
                                         {activeTab === 'curriculum' && "จัดการบทเรียน วิดีโอ และแบบทดสอบต่างๆ"}
-                                        {activeTab === 'students' && "จัดการการลงทะเบียนและรายชื่อนักเรียนในคอร์ส"}
                                     </p>
                                 </div>
                                 {activeTab === 'curriculum' && (
@@ -419,23 +410,58 @@ function CourseEdit() {
                                                 <label className="block text-sm font-bold text-slate-700 dark:text-slate-300">ราคา (Points)</label>
                                                 <div className="relative">
                                                     <input
-                                                        className="w-full bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 rounded-xl pl-4 pr-12 py-3 focus:ring-2 focus:ring-primary focus:border-primary transition-all"
+                                                        className="w-full bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 rounded-xl pl-4 pr-12 py-3 focus:ring-2 focus:ring-primary focus:border-primary transition-all font-bold"
                                                         type="number"
                                                         value={course.price}
-                                                        onChange={(e) => setCourse({ ...course, price: e.target.value })}
+                                                        onChange={(e) => setCourse({ ...course, price: Number(e.target.value) })}
                                                     />
                                                     <span className="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-slate-400">toll</span>
                                                 </div>
                                             </div>
                                             <div className="space-y-2">
                                                 <label className="block text-sm font-bold text-slate-700 dark:text-slate-300">หมวดหมู่</label>
-                                                <input
-                                                    className="w-full bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 focus:ring-2 focus:ring-primary focus:border-primary transition-all"
-                                                    type="text"
-                                                    placeholder="เช่น การโปรแกรม, ดีไซน์..."
-                                                    value={course.category || ""}
+                                                <select
+                                                    className="w-full bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 focus:ring-2 focus:ring-primary focus:border-primary transition-all font-bold cursor-pointer"
+                                                    value={course.category || "Programming"}
                                                     onChange={(e) => setCourse({ ...course, category: e.target.value })}
-                                                />
+                                                >
+                                                    <option value="Programming">Programming</option>
+                                                    <option value="Design">Design</option>
+                                                    <option value="Business">Business</option>
+                                                    <option value="Networking">Networking</option>
+                                                    <option value="Data Science">Data Science</option>
+                                                    <option value="Health & Wellness">Health & Wellness</option>
+                                                </select>
+                                            </div>
+                                        </div>
+
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                            <div className="space-y-2">
+                                                <label className="block text-sm font-bold text-slate-700 dark:text-slate-300">Rating (0-5)</label>
+                                                <div className="relative">
+                                                    <input
+                                                        className="w-full bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 rounded-xl pl-4 pr-12 py-3 focus:ring-2 focus:ring-primary focus:border-primary transition-all font-bold"
+                                                        type="number"
+                                                        step="0.1"
+                                                        min="0"
+                                                        max="5"
+                                                        value={course.rating || 0}
+                                                        onChange={(e) => setCourse({ ...course, rating: Number(e.target.value) })}
+                                                    />
+                                                    <span className="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-yellow-400">star</span>
+                                                </div>
+                                            </div>
+                                            <div className="space-y-2">
+                                                <label className="block text-sm font-bold text-slate-700 dark:text-slate-300">Review Count</label>
+                                                <div className="relative">
+                                                    <input
+                                                        className="w-full bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 rounded-xl pl-4 pr-12 py-3 focus:ring-2 focus:ring-primary focus:border-primary transition-all font-bold"
+                                                        type="number"
+                                                        value={course.rating_count || 0}
+                                                        onChange={(e) => setCourse({ ...course, rating_count: Number(e.target.value) })}
+                                                    />
+                                                    <span className="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-slate-400">reviews</span>
+                                                </div>
                                             </div>
                                         </div>
                                         <div className="space-y-2">
@@ -655,112 +681,6 @@ function CourseEdit() {
                                     </div>
                                 )}
 
-                                {activeTab === 'students' && (
-                                    <div className="space-y-8">
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                            <div className="bg-slate-50 dark:bg-slate-900/50 p-6 rounded-2xl border border-slate-100 dark:border-slate-800 space-y-4">
-                                                <div className="flex items-center gap-2 text-primary">
-                                                    <span className="material-symbols-outlined">group</span>
-                                                    <h3 className="font-bold">สถิตินักเรียน</h3>
-                                                </div>
-                                                <div className="grid grid-cols-2 gap-4">
-                                                    <div className="bg-white dark:bg-slate-800 p-4 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700">
-                                                        <p className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">ทั้งหมด</p>
-                                                        <p className="text-2xl font-black text-slate-800 dark:text-white">124</p>
-                                                    </div>
-                                                    <div className="bg-white dark:bg-slate-800 p-4 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700">
-                                                        <p className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">กำลังเรียน</p>
-                                                        <p className="text-2xl font-black text-slate-800 dark:text-white">86</p>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <div className="bg-slate-50 dark:bg-slate-900/50 p-6 rounded-2xl border border-slate-100 dark:border-slate-800 space-y-4">
-                                                <div className="flex items-center gap-2 text-amber-500">
-                                                    <span className="material-symbols-outlined">trending_up</span>
-                                                    <h3 className="font-bold">การเติบโต</h3>
-                                                </div>
-                                                <div className="p-4 bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700 h-[68px] flex items-center justify-between">
-                                                    <span className="text-slate-400 text-sm font-medium">เพิ่มขึ้นสัปดาห์นี้</span>
-                                                    <span className="text-green-500 font-bold flex items-center">+12% <span className="material-symbols-outlined text-sm ml-1">north</span></span>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <div className="space-y-4">
-                                            <div className="flex items-center justify-between">
-                                                <h3 className="text-lg font-bold text-slate-700 dark:text-slate-300">รายชื่อนักเรียน <span className="text-sm font-normal text-slate-400 ml-2">(จำลองข้อมูล)</span></h3>
-                                                <div className="relative w-64">
-                                                    <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">search</span>
-                                                    <input
-                                                        className="w-full bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 rounded-full px-10 py-2 text-sm focus:ring-primary focus:border-primary"
-                                                        placeholder="ค้นหาชื่อนักเรียน..."
-                                                        type="text"
-                                                    />
-                                                </div>
-                                            </div>
-                                            <div className="overflow-x-auto">
-                                                <table className="w-full text-left border-collapse">
-                                                    <thead>
-                                                        <tr className="border-b border-slate-100 dark:border-slate-800">
-                                                            <th className="py-4 px-4 font-bold text-slate-400 text-xs uppercase tracking-wider">นักเรียน</th>
-                                                            <th className="py-4 px-4 font-bold text-slate-400 text-xs uppercase tracking-wider">วันที่ลงทะเบียน</th>
-                                                            <th className="py-4 px-4 font-bold text-slate-400 text-xs uppercase tracking-wider">ความคืบหน้า</th>
-                                                            <th className="py-4 px-4 font-bold text-slate-400 text-xs uppercase tracking-wider text-right">การจัดการ</th>
-                                                        </tr>
-                                                    </thead>
-                                                    <tbody className="divide-y divide-slate-50 dark:divide-slate-800/50">
-                                                        <tr className="group hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-colors">
-                                                            <td className="py-4 px-4">
-                                                                <div className="flex items-center space-x-3">
-                                                                    <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center text-primary text-sm font-bold">JD</div>
-                                                                    <div>
-                                                                        <p className="font-bold text-sm">Jane Doe</p>
-                                                                        <p className="text-[10px] text-slate-400">jane.doe@example.com</p>
-                                                                    </div>
-                                                                </div>
-                                                            </td>
-                                                            <td className="py-4 px-4 text-slate-500 text-xs">Feb 20, 2024</td>
-                                                            <td className="py-4 px-4">
-                                                                <div className="w-24 bg-slate-100 dark:bg-slate-700 h-1.5 rounded-full overflow-hidden">
-                                                                    <div className="bg-primary h-full w-[85%]"></div>
-                                                                </div>
-                                                                <span className="text-[10px] font-bold text-slate-400">85% Complete</span>
-                                                            </td>
-                                                            <td className="py-4 px-4 text-right">
-                                                                <button className="cursor-pointer text-slate-300 hover:text-red-400 transition-all p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20">
-                                                                    <span className="material-symbols-outlined text-sm">person_remove</span>
-                                                                </button>
-                                                            </td>
-                                                        </tr>
-                                                        <tr className="group hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-colors">
-                                                            <td className="py-4 px-4">
-                                                                <div className="flex items-center space-x-3">
-                                                                    <div className="w-9 h-9 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-500 text-sm font-bold">MS</div>
-                                                                    <div>
-                                                                        <p className="font-bold text-sm">Mark Smith</p>
-                                                                        <p className="text-[10px] text-slate-400">mark.s@university.edu</p>
-                                                                    </div>
-                                                                </div>
-                                                            </td>
-                                                            <td className="py-4 px-4 text-slate-500 text-xs">Feb 21, 2024</td>
-                                                            <td className="py-4 px-4">
-                                                                <div className="w-24 bg-slate-100 dark:bg-slate-700 h-1.5 rounded-full overflow-hidden">
-                                                                    <div className="bg-primary h-full w-[32%]"></div>
-                                                                </div>
-                                                                <span className="text-[10px] font-bold text-slate-400">32% Complete</span>
-                                                            </td>
-                                                            <td className="py-4 px-4 text-right">
-                                                                <button className="cursor-pointer text-slate-300 hover:text-red-400 transition-all p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20">
-                                                                    <span className="material-symbols-outlined text-sm">person_remove</span>
-                                                                </button>
-                                                            </td>
-                                                        </tr>
-                                                    </tbody>
-                                                </table>
-                                            </div>
-                                        </div>
-                                    </div>
-                                )}
                             </div>
 
                             {/* Footer Links/Buttons */}
@@ -783,123 +703,125 @@ function CourseEdit() {
                         </div>
                     </div>
                 </div>
-            </main>
+            </main >
 
             {/* Question Creation Modal */}
-            {isQuestionModalOpen && (
-                <div className="fixed inset-0 z-100 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300">
-                    <div className="bg-white dark:bg-slate-900 w-full max-w-2xl rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 flex flex-col max-h-[90vh] overflow-hidden">
-                        <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-slate-900/50">
-                            <div>
-                                <h3 className="text-xl font-bold">สร้างคำถามใหม่</h3>
-                                <p className="text-xs text-slate-400">สร้างโจทย์และกำหนดตัวเลือกคำตอบสำหรับแบบทดสอบ</p>
-                            </div>
-                            <button
-                                onClick={() => setIsQuestionModalOpen(false)}
-                                className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors"
-                            >
-                                <span className="material-symbols-outlined">close</span>
-                            </button>
-                        </div>
-
-                        <div className="p-6 overflow-y-auto space-y-6">
-                            {/* Question Text */}
-                            <div className="space-y-2">
-                                <label className="block text-sm font-bold text-slate-700 dark:text-slate-300">โจทย์คำถาม</label>
-                                <textarea
-                                    className="w-full bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 rounded-2xl px-4 py-3 outline-none focus:ring-2 focus:ring-primary/20 min-h-[100px] text-sm"
-                                    placeholder="ใส่โจทย์คำถามที่นี่..."
-                                    value={qModalData.question}
-                                    onChange={(e) => updateQForm('question', e.target.value)}
-                                />
-                            </div>
-
-                            {/* Type & Points */}
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-2">
-                                    <label className="block text-sm font-bold text-slate-700 dark:text-slate-300">ประเภทคำถาม</label>
-                                    <select
-                                        className="w-full bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 rounded-xl px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/20"
-                                        value={qModalData.type}
-                                        onChange={(e) => updateQForm('type', e.target.value)}
-                                    >
-                                        <option value="single_choice">Single Choice (เลือกได้ข้อเดียว)</option>
-                                        <option value="multiple_choice">Multiple Choice (เลือกได้หลายข้อ)</option>
-                                        <option value="true_false">True / False (ถูก หรือ ผิด)</option>
-                                    </select>
+            {
+                isQuestionModalOpen && (
+                    <div className="fixed inset-0 z-100 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300">
+                        <div className="bg-white dark:bg-slate-900 w-full max-w-2xl rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 flex flex-col max-h-[90vh] overflow-hidden">
+                            <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-slate-900/50">
+                                <div>
+                                    <h3 className="text-xl font-bold">สร้างคำถามใหม่</h3>
+                                    <p className="text-xs text-slate-400">สร้างโจทย์และกำหนดตัวเลือกคำตอบสำหรับแบบทดสอบ</p>
                                 </div>
+                                <button
+                                    onClick={() => setIsQuestionModalOpen(false)}
+                                    className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors"
+                                >
+                                    <span className="material-symbols-outlined">close</span>
+                                </button>
+                            </div>
+
+                            <div className="p-6 overflow-y-auto space-y-6">
+                                {/* Question Text */}
                                 <div className="space-y-2">
-                                    <label className="block text-sm font-bold text-slate-700 dark:text-slate-300">คะแนน</label>
-                                    <input
-                                        type="number"
-                                        className="w-full bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 rounded-xl px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/20"
-                                        value={qModalData.points}
-                                        onChange={(e) => updateQForm('points', parseInt(e.target.value) || 0)}
+                                    <label className="block text-sm font-bold text-slate-700 dark:text-slate-300">โจทย์คำถาม</label>
+                                    <textarea
+                                        className="w-full bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 rounded-2xl px-4 py-3 outline-none focus:ring-2 focus:ring-primary/20 min-h-[100px] text-sm"
+                                        placeholder="ใส่โจทย์คำถามที่นี่..."
+                                        value={qModalData.question}
+                                        onChange={(e) => updateQForm('question', e.target.value)}
                                     />
                                 </div>
-                            </div>
 
-                            {/* Choices */}
-                            <div className="space-y-3">
-                                <div className="flex justify-between items-center">
-                                    <label className="text-sm font-bold text-slate-700 dark:text-slate-300">ตัวเลือกคำตอบ</label>
-                                    {qModalData.type !== 'true_false' && (
-                                        <button
-                                            onClick={addChoice}
-                                            className="text-xs font-bold text-primary flex items-center gap-1 hover:underline"
+                                {/* Type & Points */}
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-2">
+                                        <label className="block text-sm font-bold text-slate-700 dark:text-slate-300">ประเภทคำถาม</label>
+                                        <select
+                                            className="w-full bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 rounded-xl px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/20"
+                                            value={qModalData.type}
+                                            onChange={(e) => updateQForm('type', e.target.value)}
                                         >
-                                            <span className="material-symbols-outlined text-sm">add_circle</span> เพิ่มตัวเลือก
-                                        </button>
-                                    )}
+                                            <option value="single_choice">Single Choice (เลือกได้ข้อเดียว)</option>
+                                            <option value="multiple_choice">Multiple Choice (เลือกได้หลายข้อ)</option>
+                                            <option value="true_false">True / False (ถูก หรือ ผิด)</option>
+                                        </select>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="block text-sm font-bold text-slate-700 dark:text-slate-300">คะแนน</label>
+                                        <input
+                                            type="number"
+                                            className="w-full bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 rounded-xl px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/20"
+                                            value={qModalData.points}
+                                            onChange={(e) => updateQForm('points', parseInt(e.target.value) || 0)}
+                                        />
+                                    </div>
                                 </div>
-                                <div className="space-y-2">
-                                    {qModalData.choices.map((choice, index) => (
-                                        <div key={index} className="flex items-center gap-3 group/item">
-                                            <button
-                                                onClick={() => toggleCorrectAnswer(index)}
-                                                className={`w-6 h-6 flex items-center justify-center rounded-full border-2 transition-all ${qModalData.correctAnswers.includes(index) ? 'border-green-500 bg-green-500 text-white' : 'border-slate-200 dark:border-slate-700 hover:border-green-400'}`}
-                                            >
-                                                {qModalData.correctAnswers.includes(index) && <span className="material-symbols-outlined text-xs">check</span>}
-                                            </button>
-                                            <input
-                                                className={`flex-1 bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 rounded-xl px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/20 ${qModalData.type === 'true_false' ? 'pointer-events-none opacity-80' : ''}`}
-                                                placeholder={`ตัวเลือกที่ ${index + 1}`}
-                                                value={choice}
-                                                onChange={(e) => handleChoiceChange(index, e.target.value)}
-                                            />
-                                            {qModalData.type !== 'true_false' && qModalData.choices.length > 2 && (
-                                                <button
-                                                    onClick={() => removeChoice(index)}
-                                                    className="p-2 text-slate-300 hover:text-red-500 transition-colors opacity-0 group-hover/item:opacity-100"
-                                                >
-                                                    <span className="material-symbols-outlined text-sm">delete</span>
-                                                </button>
-                                            )}
-                                        </div>
-                                    ))}
-                                </div>
-                                <p className="text-[10px] text-slate-400">* คลิกที่วงกลมด้านหน้าเพื่อเลือกคำตอบที่ถูกต้อง</p>
-                            </div>
-                        </div>
 
-                        <div className="p-6 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 flex justify-end gap-3">
-                            <button
-                                onClick={() => setIsQuestionModalOpen(false)}
-                                className="px-6 py-2 rounded-xl font-bold text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-sm"
-                            >
-                                ยกเลิก
-                            </button>
-                            <button
-                                onClick={handleSaveQuestion}
-                                className="bg-primary text-white px-8 py-2 rounded-xl font-bold hover:opacity-90 transition-opacity shadow-lg shadow-pink-200 dark:shadow-none text-sm"
-                            >
-                                บันทึกคำถาม
-                            </button>
+                                {/* Choices */}
+                                <div className="space-y-3">
+                                    <div className="flex justify-between items-center">
+                                        <label className="text-sm font-bold text-slate-700 dark:text-slate-300">ตัวเลือกคำตอบ</label>
+                                        {qModalData.type !== 'true_false' && (
+                                            <button
+                                                onClick={addChoice}
+                                                className="text-xs font-bold text-primary flex items-center gap-1 hover:underline"
+                                            >
+                                                <span className="material-symbols-outlined text-sm">add_circle</span> เพิ่มตัวเลือก
+                                            </button>
+                                        )}
+                                    </div>
+                                    <div className="space-y-2">
+                                        {qModalData.choices.map((choice, index) => (
+                                            <div key={index} className="flex items-center gap-3 group/item">
+                                                <button
+                                                    onClick={() => toggleCorrectAnswer(index)}
+                                                    className={`w-6 h-6 flex items-center justify-center rounded-full border-2 transition-all ${qModalData.correctAnswers.includes(index) ? 'border-green-500 bg-green-500 text-white' : 'border-slate-200 dark:border-slate-700 hover:border-green-400'}`}
+                                                >
+                                                    {qModalData.correctAnswers.includes(index) && <span className="material-symbols-outlined text-xs">check</span>}
+                                                </button>
+                                                <input
+                                                    className={`flex-1 bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 rounded-xl px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/20 ${qModalData.type === 'true_false' ? 'pointer-events-none opacity-80' : ''}`}
+                                                    placeholder={`ตัวเลือกที่ ${index + 1}`}
+                                                    value={choice}
+                                                    onChange={(e) => handleChoiceChange(index, e.target.value)}
+                                                />
+                                                {qModalData.type !== 'true_false' && qModalData.choices.length > 2 && (
+                                                    <button
+                                                        onClick={() => removeChoice(index)}
+                                                        className="p-2 text-slate-300 hover:text-red-500 transition-colors opacity-0 group-hover/item:opacity-100"
+                                                    >
+                                                        <span className="material-symbols-outlined text-sm">delete</span>
+                                                    </button>
+                                                )}
+                                            </div>
+                                        ))}
+                                    </div>
+                                    <p className="text-[10px] text-slate-400">* คลิกที่วงกลมด้านหน้าเพื่อเลือกคำตอบที่ถูกต้อง</p>
+                                </div>
+                            </div>
+
+                            <div className="p-6 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 flex justify-end gap-3">
+                                <button
+                                    onClick={() => setIsQuestionModalOpen(false)}
+                                    className="px-6 py-2 rounded-xl font-bold text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-sm"
+                                >
+                                    ยกเลิก
+                                </button>
+                                <button
+                                    onClick={handleSaveQuestion}
+                                    className="bg-primary text-white px-8 py-2 rounded-xl font-bold hover:opacity-90 transition-opacity shadow-lg shadow-pink-200 dark:shadow-none text-sm"
+                                >
+                                    บันทึกคำถาม
+                                </button>
+                            </div>
                         </div>
                     </div>
-                </div>
-            )}
-        </div>
+                )
+            }
+        </div >
     );
 }
 

@@ -11,9 +11,11 @@ function CourseDetail() {
   const [isowner, setIsOwner] = useState(false);
   const [ownedInstanceId, setOwnedInstanceId] = useState(null);
   const [message, setMessage] = useState("");
+  const [ratings, setRatings] = useState([]);
 
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
+  const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:3200";
 
   useEffect(() => {
     const loadCourseData = async () => {
@@ -24,6 +26,7 @@ function CourseDetail() {
         if (user) {
           await calculateOwnership();
         }
+        await fetchRatings();
       } catch (err) {
         console.error(err);
       } finally {
@@ -46,6 +49,15 @@ function CourseDetail() {
       }
     } catch (err) {
       console.error(err);
+    }
+  };
+
+  const fetchRatings = async () => {
+    try {
+      const res = await api.get(`/courses/${id}/ratings`);
+      setRatings(res.data);
+    } catch (err) {
+      console.error("Failed to fetch ratings", err);
     }
   };
 
@@ -181,7 +193,12 @@ function CourseDetail() {
                 <span className="material-symbols-outlined text-primary p-2 bg-white dark:bg-slate-900 rounded-xl shadow-sm">grade</span>
                 <div>
                   <p className="text-[10px] uppercase tracking-wider font-bold text-slate-400">คะแนน</p>
-                  <p className="font-bold text-sm">4.9 <span className="text-slate-400 font-medium">(1.2k)</span></p>
+                  <p className="font-bold text-sm">
+                    {(course.rating || 0).toFixed(1)}
+                    <span className="text-slate-400 font-medium ml-1">
+                      ({course.rating_count > 1000 ? (course.rating_count / 1000).toFixed(1) + 'k' : course.rating_count || 0})
+                    </span>
+                  </p>
                 </div>
               </div>
             </div>
@@ -245,6 +262,60 @@ function CourseDetail() {
                   </div>
                 )}
               </div>
+            </section>
+
+            {/* Reviews Section */}
+            <section className="mt-12">
+              <div className="flex items-center justify-between mb-8">
+                <h3 className="text-3xl font-bold">รีวิวจากผู้เรียน</h3>
+                <span className="px-4 py-1.5 bg-slate-100 dark:bg-slate-800 rounded-full text-sm font-bold text-slate-500">
+                  {ratings.length} รีวิว
+                </span>
+              </div>
+
+              {ratings.length > 0 ? (
+                <div className="space-y-6">
+                  {ratings.map((review) => (
+                    <div key={review.id} className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-3xl p-6 shadow-sm flex flex-col md:flex-row gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                      <div className="shrink-0 flex md:flex-col items-center gap-3">
+                        <img
+                          src={review.image_profile ? `${API_BASE}${review.image_profile}` : "/images/user.png"}
+                          alt={review.name || review.username}
+                          className="w-14 h-14 rounded-2xl object-cover border-2 border-primary/10"
+                        />
+                        <div className="md:text-center">
+                          <p className="font-bold text-slate-900 dark:text-white text-sm">{review.name || review.username}</p>
+                          <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Verified Learner</p>
+                        </div>
+                      </div>
+
+                      <div className="flex-1 space-y-3">
+                        <div className="flex items-center justify-between">
+                          <div className="flex gap-0.5">
+                            {[1, 2, 3, 4, 5].map((s) => (
+                              <span key={s} className={`material-symbols-outlined text-lg ${s <= review.rating ? 'text-yellow-400 fill-1' : 'text-slate-200'}`}>
+                                star
+                              </span>
+                            ))}
+                          </div>
+                          <span className="text-[10px] text-slate-400 font-bold">
+                            {new Date(review.created_at).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: 'numeric' })}
+                          </span>
+                        </div>
+                        <p className="text-slate-600 dark:text-slate-400 text-sm leading-relaxed italic">
+                          "{review.comment || 'ไม่มีความแเห็นเพิ่มเติม'}"
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="py-16 text-center bg-slate-50/50 dark:bg-slate-900/50 rounded-3xl border-2 border-dashed border-slate-100 dark:border-slate-800">
+                  <span className="material-symbols-outlined text-4xl text-slate-300 mb-2">rate_review</span>
+                  <p className="text-slate-400 font-bold text-sm">ยังไม่มีรีวิวสำหรับคอร์สนี้</p>
+                  <p className="text-slate-400 text-xs">เป็นคนแรกที่รีวิวหลังจากเรียนจบ!</p>
+                </div>
+              )}
             </section>
           </div>
 

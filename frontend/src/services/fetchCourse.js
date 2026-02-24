@@ -18,9 +18,12 @@ const fetchCourseFull = async (id) => {
     }
 };
 
-const fetchCourses = async (search = "") => {
+const fetchCourses = async (search = "", sortBy = "", limit = "") => {
     try {
-        const res = await api.get(`/courses${search ? `?search=${search}` : ""}`);
+        let url = `/courses?search=${search}`;
+        if (sortBy) url += `&sortBy=${sortBy}`;
+        if (limit) url += `&limit=${limit}`;
+        const res = await api.get(url);
         return res.data;
     } catch (err) {
         console.error(err);

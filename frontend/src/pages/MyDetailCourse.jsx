@@ -3,12 +3,14 @@ import { useNavigate, useParams } from "react-router-dom";
 import { fetchInstance, fetchCourseFull } from "../services/fetchCourse";
 import { AuthContext } from "../context/AuthContext";
 import api from "../services/api";
+import AsyncSelect from "react-select/async";
 
 function MyDetailCourse() {
     const [instance, setInstance] = useState(null);
     const [fullCourse, setFullCourse] = useState(null);
     const [loading, setLoading] = useState(true);
     const [activeItem, setActiveItem] = useState(null);
+    const [viewTab, setViewTab] = useState('overview');
     const [progress, setProgress] = useState({ lessons: [], quizzes: [], assignments: [] });
 
     const [quizState, setQuizState] = useState({
@@ -31,6 +33,18 @@ function MyDetailCourse() {
         correctAnswers: [],
         points: 10
     });
+
+    const [students, setStudents] = useState([]);
+    const [isManagingStudents, setIsManagingStudents] = useState(false);
+    const [selectedInviteOptions, setSelectedInviteOptions] = useState([]);
+    const [message, setMessage] = useState("");
+    const [fetchingStudents, setFetchingStudents] = useState(false);
+
+    const [userRating, setUserRating] = useState(0);
+    const [userComment, setUserComment] = useState("");
+    const [hasRated, setHasRated] = useState(false);
+    const [submittingRating, setSubmittingRating] = useState(false);
+    const [ratingFetched, setRatingFetched] = useState(false);
 
     const navigate = useNavigate();
     const { id } = useParams();
@@ -56,11 +70,8 @@ function MyDetailCourse() {
                 setFullCourse(fullData);
 
                 await fetchProgress();
+                await fetchMyRating(fullData.template_id);
 
-                await fetchProgress();
-
-                // We no longer auto-select the first lesson here.
-                // The user will see the Overview page first.
             } catch (err) {
                 console.error(err);
             } finally {
@@ -79,6 +90,121 @@ function MyDetailCourse() {
             console.error("Failed to fetch progress", err);
         }
     };
+
+    const fetchMyRating = async (courseId) => {
+        try {
+            const res = await api.get(`/courses/${courseId}/my-rating`);
+            if (res.data) {
+                setUserRating(res.data.rating);
+                setUserComment(res.data.comment);
+                setHasRated(true);
+            }
+            setRatingFetched(true);
+        } catch (err) {
+            console.error("Failed to fetch rating", err);
+        }
+    };
+
+    const handleSubmitRating = async () => {
+        if (userRating === 0) return alert("กรุณาเลือกคะแนน (ดาว)");
+        try {
+            setSubmittingRating(true);
+            await api.post(`/courses/${fullCourse.template_id}/rate`, {
+                rating: userRating,
+                comment: userComment
+            });
+            setHasRated(true);
+            setMessage("ขอบคุณสำหรับการให้คะแนนคอร์สเรียน!");
+            setTimeout(() => setMessage(""), 3000);
+        } catch (err) {
+            console.error(err);
+            alert(err.response?.data?.message || "Failed to submit rating");
+        } finally {
+            setSubmittingRating(false);
+        }
+    };
+
+    const totalLessons = fullCourse?.modules?.reduce((acc, m) => acc + (m.lessons?.length || 0), 0) || 0;
+    const totalQuizzes = fullCourse?.modules?.reduce((acc, m) => acc + (m.quizzes?.length || 0), 0) || 0;
+    const totalAssignments = fullCourse?.modules?.reduce((acc, m) => acc + (m.assignments?.length || 0), 0) || 0;
+    const totalItems = totalLessons + totalQuizzes + totalAssignments;
+    const completedItems = (progress.lessons?.length || 0) + (progress.quizzes?.filter(q => q.passed)?.length || 0) + (progress.assignments?.length || 0);
+    const progressPercent = totalItems > 0 ? Math.round((completedItems / totalItems) * 100) : 0;
+    const isFinished = totalItems > 0 && completedItems >= totalItems;
+
+    const fetchStudents = async () => {
+        try {
+            setFetchingStudents(true);
+            const res = await api.get(`/instances/${id}/students`);
+            setStudents(res.data);
+        } catch (err) {
+            console.error("Failed to fetch students", err);
+        } finally {
+            setFetchingStudents(false);
+        }
+    };
+
+    const loadUsersOptions = async (inputValue) => {
+        if (!inputValue) return [];
+        try {
+            const res = await api.get(`/users/search?q=${inputValue}`);
+            return res.data.map(u => ({
+                value: u.id,
+                label: `${u.username} (${u.email})`
+            }));
+        } catch (err) {
+            console.error(err);
+            return [];
+        }
+    };
+
+    const handleInvite = async () => {
+        if (selectedInviteOptions.length === 0) {
+            setMessage("กรุณาเลือกนักเรียนอย่างน้อย 1 คน");
+            return;
+        }
+
+        try {
+            setLoading(true);
+            const promises = selectedInviteOptions.map(opt =>
+                api.post(`/instances/${id}/invite`, { studentId: opt.value })
+            );
+
+            await Promise.all(promises);
+
+            setMessage("เชิญนักเรียนที่เลือกเรียบร้อยแล้ว!");
+            setSelectedInviteOptions([]);
+            fetchStudents();
+            setTimeout(() => setMessage(""), 3000);
+        } catch (err) {
+            setMessage(err.response?.data?.message || "เกิดข้อผิดพลาดในการเชิญนักเรียนบางคน");
+            setTimeout(() => setMessage(""), 3000);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleDeleteInvite = async (studentId) => {
+        if (!confirm("คุณแน่ใจหรือไม่ว่าต้องการลบนักเรียนคนนี้ออกจากคอร์ส?")) return;
+        try {
+            setLoading(true);
+            await api.delete(`/instances/${id}/invite`, { data: { studentId } });
+            setMessage("ลบนักเรียนเรียบร้อยแล้ว!");
+            fetchStudents();
+            setTimeout(() => setMessage(""), 3000);
+        } catch (err) {
+            setMessage(err.response?.data?.message || "เกิดข้อผิดพลาดในการลบนักเรียน");
+            setTimeout(() => setMessage(""), 3000);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        if (viewTab === 'students') {
+            fetchStudents();
+        }
+    }, [viewTab, id]);
 
     const handleCustomize = async () => {
         if (!window.confirm("ต้องการปรับแต่งคอร์สนี้ใช่หรือไม่? (จะทำการคัดลอกเนื้อหาจากต้นฉบับมาให้คุณแก้ไขได้)")) return;
@@ -429,7 +555,6 @@ function MyDetailCourse() {
     const handleStartLearning = () => {
         if (!fullCourse?.modules) return;
 
-        // Try to find the first incomplete lesson
         let targetLesson = null;
         for (const module of fullCourse.modules) {
             for (const lesson of module.lessons || []) {
@@ -441,7 +566,6 @@ function MyDetailCourse() {
             if (targetLesson) break;
         }
 
-        // Fallback to the very first lesson if all are completed or none found
         if (!targetLesson && fullCourse.modules[0]?.lessons?.[0]) {
             targetLesson = fullCourse.modules[0].lessons[0];
         }
@@ -489,35 +613,34 @@ function MyDetailCourse() {
                         </div>
                     </div>
                     <div className="flex items-center gap-3">
-                        {instance.role === 'owner' && isTeacher && (
-                            <button
-                                onClick={() => navigate(`/mycourses/${instance.id}/invite`)}
-                                className="bg-primary/10 text-primary px-4 py-2 rounded-xl text-sm font-bold hover:bg-primary hover:text-white transition-all flex items-center gap-2"
-                            >
-                                <span className="material-symbols-outlined text-sm">person_add</span>
-                                <span>เชิญนักเรียน</span>
-                            </button>
-                        )}
-                        <div className="h-8 w-px bg-slate-200 dark:bg-slate-800 mx-2"></div>
                         <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
                             <button
-                                onClick={() => setActiveItem(null)}
-                                className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${!activeItem ? 'bg-white dark:bg-slate-700 shadow-sm text-slate-900 dark:text-white' : 'text-slate-400 hover:text-slate-600'}`}
+                                onClick={() => { setActiveItem(null); setViewTab('overview'); }}
+                                className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${viewTab === 'overview' && !activeItem ? 'bg-white dark:bg-slate-700 shadow-sm text-slate-900 dark:text-white' : 'text-slate-400 hover:text-slate-600'}`}
                             >
                                 ภาพรวม
                             </button>
                             <button
-                                onClick={handleStartLearning}
-                                className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${activeItem ? 'bg-white dark:bg-slate-700 shadow-sm text-slate-900 dark:text-white' : 'text-slate-400 hover:text-slate-600'}`}
+                                onClick={() => { setViewTab('learning'); handleStartLearning(); }}
+                                className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${(viewTab === 'learning' || activeItem) ? 'bg-white dark:bg-slate-700 shadow-sm text-slate-900 dark:text-white' : 'text-slate-400 hover:text-slate-600'}`}
                             >
-                                การเรียนรูู้
+                                การเรียนรู้
                             </button>
+                            {instance.role === 'owner' && isTeacher && (
+                                <button
+                                    onClick={() => { setActiveItem(null); setViewTab('students'); }}
+                                    className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${viewTab === 'students' ? 'bg-white dark:bg-slate-700 shadow-sm text-slate-900 dark:text-white' : 'text-slate-400 hover:text-slate-600'}`}
+                                >
+                                    จัดการนักเรียน
+                                </button>
+                            )}
                         </div>
+                        <div className="h-8 w-px bg-slate-200 dark:bg-slate-800 mx-2"></div>
                     </div>
                 </div>
             </div>
 
-            {!activeItem ? (
+            {!activeItem && viewTab === 'overview' && (
                 /* Course Overview UI (Mirroring CourseDetail) */
                 <div className="animate-in fade-in duration-500">
                     {/* Hero Section */}
@@ -541,20 +664,87 @@ function MyDetailCourse() {
                                 <div className="flex flex-col items-start lg:items-end gap-4 min-w-[320px]">
                                     <div className="flex bg-white/50 dark:bg-slate-800/50 p-4 rounded-3xl border border-white/20 backdrop-blur-sm w-full">
                                         <div className="flex-1">
-                                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">ความคืบหน้า</p>
-                                            <div className="flex items-center gap-3">
-                                                <div className="flex-1 h-2 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
-                                                    <div
-                                                        className="h-full bg-primary"
-                                                        style={{ width: `${Math.round(((progress.lessons.length) / (fullCourse.modules?.reduce((acc, m) => acc + (m.lessons?.length || 0), 0) || 1)) * 100)}%` }}
-                                                    ></div>
-                                                </div>
-                                                <span className="text-xs font-black text-primary">
-                                                    {Math.round(((progress.lessons.length) / (fullCourse.modules?.reduce((acc, m) => acc + (m.lessons?.length || 0), 0) || 1)) * 100)}%
-                                                </span>
+                                            <div className="flex justify-between items-center mb-1">
+                                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">ความคืบหน้า</p>
+                                                <span className="text-[10px] font-black text-primary">{progressPercent}%</span>
+                                            </div>
+                                            <div className="h-2 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+                                                <div
+                                                    className="h-full bg-primary transition-all duration-1000"
+                                                    style={{ width: `${progressPercent}%` }}
+                                                ></div>
                                             </div>
                                         </div>
                                     </div>
+
+                                    {isFinished && (
+                                        <div className="w-full p-6 bg-linear-to-br from-green-500/10 to-emerald-500/10 dark:from-green-500/5 dark:to-emerald-500/5 border border-green-200 dark:border-green-900/30 rounded-3xl animate-in zoom-in-95 duration-500">
+                                            <div className="flex items-center gap-4 mb-6">
+                                                <div className="w-12 h-12 rounded-xl bg-green-500 flex items-center justify-center text-white shrink-0 shadow-lg shadow-green-200 dark:shadow-none">
+                                                    <span className="material-symbols-outlined text-2xl">emoji_events</span>
+                                                </div>
+                                                <div className="flex-1">
+                                                    <h4 className="text-md font-black text-green-700 dark:text-green-400 leading-tight">ยินดีด้วย! คุณเรียนจบแล้ว</h4>
+                                                    <p className="text-[10px] text-slate-600 dark:text-slate-400 mt-0.5">
+                                                        ให้คะแนนคอร์สนี้เพื่อช่วยเราพัฒนาให้ดียิ่งขึ้น
+                                                    </p>
+                                                </div>
+                                            </div>
+
+                                            <div className="pt-4 border-t border-green-100 dark:border-green-900/20">
+                                                <div className="flex flex-col items-center">
+                                                    <div className="flex gap-1.5 mb-4">
+                                                        {[1, 2, 3, 4, 5].map((star) => (
+                                                            <button
+                                                                key={star}
+                                                                disabled={hasRated || submittingRating}
+                                                                onClick={() => setUserRating(star)}
+                                                                className={`material-symbols-outlined text-3xl cursor-pointer transition-all hover:scale-110 active:scale-90 ${star <= userRating ? 'text-yellow-400 fill-1' : 'text-slate-300'} ${hasRated ? 'cursor-default' : ''}`}
+                                                            >
+                                                                star
+                                                            </button>
+                                                        ))}
+                                                    </div>
+
+                                                    {!hasRated ? (
+                                                        <div className="w-full space-y-3">
+                                                            <textarea
+                                                                placeholder="บอกความรู้สึกสั้นๆ..."
+                                                                value={userComment}
+                                                                onChange={(e) => setUserComment(e.target.value)}
+                                                                disabled={submittingRating}
+                                                                className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-3 text-xs focus:ring-2 focus:ring-primary/20 outline-none min-h-[80px] transition-all"
+                                                            ></textarea>
+                                                            <button
+                                                                onClick={handleSubmitRating}
+                                                                disabled={submittingRating || userRating === 0}
+                                                                className="w-full bg-slate-900 dark:bg-white dark:text-slate-900 text-white py-2.5 rounded-xl font-bold hover:brightness-110 transition-all disabled:opacity-50 flex items-center justify-center gap-2 text-xs"
+                                                            >
+                                                                {submittingRating ? (
+                                                                    <div className="w-4 h-4 border-2 border-white/30 border-t-white dark:border-slate-900/30 dark:border-t-slate-900 rounded-full animate-spin"></div>
+                                                                ) : (
+                                                                    <>
+                                                                        <span className="material-symbols-outlined text-sm">send</span>
+                                                                        ส่งความแเห็น
+                                                                    </>
+                                                                )}
+                                                            </button>
+                                                        </div>
+                                                    ) : (
+                                                        <div className="text-center w-full">
+                                                            <div className="p-3 bg-white/50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-700/50 italic text-[11px] text-slate-500 mb-3">
+                                                                "{userComment || 'ไม่มีความแเห็นเพิ่มเติม'}"
+                                                            </div>
+                                                            <div className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 text-[10px] font-bold">
+                                                                <span className="material-symbols-outlined text-xs">check_circle</span>
+                                                                บันทึกการให้คะแนนแล้ว
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
 
                                     <button
                                         onClick={handleStartLearning}
@@ -600,10 +790,10 @@ function MyDetailCourse() {
                         </div>
                     </div>
 
-                    <main className="container mx-auto px-6 py-12">
-                        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
-                            {/* Left Column: Curriculum */}
-                            <div className="lg:col-span-8 space-y-8">
+                    <main className="pt-8 pb-20 container mx-auto px-6">
+                        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+                            {/* Main Overview Content */}
+                            <div className="lg:col-span-8 space-y-10">
                                 <section>
                                     <div className="flex items-center justify-between mb-8">
                                         <h3 className="text-3xl font-bold">รายละเอียดหลักสูตร</h3>
@@ -700,9 +890,166 @@ function MyDetailCourse() {
                         </div>
                     </main>
                 </div>
-            ) : (
-                /* Original Learning Player UI */
-                <div className="container mx-auto px-6 py-8 animate-in slide-in-from-right-4 duration-500">
+            )}
+
+            {!activeItem && viewTab === 'students' && (
+                <main className="container mx-auto px-6 py-12 animate-in fade-in duration-500">
+                    <div className="bg-white dark:bg-slate-900 rounded-4xl border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden">
+                        <div className="p-8 border-b border-slate-100 dark:border-slate-800 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+                            <div>
+                                <h1 className="text-3xl font-black text-slate-900 dark:text-white mb-2 uppercase tracking-tight">จัดการนักเรียน</h1>
+                                <p className="text-slate-400 font-bold text-sm uppercase tracking-wider">จัดการการลงทะเบียนและเชิญนักเรียนใหม่เข้าสู่คอร์สของคุณ</p>
+                            </div>
+                        </div>
+
+                        <div className="p-10 space-y-12">
+                            {message && (
+                                <div className={`p-4 rounded-2xl flex items-center gap-3 animate-in slide-in-from-top-4 ${message.includes("Error") || message.includes("ความผิดพลาด") ? "bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400 border border-red-100 dark:border-red-900/30" : "bg-green-50 text-green-600 dark:bg-green-900/20 dark:text-green-400 border border-green-100 dark:border-green-900/30"}`}>
+                                    <span className="material-symbols-outlined">{message.includes("Error") || message.includes("ความผิดพลาด") ? "error" : "check_circle"}</span>
+                                    <p className="font-bold text-sm">{message}</p>
+                                </div>
+                            )}
+
+                            {/* Invite Section */}
+                            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                                <div className="lg:col-span-2 bg-slate-50 dark:bg-slate-800/50 p-8 rounded-3xl border border-slate-100 dark:border-slate-800">
+                                    <h3 className="text-lg font-black text-slate-800 dark:text-white mb-6 flex items-center gap-2">
+                                        <span className="material-symbols-outlined text-primary">person_add</span>
+                                        เชิญนักเรียนใหม่
+                                    </h3>
+                                    <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">ค้นหาด้วยชื่อผู้ใช้หรืออีเมล</p>
+                                    <AsyncSelect
+                                        isMulti
+                                        cacheOptions
+                                        loadOptions={loadUsersOptions}
+                                        value={selectedInviteOptions}
+                                        onChange={setSelectedInviteOptions}
+                                        placeholder="ระบุชื่อผู้ใช้หรืออีเมล..."
+                                        className="my-ReactSelect"
+                                        styles={{
+                                            control: (base) => ({
+                                                ...base,
+                                                borderRadius: '1rem',
+                                                padding: '4px',
+                                                border: '2px solid #E2E8F0',
+                                                backgroundColor: '#F8FAFC',
+                                                '&:hover': { borderColor: '#db2777' }
+                                            }),
+                                            menu: (base) => ({
+                                                ...base,
+                                                borderRadius: '1rem',
+                                                overflow: 'hidden'
+                                            })
+                                        }}
+                                    />
+                                    <button
+                                        onClick={handleInvite}
+                                        disabled={loading || selectedInviteOptions.length === 0}
+                                        className="mt-6 bg-primary text-white px-8 py-3 rounded-2xl font-black shadow-lg shadow-primary/20 hover:-translate-y-0.5 transition-all disabled:opacity-50 disabled:translate-y-0 cursor-pointer uppercase tracking-widest text-xs"
+                                    >
+                                        {loading ? "กำลังดำเนินการ..." : "เชิญนักเรียนที่เลือก"}
+                                    </button>
+                                </div>
+
+                                <div className="space-y-4">
+                                    <div className="bg-slate-50 dark:bg-slate-800/50 p-6 rounded-3xl border border-slate-100 dark:border-slate-800">
+                                        <div className="flex items-center gap-2 text-primary mb-3">
+                                            <span className="material-symbols-outlined text-lg">link</span>
+                                            <h3 className="font-black text-sm uppercase">เชิญด้วยลิงก์</h3>
+                                        </div>
+                                        <div className="flex gap-2">
+                                            <input
+                                                readOnly
+                                                className="flex-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-[10px] font-bold text-slate-500"
+                                                value={`https://learnnaja.com/join/${instance.id}`}
+                                            />
+                                            <button
+                                                onClick={() => {
+                                                    navigator.clipboard.writeText(`https://learnnaja.com/join/${instance.id}`);
+                                                    setMessage("คัดลอกลิงก์เรียบร้อยแล้ว!");
+                                                    setTimeout(() => setMessage(""), 2000);
+                                                }}
+                                                className="p-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl hover:bg-slate-50 text-primary transition-colors"
+                                            >
+                                                <span className="material-symbols-outlined text-sm">content_copy</span>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div className="bg-slate-50 dark:bg-slate-800/50 p-6 rounded-3xl border border-slate-100 dark:border-slate-800">
+                                        <div className="flex items-center gap-2 text-indigo-500 mb-3">
+                                            <span className="material-symbols-outlined text-lg">pin</span>
+                                            <h3 className="font-black text-sm uppercase">รหัสคลาส</h3>
+                                        </div>
+                                        <div className="flex items-center justify-between bg-white dark:bg-slate-900 px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700">
+                                            <span className="font-black text-lg tracking-widest text-slate-700 dark:text-slate-200">LN-{String(instance.id).substring(0, 5).toUpperCase()}</span>
+                                            <button className="text-indigo-500 hover:underline text-[9px] font-black uppercase">Refresh</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Students Table */}
+                            <div className="space-y-6">
+                                <div className="flex items-center justify-between">
+                                    <h3 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tight">
+                                        นักเรียนที่ลงทะเบียนแล้ว
+                                        <span className="text-sm font-bold text-slate-400 ml-3 bg-slate-100 dark:bg-slate-800 px-3 py-1 rounded-full">{students.length} คน</span>
+                                    </h3>
+                                </div>
+
+                                <div className="overflow-x-auto rounded-3xl border border-slate-100 dark:border-slate-800">
+                                    <table className="w-full text-left border-collapse">
+                                        <thead>
+                                            <tr className="bg-slate-50 dark:bg-slate-800/30 border-b border-slate-100 dark:border-slate-800">
+                                                <th className="py-5 px-6 font-black text-slate-400 text-[10px] uppercase tracking-widest">ข้อมูลนักเรียน</th>
+                                                <th className="py-5 px-6 font-black text-slate-400 text-[10px] uppercase tracking-widest">วันที่ลงทะเบียน</th>
+                                                <th className="py-5 px-6 font-black text-slate-400 text-[10px] uppercase tracking-widest text-right">การจัดการ</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-slate-50 dark:divide-slate-800/50">
+                                            {students.length === 0 ? (
+                                                <tr>
+                                                    <td colSpan="3" className="py-12 text-center text-slate-400 font-bold italic">ยังไม่มีนักเรียนลงทะเบียนในคอร์สนี้</td>
+                                                </tr>
+                                            ) : (
+                                                students.map((student) => (
+                                                    <tr key={student.id} className="group hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-colors">
+                                                        <td className="py-5 px-6">
+                                                            <div className="flex items-center gap-4">
+                                                                <div className="w-10 h-10 bg-primary/10 text-primary rounded-xl flex items-center justify-center font-black">
+                                                                    {student.username ? student.username[0].toUpperCase() : '?'}
+                                                                </div>
+                                                                <div>
+                                                                    <p className="font-black text-slate-900 dark:text-white text-sm">{student.username}</p>
+                                                                    <p className="text-[10px] font-bold text-slate-400">{student.email}</p>
+                                                                </div>
+                                                            </div>
+                                                        </td>
+                                                        <td className="py-5 px-6">
+                                                            <p className="text-xs font-bold text-slate-600 dark:text-slate-400">{new Date(student.enrolled_at).toLocaleDateString()}</p>
+                                                        </td>
+                                                        <td className="py-5 px-6 text-right">
+                                                            <button
+                                                                onClick={() => handleDeleteInvite(student.id)}
+                                                                className="text-red-400 hover:text-red-600 transition-colors p-2 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl"
+                                                            >
+                                                                <span className="material-symbols-outlined text-xl">person_remove</span>
+                                                            </button>
+                                                        </td>
+                                                    </tr>
+                                                ))
+                                            )}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </main>
+            )}
+
+            {(viewTab === 'learning' || activeItem) && (
+                <main className="container mx-auto px-6 py-8 animate-in slide-in-from-right-4 duration-500">
                     <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
 
                         {/* Main Content Area */}
@@ -895,7 +1242,7 @@ function MyDetailCourse() {
                                             </div>
                                             <div>
                                                 <p className="text-[10px] font-bold text-slate-400 uppercase">Submission</p>
-                                                <p className="text-xl font-black text-slate-900 dark:text-white uppercase">{activeItem.data.submission_type.replace('_', ' ')}</p>
+                                                <p className="text-xl font-black text-slate-900 dark:text-white uppercase">{activeItem.data.submission_type?.replace('_', ' ') || "N/A"}</p>
                                             </div>
                                         </div>
                                         <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm flex items-center gap-4">
@@ -941,7 +1288,7 @@ function MyDetailCourse() {
                                     )}
                                 </div>
 
-                                {instance?.role === 'owner' && user.roles.includes('teacher') && fullCourse?.modules?.every(m => !m.instance_id) && (
+                                {instance?.role === 'owner' && isTeacher && fullCourse?.modules?.every(m => !m.instance_id) && (
                                     <div className="p-5 bg-amber-50 dark:bg-amber-900/10 border border-amber-100 dark:border-amber-900/30 rounded-3xl mb-8">
                                         <div className="flex items-center gap-3 mb-3">
                                             <div className="w-8 h-8 bg-amber-100 dark:bg-amber-900/30 rounded-xl flex items-center justify-center text-amber-600">
@@ -975,7 +1322,7 @@ function MyDetailCourse() {
                                             </div>
 
                                             {/* Teacher Action Buttons for Module */}
-                                            {instance?.role === 'owner' && user.roles.includes('teacher') && module.instance_id && (
+                                            {instance?.role === 'owner' && isTeacher && module.instance_id && (
                                                 <div className="flex flex-wrap gap-1 px-2 mb-2">
                                                     <button onClick={() => handleAddLesson(module.id)} className="text-[9px] font-bold bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded hover:bg-primary/20 transition-colors">+ Lesson</button>
                                                     <button onClick={() => handleAddQuiz(module.id)} className="text-[9px] font-bold bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded hover:bg-amber-500/20 transition-colors">+ Quiz</button>
@@ -1126,12 +1473,11 @@ function MyDetailCourse() {
                             </div>
                         </div>
                     </div>
-                </div>
+                </main>
             )}
 
-            {/* Question Creation Modal (Teacher Only) */}
             {isQuestionModalOpen && (
-                <div className="fixed inset-0 z-100 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300">
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300">
                     <div className="bg-white dark:bg-slate-900 w-full max-w-2xl rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 flex flex-col max-h-[90vh] overflow-hidden">
                         <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-slate-900/50">
                             <div>
@@ -1222,6 +1568,7 @@ function MyDetailCourse() {
             )}
         </div>
     );
+
 }
 
 export default MyDetailCourse;
