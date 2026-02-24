@@ -3,6 +3,7 @@ require("dotenv").config();
 const express = require('express');
 const app = express();
 const port = process.env.PORT || 3200;
+const path = require("path");
 
 const bcrypt = require("bcrypt");
 
@@ -16,12 +17,17 @@ const router = express.Router();
 
 const cookieParser = require("cookie-parser");
 
+const multer = require("multer");
+
+const { v4: uuidv4 } = require("uuid");
+
 app.use(cors({
     origin: "http://localhost:5173",
     credentials: true
 }));
 app.use(express.json());
 app.use(cookieParser());
+app.use("/uploads", express.static("uploads"));
 
 router.get('/', (req, res) => {
     res.json({ message: 'Hello World!' });
@@ -59,13 +65,13 @@ router.post('/login', async (req, res) => {
         const roleList = roles.map(r => r.name);
 
         const token = jwt.sign(
-            { id: foundUser.id, roles: roleList },
+            { id: foundUser.id, roles: roleList, name: foundUser.username, image_profile: foundUser.image_profile, point: foundUser.points },
             process.env.ACCESS_SECRET,
             { expiresIn: "1d" }
         );
 
         const refreshToken = jwt.sign(
-            { id: foundUser.id },
+            { id: foundUser.id, roles: roleList, name: foundUser.username, image_profile: foundUser.image_profile, point: foundUser.points },
             process.env.REFRESH_SECRET,
             { expiresIn: "7d" }
         );
@@ -102,7 +108,7 @@ router.post("/refresh", (req, res) => {
             const roleList = roles.map(r => r.name);
 
             const newAccessToken = jwt.sign(
-                { id: decoded.id, roles: roleList },
+                { id: decoded.id, roles: roleList, name: decoded.name, image_profile: decoded.image_profile, point: decoded.point },
                 process.env.ACCESS_SECRET,
                 { expiresIn: "1d" }
             );
@@ -343,6 +349,71 @@ router.get("/instances/:id", verifyToken, async (req, res) => {
         }
 
         res.status(403).json({ message: "Access denied to this instance" });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// get full instance content (custom modules or template modules)
+router.get("/instances/:id/full", verifyToken, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const userId = req.user.id;
+
+        // 1. Check if allowed to view (owner or student)
+        const [instanceRows] = await db.query(
+            `select ci.*, c.thumbnail_url, c.category, c.price as original_price
+             from course_instances ci
+             join courses c on ci.template_id = c.id
+             where ci.id = ?`,
+            [id]
+        );
+        if (instanceRows.length === 0) return res.status(404).json({ message: "Instance not found" });
+        const instance = instanceRows[0];
+
+        const [studentRows] = await db.query(
+            "select * from instance_students where instance_id = ? and user_id = ?",
+            [id, userId]
+        );
+        if (instance.owner_id !== userId && studentRows.length === 0 && !req.user.roles.includes('admin')) {
+            return res.status(403).json({ message: "Access denied" });
+        }
+
+        let [instanceModules] = await db.query(
+            "select * from course_modules where instance_id = ? order by order_index",
+            [id]
+        );
+
+        let [templateModules] = await db.query(
+            "select * from course_modules where course_id = ? order by order_index",
+            [instance.template_id]
+        );
+
+        const overriddenTemplateIds = instanceModules
+            .filter(m => m.template_module_id !== null)
+            .map(m => m.template_module_id);
+
+        const newTemplateModules = templateModules.filter(m => !overriddenTemplateIds.includes(m.id));
+
+        let modules = [...instanceModules, ...newTemplateModules].sort((a, b) => a.order_index - b.order_index);
+
+        for (let module of modules) {
+            const [lessons] = await db.query("select * from course_lessons where module_id = ? order by order_index", [module.id]);
+            module.lessons = lessons;
+
+            const [quizzes] = await db.query("select * from course_quizzes where module_id = ?", [module.id]);
+            for (let quiz of quizzes) {
+                const [questions] = await db.query("select * from course_quiz_questions where quiz_id = ?", [quiz.id]);
+                quiz.questions = questions;
+            }
+            module.quizzes = quizzes;
+
+            const [assignments] = await db.query("select * from course_assignments where module_id = ?", [module.id]);
+            module.assignments = assignments;
+        }
+
+        instance.modules = modules;
+        res.json(instance);
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
@@ -659,6 +730,76 @@ router.delete('/instances/:id/invite', verifyToken, async (req, res) => {
     }
 })
 
+// --- Instance Customization (Clone to Instance) ---
+router.post("/instances/:id/customize", verifyToken, verifyInstanceOwner, async (req, res) => {
+    const connection = await db.getConnection();
+    try {
+        await connection.beginTransaction();
+        const instanceId = req.params.id;
+
+        const [instances] = await connection.query("select * from course_instances where id = ?", [instanceId]);
+        const instance = instances[0];
+        const templateId = instance.template_id;
+
+        const [existing] = await connection.query("select id from course_modules where instance_id = ?", [instanceId]);
+        if (existing.length > 0) {
+            await connection.rollback();
+            return res.status(400).json({ message: "Instance already customized" });
+        }
+
+        const [modules] = await connection.query("select * from course_modules where course_id = ? order by order_index", [templateId]);
+
+        for (let mod of modules) {
+            const [modRes] = await connection.query(
+                "insert into course_modules (instance_id, title, order_index, template_module_id) values (?, ?, ?, ?)",
+                [instanceId, mod.title, mod.order_index, mod.id]
+            );
+            const newModId = modRes.insertId;
+
+            const [lessons] = await connection.query("select * from course_lessons where module_id = ? order by order_index", [mod.id]);
+            for (let less of lessons) {
+                await connection.query(
+                    "insert into course_lessons (module_id, title, type, duration_minutes, content, order_index) values (?, ?, ?, ?, ?, ?)",
+                    [newModId, less.title, less.type, less.duration_minutes, JSON.stringify(less.content), less.order_index]
+                );
+            }
+
+            const [quizzes] = await connection.query("select * from course_quizzes where module_id = ?", [mod.id]);
+            for (let quiz of quizzes) {
+                const [quizRes] = await connection.query(
+                    "insert into course_quizzes (module_id, title, passing_score) values (?, ?, ?)",
+                    [newModId, quiz.title, quiz.passing_score]
+                );
+                const newQuizId = quizRes.insertId;
+
+                const [questions] = await connection.query("select * from course_quiz_questions where quiz_id = ?", [quiz.id]);
+                for (let q of questions) {
+                    await connection.query(
+                        "insert into course_quiz_questions (quiz_id, question, type, choices, correct_answer, points) values (?, ?, ?, ?, ?, ?)",
+                        [newQuizId, q.question, q.type, JSON.stringify(q.choices), q.correct_answer, q.points]
+                    );
+                }
+            }
+
+            const [assignments] = await connection.query("select * from course_assignments where module_id = ?", [mod.id]);
+            for (let ass of assignments) {
+                await connection.query(
+                    "insert into course_assignments (module_id, title, description, max_score, submission_type) values (?, ?, ?, ?, ?)",
+                    [newModId, ass.title, ass.description, ass.max_score, ass.submission_type]
+                );
+            }
+        }
+
+        await connection.commit();
+        res.json({ message: "Instance customized successfully" });
+    } catch (err) {
+        await connection.rollback();
+        res.status(500).json({ error: err.message });
+    } finally {
+        connection.release();
+    }
+});
+
 // --- Content Management (Admin Only) ---
 
 // Add Module
@@ -676,8 +817,23 @@ router.post("/courses/:id/modules", verifyToken, checkRole("admin"), async (req,
     }
 });
 
+// Add Module to Instance
+router.post("/instances/:id/modules", verifyToken, verifyInstanceOwner, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { title, order_index } = req.body;
+        const [result] = await db.query(
+            "insert into course_modules (instance_id, title, order_index) values (?, ?, ?)",
+            [id, title, order_index || 0]
+        );
+        res.status(201).json({ message: "Module added", moduleId: result.insertId });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // Add Lesson
-router.post("/modules/:id/lessons", verifyToken, checkRole("admin"), async (req, res) => {
+router.post("/modules/:id/lessons", verifyToken, verifyModuleAccess, async (req, res) => {
     try {
         const { id } = req.params;
         const { title, type, duration_minutes, content, order_index } = req.body;
@@ -692,7 +848,7 @@ router.post("/modules/:id/lessons", verifyToken, checkRole("admin"), async (req,
 });
 
 // Add Quiz
-router.post("/modules/:id/quizzes", verifyToken, checkRole("admin"), async (req, res) => {
+router.post("/modules/:id/quizzes", verifyToken, verifyModuleAccess, async (req, res) => {
     try {
         const { id } = req.params;
         const { title, passing_score } = req.body;
@@ -707,7 +863,7 @@ router.post("/modules/:id/quizzes", verifyToken, checkRole("admin"), async (req,
 });
 
 // Add Question to Quiz
-router.post("/quizzes/:id/questions", verifyToken, checkRole("admin"), async (req, res) => {
+router.post("/quizzes/:id/questions", verifyToken, verifyQuizAccess, async (req, res) => {
     try {
         const { id } = req.params;
         const { question, type, choices, correct_answer, points } = req.body;
@@ -722,7 +878,7 @@ router.post("/quizzes/:id/questions", verifyToken, checkRole("admin"), async (re
 });
 
 // Add Assignment
-router.post("/modules/:id/assignments", verifyToken, checkRole("admin"), async (req, res) => {
+router.post("/modules/:id/assignments", verifyToken, verifyModuleAccess, async (req, res) => {
     try {
         const { id } = req.params;
         const { title, description, max_score, submission_type } = req.body;
@@ -737,7 +893,7 @@ router.post("/modules/:id/assignments", verifyToken, checkRole("admin"), async (
 });
 
 // Delete Module
-router.delete("/modules/:id", verifyToken, checkRole("admin"), async (req, res) => {
+router.delete("/modules/:id", verifyToken, verifyModuleAccess, async (req, res) => {
     try {
         await db.query("delete from course_modules where id = ?", [req.params.id]);
         res.json({ message: "Module deleted" });
@@ -747,7 +903,7 @@ router.delete("/modules/:id", verifyToken, checkRole("admin"), async (req, res) 
 });
 
 // Delete Lesson
-router.delete("/lessons/:id", verifyToken, checkRole("admin"), async (req, res) => {
+router.delete("/lessons/:id", verifyToken, verifyLessonAccess, async (req, res) => {
     try {
         await db.query("delete from course_lessons where id = ?", [req.params.id]);
         res.json({ message: "Lesson deleted" });
@@ -757,7 +913,7 @@ router.delete("/lessons/:id", verifyToken, checkRole("admin"), async (req, res) 
 });
 
 // Delete Quiz
-router.delete("/quizzes/:id", verifyToken, checkRole("admin"), async (req, res) => {
+router.delete("/quizzes/:id", verifyToken, verifyQuizAccess, async (req, res) => {
     try {
         await db.query("delete from course_quizzes where id = ?", [req.params.id]);
         res.json({ message: "Quiz deleted" });
@@ -767,10 +923,84 @@ router.delete("/quizzes/:id", verifyToken, checkRole("admin"), async (req, res) 
 });
 
 // Delete Assignment
-router.delete("/assignments/:id", verifyToken, checkRole("admin"), async (req, res) => {
+router.delete("/assignments/:id", verifyToken, verifyAssignmentAccess, async (req, res) => {
     try {
         await db.query("delete from course_assignments where id = ?", [req.params.id]);
         res.json({ message: "Assignment deleted" });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Delete Question
+router.delete("/questions/:id", verifyToken, verifyQuestionAccess, async (req, res) => {
+    try {
+        await db.query("delete from course_quiz_questions where id = ?", [req.params.id]);
+        res.json({ message: "Question deleted" });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// --- Progress Tracking ---
+
+// Save Lesson/Assignment Progress
+router.post("/instances/:id/progress", verifyToken, async (req, res) => {
+    try {
+        const { id: instanceId } = req.params;
+        const { content_type, content_id } = req.body;
+        const userId = req.user.id;
+
+        await db.query(
+            "INSERT INTO course_progress (user_id, instance_id, content_type, content_id) VALUES (?, ?, ?, ?) ON DUPLICATE KEY UPDATE completed_at = CURRENT_TIMESTAMP",
+            [userId, instanceId, content_type, content_id]
+        );
+
+        res.json({ message: "Progress saved" });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Save Quiz Result
+router.post("/instances/:id/quiz-result", verifyToken, async (req, res) => {
+    try {
+        const { id: instanceId } = req.params;
+        const { quiz_id, score, passed } = req.body;
+        const userId = req.user.id;
+
+        await db.query(
+            "INSERT INTO course_quiz_results (user_id, instance_id, quiz_id, score, passed) VALUES (?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE score = ?, passed = ?, completed_at = CURRENT_TIMESTAMP",
+            [userId, instanceId, quiz_id, score, passed, score, passed]
+        );
+
+        res.json({ message: "Quiz result saved" });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Get Instance Progress
+router.get("/instances/:id/progress", verifyToken, async (req, res) => {
+    try {
+        const { id: instanceId } = req.params;
+        const userId = req.user.id;
+
+        const [progressRows] = await db.query(
+            "SELECT content_type, content_id FROM course_progress WHERE user_id = ? AND instance_id = ?",
+            [userId, instanceId]
+        );
+
+        const [quizRows] = await db.query(
+            "SELECT quiz_id, score, passed FROM course_quiz_results WHERE user_id = ? AND instance_id = ?",
+            [userId, instanceId]
+        );
+
+        res.json({
+            lessons: progressRows.filter(r => r.content_type === 'lesson').map(r => r.content_id),
+            assignments: progressRows.filter(r => r.content_type === 'assignment').map(r => r.content_id),
+            quizzes: quizRows
+        });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
@@ -792,6 +1022,173 @@ function verifyToken(req, res, next) {
     }
 }
 
+// upload
+const storage = multer.diskStorage({
+    destination: "uploads/",
+    filename: (req, file, cb) => {
+        const uniqueName = uuidv4() + path.extname(file.originalname);
+        cb(null, uniqueName);
+    },
+});
+
+const upload = multer({
+    storage,
+    limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
+    fileFilter: (req, file, cb) => {
+        if (!file.mimetype.startsWith("image/")) {
+            cb(new Error("Only image files allowed"));
+        }
+        cb(null, true);
+    },
+});
+
+router.post(
+    "/profileImage",
+    verifyToken,
+    upload.single("profile"),
+    async (req, res) => {
+        const connection = await db.getConnection();
+        try {
+            const imagePath = `/uploads/${req.file.filename}`;
+
+            await connection.query(
+                "update users set image_profile = ? where id = ?",
+                [imagePath, req.user.id]
+            );
+
+            await connection.commit();
+
+            res.json({ message: "Upload success", imagePath });
+        } catch (err) {
+            await connection.rollback();
+            res.status(500).json({ error: err.message });
+        } finally {
+            connection.release();
+        }
+    }
+);
+
+// verify if user is owner of instance
+async function verifyInstanceOwner(req, res, next) {
+    try {
+        const { id } = req.params;
+        const userId = req.user.id;
+        const [rows] = await db.query(
+            "select * from course_instances where id = ? and owner_id = ?",
+            [id, userId]
+        );
+        if (rows.length === 0 && !req.user.roles.includes('admin')) {
+            return res.status(403).json({ message: "Forbidden: You are not the owner of this instance" });
+        }
+        next();
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+}
+
+// verify if user can edit a module (owner of instance it belongs to)
+async function verifyModuleAccess(req, res, next) {
+    try {
+        const moduleId = req.params.id;
+        const userId = req.user.id;
+
+        const [rows] = await db.query(
+            `select ci.owner_id 
+             from course_modules cm
+             left join course_instances ci on cm.instance_id = ci.id
+             where cm.id = ?`,
+            [moduleId]
+        );
+
+        if (rows.length === 0) return res.status(404).json({ message: "Module not found" });
+
+        const ownerId = rows[0].owner_id;
+        if (ownerId !== userId && !req.user.roles.includes('admin')) {
+            return res.status(403).json({ message: "Forbidden: Access denied" });
+        }
+        next();
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+}
+
+// verify if user can edit a lesson
+async function verifyLessonAccess(req, res, next) {
+    try {
+        const lessonId = req.params.id;
+        const userId = req.user.id;
+        const [rows] = await db.query(
+            `select ci.owner_id 
+             from course_lessons cl 
+             join course_modules cm on cl.module_id = cm.id
+             left join course_instances ci on cm.instance_id = ci.id
+             where cl.id = ?`,
+            [lessonId]
+        );
+        if (rows.length === 0) return res.status(404).json({ message: "Lesson not found" });
+        if (rows[0].owner_id !== userId && !req.user.roles.includes('admin')) return res.status(403).json({ message: "Forbidden" });
+        next();
+    } catch (err) { res.status(500).json({ error: err.message }); }
+}
+
+// verify if user can edit a quiz
+async function verifyQuizAccess(req, res, next) {
+    try {
+        const quizId = req.params.id;
+        const userId = req.user.id;
+        const [rows] = await db.query(
+            `select ci.owner_id 
+             from course_quizzes cq
+             join course_modules cm on cq.module_id = cm.id
+             left join course_instances ci on cm.instance_id = ci.id
+             where cq.id = ?`,
+            [quizId]
+        );
+        if (rows.length === 0) return res.status(404).json({ message: "Quiz not found" });
+        if (rows[0].owner_id !== userId && !req.user.roles.includes('admin')) return res.status(403).json({ message: "Forbidden" });
+        next();
+    } catch (err) { res.status(500).json({ error: err.message }); }
+}
+
+// verify if user can edit an assignment
+async function verifyAssignmentAccess(req, res, next) {
+    try {
+        const assId = req.params.id;
+        const userId = req.user.id;
+        const [rows] = await db.query(
+            `select ci.owner_id 
+             from course_assignments ca
+             join course_modules cm on ca.module_id = cm.id
+             left join course_instances ci on cm.instance_id = ci.id
+             where ca.id = ?`,
+            [assId]
+        );
+        if (rows.length === 0) return res.status(404).json({ message: "Assignment not found" });
+        if (rows[0].owner_id !== userId && !req.user.roles.includes('admin')) return res.status(403).json({ message: "Forbidden" });
+        next();
+    } catch (err) { res.status(500).json({ error: err.message }); }
+}
+
+// verify if user can edit a question
+async function verifyQuestionAccess(req, res, next) {
+    try {
+        const qId = req.params.id;
+        const userId = req.user.id;
+        const [rows] = await db.query(
+            `select ci.owner_id 
+             from course_quiz_questions cqq
+             join course_quizzes cq on cqq.quiz_id = cq.id
+             join course_modules cm on cq.module_id = cm.id
+             left join course_instances ci on cm.instance_id = ci.id
+             where cqq.id = ?`,
+            [qId]
+        );
+        if (rows.length === 0) return res.status(404).json({ message: "Question not found" });
+        if (rows[0].owner_id !== userId && !req.user.roles.includes('admin')) return res.status(403).json({ message: "Forbidden" });
+        next();
+    } catch (err) { res.status(500).json({ error: err.message }); }
+}
+
 function checkRole(requiredRole) {
     return (req, res, next) => {
         if (!req.user.roles.includes(requiredRole)) {
@@ -803,6 +1200,7 @@ function checkRole(requiredRole) {
 
 // log check connection
 
+// Initial DB setup and Verification
 (async () => {
     try {
         const connection = await db.getConnection();
@@ -810,7 +1208,7 @@ function checkRole(requiredRole) {
 
         connection.release();
     } catch (err) {
-        console.error("DB Connection Failed:", err.message);
+        console.error("DB Init/Connection Failed:", err.message);
     }
 })();
 

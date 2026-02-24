@@ -14,7 +14,6 @@ function AuthProvider({ children }) {
         if (token) {
             try {
                 const decoded = jwtDecode(token);
-                console.log(decoded.roles)
                 setUser(decoded);
             } catch {
                 logout();

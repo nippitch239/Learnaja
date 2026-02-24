@@ -18,6 +18,8 @@ function AddPoints() {
         setPoints(0);
     };
 
+    console.log(selectedUser)
+
     return (
         <div className="container mx-auto px-4">
             <h2 className="text-xl font-bold my-3">Add Points</h2>

@@ -17,10 +17,10 @@ import MyCourses from "./pages/MyCourses";
 import Admin from "./pages/admin/Admin";
 import MyDetailCourse from "./pages/MyDetailCourse";
 import InviteStudent from "./pages/InviteStudent";
-import CourseTeacher from "./pages/CourseTeacher";
-import EditStudent from "./pages/EditStudent";
-import EditInfo from "./pages/EditInfo";
-import EditCurriculum from "./pages/EditCurriculum";
+// import CourseTeacher from "./pages/CourseTeacher";
+// import EditStudent from "./pages/EditStudent";
+// import EditInfo from "./pages/EditInfo";
+// import EditCurriculum from "./pages/EditCurriculum";
 
 function AppContent() {
 
@@ -116,7 +116,7 @@ function AppContent() {
           }
         />
         {/* ทำไว้ดูดีไซน์เฉยๆ */}
-        <Route
+        {/* <Route
           path="/courseTeacher"
           element={token ? <CourseTeacher /> : <Navigate to="/login" />}
         />
@@ -131,7 +131,7 @@ function AppContent() {
         <Route
           path="/editCurriculum"
           element={token ? <EditCurriculum /> : <Navigate to="/login" />}
-        />
+        /> */}
       </Routes>
 
       <Footer />
