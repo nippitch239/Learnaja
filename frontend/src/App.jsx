@@ -116,9 +116,7 @@ function AppContent() {
             </RequireAuth>
           }
         />
-
-
-         {/* ทำไว้ดูดีไซน์เฉยๆ */}
+        {/* ทำไว้ดูดีไซน์เฉยๆ */}
         <Route
           path="/courseTeacher"
           element={token ? <CourseTeacher /> : <Navigate to="/login" />}
@@ -129,7 +127,7 @@ function AppContent() {
         />
         <Route
           path="/editInfo"
-          element={token ? <EditInfo/> : <Navigate to="/login" />}
+          element={token ? <EditInfo /> : <Navigate to="/login" />}
         />
         <Route
           path="/editCurriculum"

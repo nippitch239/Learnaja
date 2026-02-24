@@ -61,7 +61,7 @@ router.post('/login', async (req, res) => {
         const token = jwt.sign(
             { id: foundUser.id, roles: roleList },
             process.env.ACCESS_SECRET,
-            { expiresIn: "15m" }
+            { expiresIn: "1d" }
         );
 
         const refreshToken = jwt.sign(
@@ -287,29 +287,23 @@ router.get("/courses/:id/full", async (req, res) => {
     try {
         const { id } = req.params;
 
-        // 1. Get Course
         const [courseRows] = await db.query("select * from courses where id = ?", [id]);
         if (courseRows.length === 0) return res.status(404).json({ message: "Course not found" });
         const course = courseRows[0];
 
-        // 2. Get Modules
         const [modules] = await db.query("select * from course_modules where course_id = ? order by order_index", [id]);
 
-        // 3. For each module, get lessons, quiz, and assignment
         for (let module of modules) {
-            // Get Lessons
             const [lessons] = await db.query("select * from course_lessons where module_id = ? order by order_index", [module.id]);
             module.lessons = lessons;
 
-            // Get Quizzes
             const [quizzes] = await db.query("select * from course_quizzes where module_id = ?", [module.id]);
             for (let quiz of quizzes) {
                 const [questions] = await db.query("select * from course_quiz_questions where quiz_id = ?", [quiz.id]);
                 quiz.questions = questions;
             }
-            module.quizzes = quizzes; // The spec says "quiz" (singular) but DB allows many
+            module.quizzes = quizzes;
 
-            // Get Assignments
             const [assignments] = await db.query("select * from course_assignments where module_id = ?", [module.id]);
             module.assignments = assignments;
         }
@@ -321,13 +315,12 @@ router.get("/courses/:id/full", async (req, res) => {
     }
 });
 
-// get instance (id) with access check
+// get instance 
 router.get("/instances/:id", verifyToken, async (req, res) => {
     try {
         const { id } = req.params;
         const userId = req.user.id;
 
-        // Check if owner
         const [ownerRows] = await db.query(
             "select * from course_instances where id = ? and owner_id = ?",
             [id, userId]
@@ -337,7 +330,6 @@ router.get("/instances/:id", verifyToken, async (req, res) => {
             return res.json({ ...ownerRows[0], role: 'owner' });
         }
 
-        // Check if invited student
         const [studentRows] = await db.query(
             `select ci.* 
              from instance_students ist
@@ -552,7 +544,7 @@ router.post("/instances/:id/invite", verifyToken, checkRole("teacher"), async (r
     try {
         await connection.beginTransaction();
 
-        const { id } = req.params; // Instance ID
+        const { id } = req.params;
         const { studentId } = req.body;
 
         if (!studentId) {
@@ -603,7 +595,7 @@ router.post("/instances/:id/invite", verifyToken, checkRole("teacher"), async (r
 
 router.get('/instances/:id/students', verifyToken, async (req, res) => {
     try {
-        const { id } = req.params; // Instance ID
+        const { id } = req.params;
         const [course] = await db.query(
             "select id from course_instances where id = ? and owner_id = ?",
             [id, req.user.id]

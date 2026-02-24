@@ -14,7 +14,7 @@ function Navbar() {
         logout();
         navigate("/");
     };
-        // Dropdown menu logic
+    // Dropdown menu logic
     function toggleDropdown() {
         const dropdown = document.getElementById('dropdown-menu');
         dropdown.classList.toggle('hidden');
