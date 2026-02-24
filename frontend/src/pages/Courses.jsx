@@ -70,7 +70,7 @@ function Courses() {
                                 <input
                                     className="w-full bg-slate-50 border-none rounded-full dark:bg-slate-700 dark:text-slate-200 py-2 pl-12 pr-4 text-slate-700 placeholder-slate-400 transition-all focus:ring-1 focus:ring-slate-400"
                                     placeholder="ค้นหาคอร์สเรียน..."
-                                    type="text" />
+                                    type="text" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
                             </div>
                         </div>
 
@@ -158,24 +158,9 @@ function Courses() {
             </div>
         </main>
           </div>
-=========
+
   {/* return (
-    <div className="container mx-auto px-4 py-10">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-12">
-        <div>
-          <h1 className="text-4xl font-black text-slate-900 dark:text-white uppercase tracking-tight">Explore Courses</h1>
-          <p className="text-slate-500 mt-2 font-medium">Find the perfect course to advance your skills.</p>
-        </div>
-        <div className="relative w-full md:w-96 group">
-          <input
-            type="text"
-            placeholder="Search by title or category..."
-            className="w-full pl-12 pr-6 py-4 rounded-4xl bg-white dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700 focus:border-primary outline-none transition-all shadow-lg shadow-slate-200/50 dark:shadow-none font-medium"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-          <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-primary transition-colors">search</span>
-        </div>
+    
 >>>>>>>>> Temporary merge branch 2
       </div>
 

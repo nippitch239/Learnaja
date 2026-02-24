@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 
 function Profile() {
     return (
@@ -44,12 +45,14 @@ function Profile() {
                         </div>
                     </div>
                     <div className="flex gap-3">
+                        <Link to="/edit-profile">
                         <button
                             className="px-5 py-2 bg-primary/10 text-primary font-bold text-sm rounded-full hover:bg-primary hover:text-white transition-all flex items-center gap-2">
                             <span
                                 className="material-symbols-outlined text-sm">edit</span>
                             แก้ไขโปรไฟล์
                         </button>
+                        </Link>
                     </div>
                 </div>
             </section>
