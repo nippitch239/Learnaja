@@ -21,8 +21,18 @@ const multer = require("multer");
 
 const { v4: uuidv4 } = require("uuid");
 
+const ALLOWED_ORIGINS = (process.env.CORS_ORIGIN || "http://localhost:5173,http://localhost")
+    .split(",")
+    .map(o => o.trim());
+
 app.use(cors({
-    origin: "http://localhost:5173",
+    origin: (origin, callback) => {
+        if (!origin || ALLOWED_ORIGINS.includes(origin)) {
+            callback(null, true);
+        } else {
+            callback(new Error(`CORS: origin ${origin} not allowed`));
+        }
+    },
     credentials: true
 }));
 app.use(express.json());
