@@ -1,25 +1,6 @@
 services:
   # ─────────────────────────────────────────
-  # MySQL Database
-  # ─────────────────────────────────────────
-  db:
-    image: mysql:8.0
-    container_name: learnaja_db
-    restart: unless-stopped
-    environment:
-      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
-      MYSQL_DATABASE: ${DB_NAME}
-    volumes:
-      - db_data:/var/lib/mysql
-      - ./backend/Dump20260224 (1).sql:/docker-entrypoint-initdb.d/init.sql:ro
-    healthcheck:
-      test: [ "CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-p${DB_PASSWORD}" ]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-
-  # ─────────────────────────────────────────
-  # Node.js Backend
+  # Node.js Backend (SQLite – embedded)
   # ─────────────────────────────────────────
   backend:
     build:
@@ -27,14 +8,8 @@ services:
       dockerfile: Dockerfile
     container_name: learnaja_backend
     restart: unless-stopped
-    depends_on:
-      db:
-        condition: service_healthy
     environment:
-      DB_HOST: db
-      DB_USER: ${DB_USER}
-      DB_PASSWORD: ${DB_PASSWORD}
-      DB_NAME: ${DB_NAME}
+      DB_PATH: /app/data/learnaja.db
       ACCESS_SECRET: ${ACCESS_SECRET}
       REFRESH_SECRET: ${REFRESH_SECRET}
       PORT: ${PORT:-3200}
@@ -43,6 +18,7 @@ services:
       - "${PORT:-3200}:${PORT:-3200}"
     volumes:
       - ./backend/uploads:/app/uploads
+      - sqlite_data:/app/data # persists the SQLite database file
 
   # ─────────────────────────────────────────
   # React Frontend (Nginx)
@@ -61,4 +37,4 @@ services:
       - "80:80"
 
 volumes:
-  db_data:
+  sqlite_data:

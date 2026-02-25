@@ -2,3 +2,6 @@ node_modules
 .env
 uploads
 *.log
+*.db
+*.db-shm
+*.db-wal

@@ -552,9 +552,10 @@ router.delete("/courses/:id", verifyToken, checkRole("admin"), async (req, res) 
         const instanceIds = instances.map(i => i.id);
 
         if (instanceIds.length > 0) {
+            const inPlaceholders = instanceIds.map(() => '?').join(',');
             const [enrolledStudents] = await connection.query(
-                "SELECT COUNT(*) as count FROM instance_students WHERE instance_id IN (?)",
-                [instanceIds]
+                `SELECT COUNT(*) as count FROM instance_students WHERE instance_id IN (${inPlaceholders})`,
+                instanceIds
             );
             if (enrolledStudents[0].count > 0) {
                 await connection.rollback();
@@ -564,9 +565,9 @@ router.delete("/courses/:id", verifyToken, checkRole("admin"), async (req, res) 
                 });
             }
 
-            await connection.query("DELETE FROM course_progress WHERE instance_id IN (?)", [instanceIds]);
-            await connection.query("DELETE FROM course_quiz_results WHERE instance_id IN (?)", [instanceIds]);
-            await connection.query("DELETE FROM course_instances WHERE id IN (?)", [instanceIds]);
+            await connection.query(`DELETE FROM course_progress WHERE instance_id IN (${inPlaceholders})`, instanceIds);
+            await connection.query(`DELETE FROM course_quiz_results WHERE instance_id IN (${inPlaceholders})`, instanceIds);
+            await connection.query(`DELETE FROM course_instances WHERE id IN (${inPlaceholders})`, instanceIds);
         }
 
         await connection.query("DELETE FROM course_ratings WHERE course_id = ?", [id]);
@@ -1030,9 +1031,10 @@ router.post("/courses/:id/rate", verifyToken, async (req, res) => {
 
         let totalItems = 0;
         if (moduleIds.length > 0) {
-            const [lessons] = await connection.query("select count(*) as count from course_lessons where module_id in (?)", [moduleIds]);
-            const [quizzes] = await connection.query("select count(*) as count from course_quizzes where module_id in (?)", [moduleIds]);
-            const [assignments] = await connection.query("select count(*) as count from course_assignments where module_id in (?)", [moduleIds]);
+            const inPlaceholders = moduleIds.map(() => '?').join(',');
+            const [lessons] = await connection.query(`select count(*) as count from course_lessons where module_id in (${inPlaceholders})`, moduleIds);
+            const [quizzes] = await connection.query(`select count(*) as count from course_quizzes where module_id in (${inPlaceholders})`, moduleIds);
+            const [assignments] = await connection.query(`select count(*) as count from course_assignments where module_id in (${inPlaceholders})`, moduleIds);
             totalItems = lessons[0].count + quizzes[0].count + assignments[0].count;
         }
 
@@ -1051,9 +1053,10 @@ router.post("/courses/:id/rate", verifyToken, async (req, res) => {
             return res.status(403).json({ message: "Please finish the course content before rating" });
         }
 
+        // SQLite: upsert using INSERT OR REPLACE (requires UNIQUE(user_id, course_id))
         await connection.query(
-            "INSERT INTO course_ratings (course_id, user_id, rating, comment) VALUES (?, ?, ?, ?) ON DUPLICATE KEY UPDATE rating = ?, comment = ?",
-            [courseId, userId, rating, comment || "", rating, comment || ""]
+            "INSERT OR REPLACE INTO course_ratings (course_id, user_id, rating, comment) VALUES (?, ?, ?, ?)",
+            [courseId, userId, rating, comment || ""]
         );
 
         const [stats] = await connection.query(
@@ -1115,8 +1118,13 @@ router.post("/instances/:id/progress", verifyToken, async (req, res) => {
         const { content_type, content_id } = req.body;
         const userId = req.user.id;
 
+        // SQLite: upsert – insert or ignore, then update timestamp
         await db.query(
-            "INSERT INTO course_progress (user_id, instance_id, content_type, content_id) VALUES (?, ?, ?, ?) ON DUPLICATE KEY UPDATE completed_at = CURRENT_TIMESTAMP",
+            "INSERT OR IGNORE INTO course_progress (user_id, instance_id, content_type, content_id) VALUES (?, ?, ?, ?)",
+            [userId, instanceId, content_type, content_id]
+        );
+        await db.query(
+            "UPDATE course_progress SET completed_at = CURRENT_TIMESTAMP WHERE user_id = ? AND instance_id = ? AND content_type = ? AND content_id = ?",
             [userId, instanceId, content_type, content_id]
         );
 
@@ -1133,9 +1141,14 @@ router.post("/instances/:id/quiz-result", verifyToken, async (req, res) => {
         const { quiz_id, score, passed } = req.body;
         const userId = req.user.id;
 
+        // SQLite: upsert
         await db.query(
-            "INSERT INTO course_quiz_results (user_id, instance_id, quiz_id, score, passed) VALUES (?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE score = ?, passed = ?, completed_at = CURRENT_TIMESTAMP",
-            [userId, instanceId, quiz_id, score, passed, score, passed]
+            "INSERT OR IGNORE INTO course_quiz_results (user_id, instance_id, quiz_id, score, passed) VALUES (?, ?, ?, ?, ?)",
+            [userId, instanceId, quiz_id, score, passed]
+        );
+        await db.query(
+            "UPDATE course_quiz_results SET score = ?, passed = ?, completed_at = CURRENT_TIMESTAMP WHERE user_id = ? AND instance_id = ? AND quiz_id = ?",
+            [score, passed, userId, instanceId, quiz_id]
         );
 
         res.json({ message: "Quiz result saved" });
@@ -1443,15 +1456,11 @@ function checkRole(requiredRole) {
     };
 }
 
-// log check connection
-
 // Initial DB setup and Verification
 (async () => {
     try {
-        const connection = await db.getConnection();
-        console.log('Connected to Database');
-
-        connection.release();
+        await db.query("SELECT 1");
+        console.log('Connected to SQLite Database');
     } catch (err) {
         console.error("DB Init/Connection Failed:", err.message);
     }

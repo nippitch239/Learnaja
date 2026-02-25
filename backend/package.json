@@ -6,6 +6,8 @@
   "scripts": {
     "start": "node index.js",
     "dev": "nodemon index.js",
+    "init-db": "node init-db.js",
+    "init-db:seed": "node init-db.js --seed",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
@@ -21,7 +23,7 @@
     "express": "^5.2.1",
     "jsonwebtoken": "^9.0.3",
     "multer": "^2.0.2",
-    "mysql2": "^3.17.1",
+    "better-sqlite3": "^9.6.0",
     "nodemon": "^3.1.11",
     "uuid": "^13.0.0"
   }
