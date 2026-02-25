@@ -2,29 +2,25 @@
   "name": "backend",
   "version": "1.0.0",
   "description": "",
+  "license": "ISC",
+  "author": "",
+  "type": "commonjs",
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
     "dev": "nodemon index.js",
-    "init-db": "node init-db.js",
-    "init-db:seed": "node init-db.js --seed",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "type": "commonjs",
   "dependencies": {
-    "bcrpyt": "^2.0.0",
     "bcrypt": "^6.0.0",
+    "better-sqlite3": "^12.6.2",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.6",
     "dotenv": "^17.3.1",
     "express": "^5.2.1",
     "jsonwebtoken": "^9.0.3",
     "multer": "^2.0.2",
-    "better-sqlite3": "^9.6.0",
     "nodemon": "^3.1.11",
-    "uuid": "^13.0.0"
+    "uuid": "^11.0.5"
   }
 }

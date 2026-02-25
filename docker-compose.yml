@@ -8,17 +8,16 @@ services:
       dockerfile: Dockerfile
     container_name: learnaja_backend
     restart: unless-stopped
+    env_file:
+      - ./backend/.env # loads ACCESS_SECRET, REFRESH_SECRET, PORT, etc.
     environment:
-      DB_PATH: /app/data/learnaja.db
-      ACCESS_SECRET: ${ACCESS_SECRET}
-      REFRESH_SECRET: ${REFRESH_SECRET}
-      PORT: ${PORT:-3200}
+      DB_PATH: /app/database/learnaja.db # override path for inside the container
       CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:5173,http://localhost}
     ports:
       - "${PORT:-3200}:${PORT:-3200}"
     volumes:
       - ./backend/uploads:/app/uploads
-      - sqlite_data:/app/data # persists the SQLite database file
+      - ./backend/database:/app/database # bind-mount → access .db file directly on Windows
 
   # ─────────────────────────────────────────
   # React Frontend (Nginx)
@@ -35,6 +34,3 @@ services:
       - backend
     ports:
       - "80:80"
-
-volumes:
-  sqlite_data:

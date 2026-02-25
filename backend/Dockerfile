@@ -1,7 +1,13 @@
-FROM node:20-alpine
+FROM node:20-slim
 
-# better-sqlite3 requires native compilation tools
-RUN apk add --no-cache python3 make g++
+# better-sqlite3 requires native build tools (python3, make, g++)
+# node:20-slim is Debian-based which has better native module support than Alpine
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3 \
+    make \
+    g++ \
+    sqlite3 \
+    && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
@@ -11,10 +17,9 @@ RUN npm install --omit=dev
 
 COPY . .
 
-RUN mkdir -p uploads
+# Ensure required directories exist
+RUN mkdir -p uploads database
 
 EXPOSE 3200
 
-# On startup: initialise the DB schema (idempotent – uses CREATE TABLE IF NOT EXISTS),
-# then launch the server.
-CMD ["sh", "-c", "node init-db.js && node index.js"]
+CMD ["node", "index.js"]

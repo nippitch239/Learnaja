@@ -154,7 +154,7 @@ function Courses() {
 
                     <div className="flex items-center justify-between mb-4">
                         <h1 className="text-3xl font-bold">คอร์สเรียนทั้งหมด</h1>
-                        <p className="text-slate-400 text-sm">แสดง {courses.length} ผลลัพธ์</p>
+                        <p className="text-slate-400 text-sm">แสดง {courses?.length} ผลลัพธ์</p>
                     </div>
 
                     {loading ? (
@@ -165,7 +165,7 @@ function Courses() {
                         </div>
                     ) : (
                         <>
-                            {courses.length > 0 ? (
+                            {courses?.length > 0 ? (
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                                     {courses.map((course) => (
 
