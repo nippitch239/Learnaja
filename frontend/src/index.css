@@ -4,6 +4,8 @@
 @theme {
   /* 🌸 Colors */
   --color-primary: #fb98b7;
+  --color-primary-dark: #ff5996;
+  --color-primary-light: #fff7fa;
   --color-background-light: #fdfeff;
   --color-background-dark: #0f172a;
   --color-accent-blue: #e0f2fe;
@@ -64,65 +66,6 @@
     transform: translateY(0);
   }
 }
-/* Setting Course */
-.nav-gradient {
-    background: linear-gradient(90deg, #F9A8BA 0%, #FBB6CE 100%);
-}
-.custom-scrollbar::-webkit-scrollbar {
-    width: 6px;
-}
-.custom-scrollbar::-webkit-scrollbar-thumb {
-    background: #F9A8BA;
-    border-radius: 10px;
-}
-
-.toggle-checkbox:checked + .toggle-label {
-    background-color: #F9A8BA;
-}
-.toggle-checkbox:checked + .toggle-label:after {
-    left: calc(100% - 2px);
-    transform: translateX(-100%);
-}
-.toggle-label:after {
-    content: '';
-    position: absolute;
-    top: 2px;
-    left: 2px;
-    width: 1.25rem;
-    height: 1.25rem;
-    background: white;
-    border-radius: 50%;
-    transition: all 0.3s;
-}
-
-  .nav-gradient {
-    background: linear-gradient(90deg, #F9A8BA 0%, #FBB6CE 100%);
-  }
-  .custom-scrollbar::-webkit-scrollbar { width: 4px; }
-  .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-  .custom-scrollbar::-webkit-scrollbar-thumb { background: #D1D5DB; border-radius: 10px; }
-
-  #sidebar-toggle { display: none; }
-  #sidebar-toggle:checked ~ main #lesson-sidebar { display: none; }
-  #sidebar-toggle:checked ~ main #toggle-icon {
-    content: "side_navigation";
-    transform: scaleX(-1);
-  }
-
-  .module-items { display: none; flex-direction: column; gap: 2px; }
-  .module-items.open { display: flex; }
-  .chevron { transition: transform 0.25s ease; }
-  .module-toggle.is-open .chevron { transform: rotate(180deg); }
-
-  .lesson-current::before {
-    content: '';
-    position: absolute;
-    left: 0; top: 6px; bottom: 6px;
-    width: 3px;
-    background: var(--primary-dark);
-    border-radius: 99px;
-  }
-
 
 /* :root {
   font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;

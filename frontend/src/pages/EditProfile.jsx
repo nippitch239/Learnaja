@@ -7,7 +7,7 @@ function EditProfile() {
                 <div className="pt-24 max-w-7xl mx-auto px-4 py-8 bg-pattern min-h-screen">
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                         <aside className="lg:col-span-1 space-y-6">
-                            <div className="bg-white/50 dark:bg-card-dark p-8 rounded-xl shadow-sm border border-slate-100 dark:border-slate-800 text-center relative overflow-hidden">
+                            <div className="bg-white/50 dark:bg-slate-900/70  p-8 rounded-xl shadow-sm border border-slate-100 dark:border-slate-800 text-center relative overflow-hidden">
                                 <div className="relative inline-block mb-4">
                                     <img alt="User Avatar"
                                         className="w-24 h-24 rounded-full object-cover ring-4 ring-primary/20"
@@ -22,7 +22,7 @@ function EditProfile() {
                                     className="text-slate-500 dark:text-slate-400 text-sm">babubabu@gmail.com</p>
                             </div>
                             <div
-                                className="bg-white/50 dark:bg-card-dark p-6 rounded-xl shadow-sm border border-slate-100 dark:border-slate-800">
+                                className="bg-white/50 dark:bg-slate-900/70 p-6 rounded-xl shadow-sm border border-slate-100 dark:border-slate-800">
                                 <div className="flex items-center justify-between mb-6">
                                     <h3 className="font-bold flex items-center gap-2">
                                         <span
@@ -95,7 +95,7 @@ function EditProfile() {
                         </aside>
                         <section className="lg:col-span-2">
                             <div
-                                className="bg-white/50 dark:bg-card-dark p-8 md:p-10 rounded-xl shadow-sm border border-slate-100 dark:border-slate-800">
+                                className="bg-white/50 dark:bg-slate-900/70 dark:bg-card-dark p-8 md:p-10 rounded-xl shadow-sm border border-slate-100 dark:border-slate-800">
                                 <div className="mb-10">
                                     <h1 className="text-2xl font-bold mb-2">ตั้งค่าบัญชีผู้ใช้</h1>
                                     <p className="text-slate-500 dark:text-slate-400">อัปเดตข้อมูลโปรไฟล์และตั้งค่าความปลอดภัยของคุณ</p>
