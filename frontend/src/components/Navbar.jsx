@@ -42,7 +42,7 @@ function Navbar() {
             <nav className="fixed top-4 left-0 right-0 z-50 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
                 <div
                     className="bg-primary rounded-2xl shadow-lg px-6 py-3 flex items-center justify-between">
-                    <Link onClick={() => toggleDropdown()} to="/home">
+                    <Link to="/home">
                         <div className="flex items-center space-x-2">
                             <span
                                 className="material-symbols-outlined text-white text-3xl">book_4</span>
