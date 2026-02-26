@@ -95,7 +95,7 @@ function CourseDetail() {
   return (
     <div className="min-h-screen bg-background-light dark:bg-background-dark text-slate-800 dark:text-slate-100">
       {/* Hero Section */}
-      <div className="bg-pink-50 dark:bg-slate-900/50 pt-24 pb-12 hero-pattern dark:hero-pattern border-b border-pink-100 dark:border-slate-800">
+      <div className="bg-pink-100 dark:bg-background-dark pt-24 pb-12 hero-pattern dark:hero-pattern border-b border-pink-100 dark:border-slate-800">
         <div className="max-w-7xl mx-auto px-6 mt-8">
           <button
             onClick={() => navigate(-1)}

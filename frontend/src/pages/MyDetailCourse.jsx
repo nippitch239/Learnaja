@@ -1,1574 +1,620 @@
-import { useEffect, useState, useContext } from "react";
-import { useNavigate, useParams } from "react-router-dom";
-import { fetchInstance, fetchCourseFull } from "../services/fetchCourse";
+import { useState, useEffect, useContext, useRef } from "react";
+import { Link, useParams, useNavigate } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
 import api from "../services/api";
-import AsyncSelect from "react-select/async";
+import 'quill/dist/quill.snow.css';
 
 function MyDetailCourse() {
-    const [instance, setInstance] = useState(null);
-    const [fullCourse, setFullCourse] = useState(null);
-    const [loading, setLoading] = useState(true);
-    const [activeItem, setActiveItem] = useState(null);
-    const [viewTab, setViewTab] = useState('overview');
-    const [progress, setProgress] = useState({ lessons: [], quizzes: [], assignments: [] });
-
-    const [quizState, setQuizState] = useState({
-        started: false,
-        currentIndex: 0,
-        answers: {},
-        finished: false,
-        score: 0
-    });
-
-    const [isEditing, setIsEditing] = useState(false);
-    const [newModuleName, setNewModuleName] = useState("");
-    const [expandedQuizzes, setExpandedQuizzes] = useState({});
-    const [isQuestionModalOpen, setIsQuestionModalOpen] = useState(false);
-    const [qModalData, setQModalData] = useState({
-        quizId: null,
-        question: "",
-        type: "single_choice",
-        choices: ["", ""],
-        correctAnswers: [],
-        points: 10
-    });
-
-    const [students, setStudents] = useState([]);
-    const [isManagingStudents, setIsManagingStudents] = useState(false);
-    const [selectedInviteOptions, setSelectedInviteOptions] = useState([]);
-    const [message, setMessage] = useState("");
-    const [fetchingStudents, setFetchingStudents] = useState(false);
-
-    const [userRating, setUserRating] = useState(0);
-    const [userComment, setUserComment] = useState("");
-    const [hasRated, setHasRated] = useState(false);
-    const [submittingRating, setSubmittingRating] = useState(false);
-    const [ratingFetched, setRatingFetched] = useState(false);
-
-    const navigate = useNavigate();
     const { id } = useParams();
+    const navigate = useNavigate();
     const { user } = useContext(AuthContext);
 
-    const fetchFullCourseData = async () => {
-        try {
-            const res = await api.get(`/instances/${id}/full`);
-            setFullCourse(res.data);
-        } catch (err) {
-            console.error("Failed to fetch full course data", err);
-        }
-    };
+    const [course, setCourse] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+
+    const [sidebarOpen, setSidebarOpen] = useState(true);
+    const [openModule, setOpenModule] = useState(0);
+    const [activeItem, setActiveItem] = useState(null);
+    const [videoPlaying, setVideoPlaying] = useState(false);
+    const iframeRef = useRef(null);
+
+    const [quizStarted, setQuizStarted] = useState(false);
+    const [currentQuestionIdx, setCurrentQuestionIdx] = useState(0);
+    const [quizAnswers, setQuizAnswers] = useState({});
+    const [quizSubmitted, setQuizSubmitted] = useState(false);
+    const [quizScore, setQuizScore] = useState({ earned: 0, total: 0 });
+
+    // Progress
+    const [progress, setProgress] = useState({ lessons: [], assignments: [], quizzes: [] });
+    const [totalItemsCount, setTotalItemsCount] = useState(0);
 
     useEffect(() => {
-        const loadData = async () => {
+        if (!user) {
+            navigate("/login");
+            return;
+        }
+
+        const fetchCourseData = async () => {
             try {
-                const instanceData = await fetchInstance(id);
-                setInstance(instanceData);
-
                 const res = await api.get(`/instances/${id}/full`);
-                const fullData = res.data;
-                setFullCourse(fullData);
+                setCourse(res.data);
 
-                await fetchProgress();
-                await fetchMyRating(fullData.template_id);
+                // Calculate total items
+                let total = 0;
+                res.data.modules?.forEach(m => {
+                    total += (m.lessons?.length || 0);
+                    total += (m.quizzes?.length || 0);
+                    total += (m.assignments?.length || 0);
+                });
+                setTotalItemsCount(total);
 
+                // Fetch initial progress
+                try {
+                    const progRes = await api.get(`/instances/${id}/progress`);
+                    // Normalize content_ids to numbers (SQLite may return strings)
+                    setProgress({
+                        lessons: (progRes.data.lessons || []).map(Number),
+                        assignments: (progRes.data.assignments || []).map(Number),
+                        quizzes: progRes.data.quizzes || []
+                    });
+                } catch (e) {
+                    console.error("Failed to fetch progress", e);
+                }
+
+                // Set initial active item
+                if (res.data.modules && res.data.modules.length > 0) {
+                    const firstModule = res.data.modules[0];
+                    if (firstModule.lessons && firstModule.lessons.length > 0) {
+                        setActiveItem({ type: 'lesson', data: firstModule.lessons[0], moduleIndex: 0 });
+                    } else if (firstModule.quizzes && firstModule.quizzes.length > 0) {
+                        setActiveItem({ type: 'quiz', data: firstModule.quizzes[0], moduleIndex: 0 });
+                    } else if (firstModule.assignments && firstModule.assignments.length > 0) {
+                        setActiveItem({ type: 'assignment', data: firstModule.assignments[0], moduleIndex: 0 });
+                    }
+                }
             } catch (err) {
                 console.error(err);
+                setError("Failed to load course details");
             } finally {
                 setLoading(false);
             }
         };
 
-        loadData();
-    }, [id]);
-
-    const fetchProgress = async () => {
-        try {
-            const res = await api.get(`/instances/${id}/progress`);
-            setProgress(res.data);
-        } catch (err) {
-            console.error("Failed to fetch progress", err);
-        }
-    };
-
-    const fetchMyRating = async (courseId) => {
-        try {
-            const res = await api.get(`/courses/${courseId}/my-rating`);
-            if (res.data) {
-                setUserRating(res.data.rating);
-                setUserComment(res.data.comment);
-                setHasRated(true);
-            }
-            setRatingFetched(true);
-        } catch (err) {
-            console.error("Failed to fetch rating", err);
-        }
-    };
-
-    const handleSubmitRating = async () => {
-        if (userRating === 0) return alert("กรุณาเลือกคะแนน (ดาว)");
-        try {
-            setSubmittingRating(true);
-            await api.post(`/courses/${fullCourse.template_id}/rate`, {
-                rating: userRating,
-                comment: userComment
-            });
-            setHasRated(true);
-            setMessage("ขอบคุณสำหรับการให้คะแนนคอร์สเรียน!");
-            setTimeout(() => setMessage(""), 3000);
-        } catch (err) {
-            console.error(err);
-            alert(err.response?.data?.message || "Failed to submit rating");
-        } finally {
-            setSubmittingRating(false);
-        }
-    };
-
-    const totalLessons = fullCourse?.modules?.reduce((acc, m) => acc + (m.lessons?.length || 0), 0) || 0;
-    const totalQuizzes = fullCourse?.modules?.reduce((acc, m) => acc + (m.quizzes?.length || 0), 0) || 0;
-    const totalAssignments = fullCourse?.modules?.reduce((acc, m) => acc + (m.assignments?.length || 0), 0) || 0;
-    const totalItems = totalLessons + totalQuizzes + totalAssignments;
-    const completedItems = (progress.lessons?.length || 0) + (progress.quizzes?.filter(q => q.passed)?.length || 0) + (progress.assignments?.length || 0);
-    const progressPercent = totalItems > 0 ? Math.round((completedItems / totalItems) * 100) : 0;
-    const isFinished = totalItems > 0 && completedItems >= totalItems;
-
-    const fetchStudents = async () => {
-        try {
-            setFetchingStudents(true);
-            const res = await api.get(`/instances/${id}/students`);
-            setStudents(res.data);
-        } catch (err) {
-            console.error("Failed to fetch students", err);
-        } finally {
-            setFetchingStudents(false);
-        }
-    };
-
-    const loadUsersOptions = async (inputValue) => {
-        if (!inputValue) return [];
-        try {
-            const res = await api.get(`/users/search?q=${inputValue}`);
-            return res.data.map(u => ({
-                value: u.id,
-                label: `${u.username} (${u.email})`
-            }));
-        } catch (err) {
-            console.error(err);
-            return [];
-        }
-    };
-
-    const handleInvite = async () => {
-        if (selectedInviteOptions.length === 0) {
-            setMessage("กรุณาเลือกนักเรียนอย่างน้อย 1 คน");
-            return;
-        }
-
-        try {
-            setLoading(true);
-            const promises = selectedInviteOptions.map(opt =>
-                api.post(`/instances/${id}/invite`, { studentId: opt.value })
-            );
-
-            await Promise.all(promises);
-
-            setMessage("เชิญนักเรียนที่เลือกเรียบร้อยแล้ว!");
-            setSelectedInviteOptions([]);
-            fetchStudents();
-            setTimeout(() => setMessage(""), 3000);
-        } catch (err) {
-            setMessage(err.response?.data?.message || "เกิดข้อผิดพลาดในการเชิญนักเรียนบางคน");
-            setTimeout(() => setMessage(""), 3000);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const handleDeleteInvite = async (studentId) => {
-        if (!confirm("คุณแน่ใจหรือไม่ว่าต้องการลบนักเรียนคนนี้ออกจากคอร์ส?")) return;
-        try {
-            setLoading(true);
-            await api.delete(`/instances/${id}/invite`, { data: { studentId } });
-            setMessage("ลบนักเรียนเรียบร้อยแล้ว!");
-            fetchStudents();
-            setTimeout(() => setMessage(""), 3000);
-        } catch (err) {
-            setMessage(err.response?.data?.message || "เกิดข้อผิดพลาดในการลบนักเรียน");
-            setTimeout(() => setMessage(""), 3000);
-        } finally {
-            setLoading(false);
-        }
-    };
+        fetchCourseData();
+    }, [id, user, navigate]);
 
     useEffect(() => {
-        if (viewTab === 'students') {
-            fetchStudents();
+        if (activeItem && activeItem.type === 'lesson' && !progress.lessons.includes(Number(activeItem.data.id))) {
+            api.post(`/instances/${id}/progress`, {
+                content_type: 'lesson',
+                content_id: activeItem.data.id
+            }).then(() => {
+                setProgress(prev => ({
+                    ...prev,
+                    lessons: [...new Set([...prev.lessons, Number(activeItem.data.id)])]
+                }));
+            }).catch(console.error);
         }
-    }, [viewTab, id]);
+    }, [activeItem, id]);
 
-    const handleCustomize = async () => {
-        if (!window.confirm("ต้องการปรับแต่งคอร์สนี้ใช่หรือไม่? (จะทำการคัดลอกเนื้อหาจากต้นฉบับมาให้คุณแก้ไขได้)")) return;
-        try {
-            setLoading(true);
-            await api.post(`/instances/${id}/customize`);
-            window.location.reload();
-        } catch (err) {
-            alert(err.response?.data?.message || "Failed to customize");
-        } finally {
-            setLoading(false);
+    const toggleModule = (index) => {
+        setOpenModule(prev => prev === index ? null : index);
+    };
+
+    const handleItemClick = (type, data, moduleIndex) => {
+        setActiveItem({ type, data, moduleIndex });
+        setVideoPlaying(false);
+        setQuizStarted(false);
+        setQuizSubmitted(false);
+        setQuizAnswers({});
+        if (iframeRef.current && type === 'lesson' && data.type === 'video') {
+            iframeRef.current.src = "";
         }
-    };
-
-
-    const handleAddModule = async () => {
-        if (!newModuleName) return;
-        try {
-            await api.post(`/instances/${id}/modules`, {
-                title: newModuleName,
-                order_index: fullCourse.modules?.length || 0
-            });
-            setNewModuleName("");
-            fetchFullCourseData();
-        } catch (err) {
-            console.error(err);
-        }
-    };
-
-    const handleDeleteModule = async (moduleId) => {
-        if (!confirm("คุณต้องการลบบทนี้และเนื้อหาทั้งหมดใช่หรือไม่?")) return;
-        try {
-            await api.delete(`/modules/${moduleId}`);
-            fetchFullCourseData();
-        } catch (err) {
-            console.error(err);
-        }
-    };
-
-    const handleAddLesson = async (moduleId) => {
-        const title = prompt("ชื่อบทเรียน:");
-        if (!title) return;
-        const videoUrl = prompt("URL วิดีโอ (ถ้ามี):", "");
-
-        try {
-            await api.post(`/modules/${moduleId}/lessons`, {
-                title,
-                type: 'video',
-                duration_minutes: 10,
-                content: { video_url: videoUrl || "" },
-                order_index: 0
-            });
-            fetchFullCourseData();
-        } catch (err) {
-            console.error(err);
-        }
-    };
-
-    const handleDeleteLesson = async (lessonId) => {
-        if (!confirm("คุณต้องการลบบทเรียนนี้หรือไม่?")) return;
-        try {
-            await api.delete(`/lessons/${lessonId}`);
-            fetchFullCourseData();
-        } catch (err) {
-            console.error(err);
-        }
-    };
-
-    const handleAddQuiz = async (moduleId) => {
-        const title = prompt("ชื่อแบบทดสอบ:");
-        if (!title) return;
-        try {
-            await api.post(`/modules/${moduleId}/quizzes`, {
-                title,
-                passing_score: 70
-            });
-            fetchFullCourseData();
-        } catch (err) {
-            console.error(err);
-        }
-    };
-
-    const handleDeleteQuiz = async (quizId) => {
-        if (!confirm("คุณต้องการลบแบบทดสอบนี้หรือไม่?")) return;
-        try {
-            await api.delete(`/quizzes/${quizId}`);
-            fetchFullCourseData();
-        } catch (err) {
-            console.error(err);
-        }
-    };
-
-    const handleAddAssignment = async (moduleId) => {
-        const title = prompt("ชื่อหัวข้องาน:");
-        if (!title) return;
-        const description = prompt("รายละเอียดงาน (ถ้ามี):", "");
-        try {
-            await api.post(`/modules/${moduleId}/assignments`, {
-                title,
-                description,
-                max_score: 100,
-                submission_type: 'file_upload'
-            });
-            fetchFullCourseData();
-        } catch (err) {
-            console.error(err);
-        }
-    };
-
-    const handleDeleteAssignment = async (assignmentId) => {
-        if (!confirm("คุณต้องการลบงานชิ้นนี้หรือไม่?")) return;
-        try {
-            await api.delete(`/assignments/${assignmentId}`);
-            fetchFullCourseData();
-        } catch (err) {
-            console.error(err);
-        }
-    };
-
-    const toggleQuizExpanded = (quizId) => {
-        setExpandedQuizzes(prev => ({ ...prev, [quizId]: !prev[quizId] }));
-    };
-
-    const handleAddQuestion = (quizId) => {
-        setQModalData({
-            quizId,
-            question: "",
-            type: "single_choice",
-            choices: ["", ""],
-            correctAnswers: [],
-            points: 10
-        });
-        setIsQuestionModalOpen(true);
-    };
-
-    const handleSaveQuestion = async () => {
-        if (!qModalData.question.trim()) return alert("กรุณาระบุคำถาม");
-        if (qModalData.choices.some(c => !c.trim())) return alert("กรุณาระบุตัวเลือกให้ครบ");
-        if (qModalData.correctAnswers.length === 0) return alert("กรุณาเลือกคำตอบที่ถูกต้อง");
-
-        try {
-            let correctAnswer;
-            if (qModalData.type === 'single_choice' || qModalData.type === 'true_false') {
-                correctAnswer = qModalData.correctAnswers[0].toString();
-            } else {
-                correctAnswer = JSON.stringify(qModalData.correctAnswers);
-            }
-
-            await api.post(`/quizzes/${qModalData.quizId}/questions`, {
-                question: qModalData.question,
-                type: qModalData.type,
-                choices: qModalData.choices,
-                correct_answer: correctAnswer,
-                points: qModalData.points
-            });
-
-            setIsQuestionModalOpen(false);
-            fetchFullCourseData();
-        } catch (err) {
-            console.error(err);
-            alert("เกิดข้อผิดพลาดในการบันทึกคำถาม");
-        }
-    };
-
-    const handleDeleteQuestion = async (questionId) => {
-        if (!confirm("คุณต้องการลบคำถามนี้หรือไม่?")) return;
-        try {
-            await api.delete(`/questions/${questionId}`);
-            fetchFullCourseData();
-        } catch (err) {
-            console.error(err);
-        }
-    };
-
-    const updateQForm = (field, value) => {
-        setQModalData(prev => {
-            const newData = { ...prev, [field]: value };
-            if (field === 'type') {
-                if (value === 'true_false') {
-                    newData.choices = ["ใช่ (True)", "ไม่ใช่ (False)"];
-                    newData.correctAnswers = [];
-                } else if (prev.type === 'true_false') {
-                    newData.choices = ["", ""];
-                    newData.correctAnswers = [];
-                }
-            }
-            return newData;
-        });
-    };
-
-    const toggleCorrectAnswer = (index) => {
-        setQModalData(prev => {
-            let newCorrects;
-            if (prev.type === 'single_choice' || prev.type === 'true_false') {
-                newCorrects = [index];
-            } else {
-                if (prev.correctAnswers.includes(index)) {
-                    newCorrects = prev.correctAnswers.filter(i => i !== index);
-                } else {
-                    newCorrects = [...prev.correctAnswers, index];
-                }
-            }
-            return { ...prev, correctAnswers: newCorrects };
-        });
-    };
-
-    const handleChoiceChange = (index, value) => {
-        const newChoices = [...qModalData.choices];
-        newChoices[index] = value;
-        updateQForm('choices', newChoices);
-    };
-
-    const addChoice = () => {
-        updateQForm('choices', [...qModalData.choices, ""]);
-    };
-
-    const removeChoice = (index) => {
-        if (qModalData.choices.length <= 2) return;
-        const newChoices = qModalData.choices.filter((_, i) => i !== index);
-        const newCorrects = qModalData.correctAnswers
-            .filter(i => i !== index)
-            .map(i => i > index ? i - 1 : i);
-        setQModalData(prev => ({ ...prev, choices: newChoices, correctAnswers: newCorrects }));
-    };
-
-    const safeParse = (str, fallback = []) => {
-        if (!str) return fallback;
-        if (typeof str !== 'string') return str;
-        try {
-            return JSON.parse(str);
-        } catch (e) {
-            return fallback;
-        }
-    };
-
-    const saveProgress = async (type, contentId) => {
-        try {
-            await api.post(`/instances/${id}/progress`, {
-                content_type: type,
-                content_id: contentId
-            });
-            setProgress(prev => ({
-                ...prev,
-                [type === 'lesson' ? 'lessons' : 'assignments']: [...new Set([...prev[type === 'lesson' ? 'lessons' : 'assignments'], contentId])]
-            }));
-        } catch (err) {
-            console.error("Failed to save progress", err);
-        }
-    };
-
-    const saveQuizResult = async (quizId, score, passed) => {
-        try {
-            await api.post(`/instances/${id}/quiz-result`, {
-                quiz_id: quizId,
-                score,
-                passed
-            });
-            await fetchProgress();
-        } catch (err) {
-            console.error("Failed to save quiz result", err);
-        }
-    };
-
-    const handleSelectLesson = (lesson) => {
-        setActiveItem({ type: 'lesson', data: lesson });
-        saveProgress('lesson', lesson.id);
-    };
-
-    const handleSelectAssignment = (item) => {
-        setActiveItem({ type: 'assignment', data: item });
-        saveProgress('assignment', item.id);
-    };
-
-    const handleSelectQuiz = (quiz) => {
-        setActiveItem({ type: 'quiz', data: quiz });
-        setQuizState({
-            started: false,
-            currentIndex: 0,
-            answers: {},
-            finished: false,
-            score: 0
-        });
     };
 
     const handleStartQuiz = () => {
-        setQuizState(prev => ({ ...prev, started: true }));
+        if (!activeItem?.data?.questions || activeItem.data.questions.length === 0) {
+            alert("No questions available for this quiz yet.");
+            return;
+        }
+        setQuizStarted(true);
+        setCurrentQuestionIdx(0);
+        setQuizAnswers({});
+        setQuizSubmitted(false);
     };
 
-    const handleAnswerQuiz = (questionId, value, type) => {
-        setQuizState(prev => {
-            const currentAnswers = prev.answers[questionId];
-            let newValue;
-
+    const handleAnswerQuestion = (qId, answer, type) => {
+        setQuizAnswers(prev => {
             if (type === 'multiple_choice') {
-                const arr = Array.isArray(currentAnswers) ? currentAnswers : (currentAnswers ? [currentAnswers] : []);
-                if (arr.includes(value)) {
-                    newValue = arr.filter(v => v !== value);
+                let current = prev[qId] ? [...prev[qId]] : [];
+                if (current.includes(answer)) {
+                    current = current.filter(a => a !== answer);
                 } else {
-                    newValue = [...arr, value];
+                    current.push(answer);
                 }
-            } else {
-                newValue = value;
+                return { ...prev, [qId]: current };
             }
-
-            return {
-                ...prev,
-                answers: { ...prev.answers, [questionId]: newValue }
-            };
+            return { ...prev, [qId]: answer };
         });
     };
 
     const handleSubmitQuiz = () => {
-        const quiz = activeItem.data;
-        let score = 0;
+        let earned = 0;
+        let total = 0;
+        const questions = activeItem?.data?.questions || [];
 
-        quiz.questions?.forEach(q => {
-            const userAnswer = quizState.answers[q.id];
-            const choices = safeParse(q.choices, []);
-            const correctParsed = safeParse(q.correct_answer, q.correct_answer);
+        questions.forEach(q => {
+            const points = q.points || 10;
+            total += points;
+            const userAns = quizAnswers[q.id];
 
             if (q.type === 'multiple_choice') {
-                if (Array.isArray(userAnswer) && Array.isArray(correctParsed)) {
-                    const uSorted = [...userAnswer].map(String).sort();
-                    const cSorted = [...correctParsed].map(String).sort();
-                    if (JSON.stringify(uSorted) === JSON.stringify(cSorted)) {
-                        score += q.points;
-                    }
+                const correctArr = (q.correct_answer || "").split(',').sort().join(',');
+                const userArr = (userAns || []).sort().join(',');
+                if (correctArr === userArr && correctArr !== "") {
+                    earned += points;
                 }
             } else {
-                if (String(userAnswer) === String(correctParsed)) {
-                    score += q.points;
-                }
-                else if (userAnswer !== undefined && choices[userAnswer] === q.correct_answer) {
-                    score += q.points;
+                if (userAns === q.correct_answer) {
+                    earned += points;
                 }
             }
         });
 
-        const passed = score >= (activeItem.data.passing_score / 100 * activeItem.data.questions?.reduce((a, q) => a + q.points, 0));
-        saveQuizResult(activeItem.data.id, score, passed);
+        const passedScore = activeItem.data.passing_score || 0;
+        const percentage = total > 0 ? (earned / total) * 100 : 0;
+        const isPassed = percentage >= passedScore;
 
-        setQuizState(prev => ({ ...prev, finished: true, score }));
+        setQuizScore({ earned, total });
+        setQuizSubmitted(true);
+
+        api.post(`/instances/${id}/quiz-result`, {
+            quiz_id: activeItem.data.id,
+            score: earned,
+            passed: isPassed
+        }).then(() => {
+            setProgress(prev => {
+                const newQuizzes = prev.quizzes.filter(q => q.quiz_id !== activeItem.data.id);
+                newQuizzes.push({ quiz_id: activeItem.data.id, score: earned, passed: isPassed ? 1 : 0 });
+                return { ...prev, quizzes: newQuizzes };
+            });
+        }).catch(console.error);
     };
 
-
-    const isTeacher = user?.roles?.includes('teacher');
-
-    const handleStartLearning = () => {
-        if (!fullCourse?.modules) return;
-
-        let targetLesson = null;
-        for (const module of fullCourse.modules) {
-            for (const lesson of module.lessons || []) {
-                if (!progress.lessons.includes(lesson.id)) {
-                    targetLesson = lesson;
-                    break;
-                }
-            }
-            if (targetLesson) break;
-        }
-
-        if (!targetLesson && fullCourse.modules[0]?.lessons?.[0]) {
-            targetLesson = fullCourse.modules[0].lessons[0];
-        }
-
-        if (targetLesson) {
-            handleSelectLesson(targetLesson);
+    const playVideo = (videoUrl) => {
+        setVideoPlaying(true);
+        if (iframeRef.current) {
+            iframeRef.current.src = videoUrl + "?autoplay=1";
         }
     };
 
-    if (loading) return (
-        <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950">
-            <div className="flex flex-col items-center gap-4">
-                <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
-                <p className="font-bold text-slate-400">กำลังเตรียมเนื้อหาการเรียน...</p>
-            </div>
-        </div>
-    );
+    const getContentValue = (content, type) => {
+        if (!content) return "";
+        try {
+            const parsed = typeof content === 'string' ? JSON.parse(content) : content;
+            if (type === 'video') return parsed?.videoUrl || content;
+            if (type === 'text') return parsed?.html || content;
+            return content;
+        } catch {
+            return content;
+        }
+    };
 
-    if (!instance || !fullCourse) return (
-        <div className="min-h-screen flex items-center justify-center">
-            <div className="text-center space-y-4">
-                <h1 className="text-2xl font-bold text-red-500">ไม่พบข้อมูลคอร์สเรียน</h1>
-                <button onClick={() => navigate(-1)} className="text-primary font-bold hover:underline">ย้อนกลับ</button>
+    if (loading) {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950">
+                <div className="flex flex-col items-center space-y-4">
+                    <div className="w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin"></div>
+                    <p className="text-slate-500 font-medium animate-pulse">กำลังโหลดข้อมูลบทเรียน...</p>
+                </div>
             </div>
-        </div>
-    );
+        );
+    }
+
+    if (error || !course) {
+        return (
+            <div className="min-h-screen flex flex-col items-center justify-center space-y-4">
+                <p className="text-slate-500 text-lg">{error || "Course not found"}</p>
+                <button onClick={() => navigate('/mycourses')} className="px-6 py-2 bg-primary text-white rounded-xl">Back to My Courses</button>
+            </div>
+        );
+    }
+
+    // Helper to extract YouTube ID for thumbnail
+    const getYoutubeId = (url) => {
+        if (!url) return null;
+        let regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+        let match = url.match(regExp);
+        return (match && match[2].length === 11) ? match[2] : null;
+    };
+
+    const lessonContentValue = activeItem?.type === 'lesson' ? getContentValue(activeItem.data.content, activeItem.data.type) : "";
+    const activeYoutubeId = activeItem?.type === 'lesson' && activeItem?.data?.type === 'video' ? getYoutubeId(lessonContentValue) : null;
+    const thumbnailUrl = activeYoutubeId ? `https://img.youtube.com/vi/${activeYoutubeId}/maxresdefault.jpg` : null;
+
+    const completedCount = progress.lessons.length + progress.assignments.length + progress.quizzes.filter(q => q.passed == 1 || q.passed === true).length;
+    const progressPercentage = totalItemsCount > 0 ? Math.round((completedCount / totalItemsCount) * 100) : 0;
 
     return (
-        <div className="min-h-screen bg-[#F8FAFC] dark:bg-[#020617]">
-            {/* Header / Nav */}
-            <div className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 sticky top-0 z-50">
-                <div className="container mx-auto px-6 h-20 flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                        <button
-                            onClick={() => activeItem ? setActiveItem(null) : navigate(-1)}
-                            className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors group"
-                        >
-                            <span className="material-symbols-outlined text-slate-400 group-hover:text-slate-600">arrow_back</span>
-                        </button>
-                        <div>
-                            <h1 className="font-black text-lg text-slate-900 dark:text-white line-clamp-1">{instance.title}</h1>
-                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                                คอร์สของฉัน • {instance.role === 'owner' ? 'เจ้าของคอร์ส' : 'นักเรียน'}
-                            </p>
+        <div className="bg-main bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100">
+            <main className="pt-24 flex-3 flex overflow-hidden relative p-4 gap-4 max-w-7xl mx-auto md:px-6 h-screen">
+
+                {/*  Sidebar  */}
+                <aside id="lesson-sidebar"
+                    className={`w-72 bg-white rounded-3xl border border-slate-200 flex flex-col h-full overflow-hidden shrink-0 shadow-sm transition-all duration-300 ${!sidebarOpen ? 'hidden' : ''} dark:bg-slate-800 dark:border-slate-700`}>
+                    <div className="p-5 border-b border-slate-100 dark:border-slate-700">
+                        <div className="flex items-center justify-between mb-3">
+                            <h2 className="font-bold text-sm text-slate-800 flex items-center gap-2 dark:text-slate-200">
+                                <span className="material-symbols-outlined text-lg text-primary">list_alt</span>
+                                รายละเอียดบทเรียน
+                            </h2>
+                            <span className="text-[11px] font-bold px-2 py-0.5 rounded-full text-primary bg-primary/20">{progressPercentage}%</span>
+                        </div>
+                        <div className="w-full h-1.5 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
+                            <div className={`h-full rounded-full bg-primary transition-all duration-500`} style={{ width: `${progressPercentage}%` }}></div>
                         </div>
                     </div>
-                    <div className="flex items-center gap-3">
-                        <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
-                            <button
-                                onClick={() => { setActiveItem(null); setViewTab('overview'); }}
-                                className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${viewTab === 'overview' && !activeItem ? 'bg-white dark:bg-slate-700 shadow-sm text-slate-900 dark:text-white' : 'text-slate-400 hover:text-slate-600'}`}
-                            >
-                                ภาพรวม
-                            </button>
-                            <button
-                                onClick={() => { setViewTab('learning'); handleStartLearning(); }}
-                                className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${(viewTab === 'learning' || activeItem) ? 'bg-white dark:bg-slate-700 shadow-sm text-slate-900 dark:text-white' : 'text-slate-400 hover:text-slate-600'}`}
-                            >
-                                การเรียนรู้
-                            </button>
-                            {instance.role === 'owner' && isTeacher && (
-                                <button
-                                    onClick={() => { setActiveItem(null); setViewTab('students'); }}
-                                    className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${viewTab === 'students' ? 'bg-white dark:bg-slate-700 shadow-sm text-slate-900 dark:text-white' : 'text-slate-400 hover:text-slate-600'}`}
-                                >
-                                    จัดการนักเรียน
+
+                    <div className="flex-1 overflow-y-auto custom-scrollbar p-3 flex flex-col gap-1">
+                        {course.modules?.map((module, mIdx) => (
+                            <div className="module" key={module.id}>
+                                <button className={`module-toggle w-full flex items-center gap-2 px-3 py-2.5 rounded-xl text-left transition-colors ${openModule === mIdx ? 'bg-primary/20' : 'hover:bg-slate-50 dark:hover:bg-slate-700'}`}
+                                    onClick={() => toggleModule(mIdx)}>
+                                    <span className={`material-symbols-outlined text-sm ${openModule === mIdx ? 'text-primary-dark' : 'text-slate-400'}`}>expand_more</span>
+                                    <span className={`text-[11px] font-bold uppercase tracking-wider ${openModule === mIdx ? 'text-primary-dark' : 'text-slate-500'}`}>
+                                        บทที่ {mIdx + 1}: {module.title}
+                                    </span>
                                 </button>
+
+                                <div className={`module-items mt-1 ml-3 pl-3 border-l-2 border-slate-200 dark:border-slate-600 ${openModule === mIdx ? 'block' : 'hidden'}`}>
+                                    {module.lessons?.map((lesson, lIdx) => {
+                                        const isActive = activeItem?.type === 'lesson' && activeItem?.data?.id === lesson.id;
+                                        const isCompleted = progress.lessons.includes(lesson.id);
+                                        return (
+                                            <div key={lesson.id}
+                                                className={`flex items-center gap-2 pl-4 pr-2.5 py-2 rounded-lg text-xs cursor-pointer transition-colors ${isActive ? 'bg-primary/20 border border-primary/50 text-slate-800 font-semibold dark:text-slate-200' : 'text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700/50'}`}
+                                                onClick={() => handleItemClick('lesson', lesson, mIdx)}>
+                                                <span className={`material-symbols-outlined text-sm ${isActive ? 'text-primary-dark' : 'text-slate-300'} ${isCompleted ? 'text-green-500!' : ''}`}>
+                                                    {isCompleted ? 'check_circle' : (lesson.type === 'video' ? 'play_circle' : 'article')}
+                                                </span>
+                                                <span className="truncate">{lIdx + 1}. {lesson.title}</span>
+                                            </div>
+                                        );
+                                    })}
+
+                                    {module.assignments?.map((assignment, aIdx) => {
+                                        const isActive = activeItem?.type === 'assignment' && activeItem?.data?.id === assignment.id;
+                                        const isCompleted = progress.assignments.includes(assignment.id);
+                                        return (
+                                            <div key={assignment.id}
+                                                className={`flex items-center gap-2 px-2.5 py-2 rounded-lg text-xs cursor-pointer transition-colors ${isActive ? 'bg-primary/20 border border-primary/50 text-slate-800 font-semibold dark:text-slate-200' : 'text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700/50'}`}
+                                                onClick={() => handleItemClick('assignment', assignment, mIdx)}>
+                                                <span className={`material-symbols-outlined text-sm ${isActive ? 'text-primary-dark' : 'text-slate-300'} ${isCompleted ? 'text-green-500!' : ''}`}>
+                                                    {isCompleted ? 'check_circle' : 'assignment'}
+                                                </span>
+                                                <span className="truncate">งาน: {assignment.title}</span>
+                                            </div>
+                                        );
+                                    })}
+
+                                    {module.quizzes?.map((quiz, qIdx) => {
+                                        const isActive = activeItem?.type === 'quiz' && activeItem?.data?.id === quiz.id;
+                                        const quizPassed = progress.quizzes.find(q => q.quiz_id === quiz.id && q.passed);
+                                        return (
+                                            <div key={quiz.id}
+                                                className={`flex items-center gap-2 px-2.5 py-2 rounded-lg text-xs font-medium cursor-pointer mt-1 transition-colors ${isActive ? 'bg-primary/20 text-primary-dark border border-primary/50' : 'bg-primary/10 text-primary-dark dark:bg-primary/20'}`}
+                                                onClick={() => handleItemClick('quiz', quiz, mIdx)}>
+                                                <span className={`material-symbols-outlined text-sm ${quizPassed ? 'text-green-500!' : ''}`}>
+                                                    {quizPassed ? 'check_circle' : 'quiz'}
+                                                </span>
+                                                <span className="truncate">Quiz: {quiz.title}</span>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+
+                    <div className="p-4 border-t border-slate-100 dark:border-slate-700">
+                        <Link to={`/mycourses`} className="w-full py-2.5 bg-slate-900 text-white rounded-2xl font-bold text-xs flex items-center justify-center space-x-2 shadow-sm hover:bg-slate-800 transition-all dark:hover:bg-slate-700 block text-center cursor-pointer">
+                            <span className="material-symbols-outlined text-sm">arrow_back</span>
+                            <span>กลับสู่หน้าคอร์ส</span>
+                        </Link>
+                    </div>
+                </aside>
+
+                {/*  Content Area  */}
+                <div id="content-wrapper" className="flex-1 flex flex-col bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-sm dark:bg-slate-800 dark:border-slate-700">
+                    <div className="flex-1 overflow-y-auto custom-scrollbar">
+
+                        {/*  Sticky topbar  */}
+                        <div className="sticky top-0 z-40 bg-white/80 backdrop-blur-md px-8 py-5 flex items-center gap-4 border-b border-slate-100 dark:bg-slate-900/80 dark:border-slate-700">
+                            <button onClick={() => setSidebarOpen(prev => !prev)}
+                                className="flex items-center justify-center w-10 h-10 bg-slate-50 border border-slate-200 rounded-xl cursor-pointer hover:bg-slate-100 transition-all text-slate-500 shrink-0 shadow-sm dark:bg-slate-800 dark:border-slate-600 dark:text-slate-300">
+                                <span className="material-symbols-outlined text-xl transition-all duration-300" id="toggle-icon">side_navigation</span>
+                            </button>
+                            {activeItem ? (
+                                <div className="flex-1 flex justify-between items-center">
+                                    <div>
+                                        <nav className="flex items-center space-x-1 text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">
+                                            <span>Module {activeItem.moduleIndex + 1}</span>
+                                            <span className="material-symbols-outlined text-xs">chevron_right</span>
+                                            <span className="text-primary-dark dark:text-primary-light">
+                                                {activeItem.type === 'lesson' ? 'Lesson' : activeItem.type === 'quiz' ? 'Quiz' : 'Assignment'}
+                                            </span>
+                                        </nav>
+                                        <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight dark:text-slate-100">{activeItem.data.title}</h1>
+                                    </div>
+                                    {course.owner_id === user?.id && (
+                                        <Link to={`/mycourses/${id}/edit`} className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white dark:bg-white dark:text-slate-900 rounded-xl font-bold text-xs hover:opacity-90 transition-all">
+                                            <span className="material-symbols-outlined text-sm">edit</span>
+                                            <span>แก้ไขคอร์สนี้</span>
+                                        </Link>
+                                    )}
+                                </div>
+                            ) : (
+                                <div><h1 className="text-2xl font-extrabold text-slate-900 dark:text-slate-100">Select an item</h1></div>
                             )}
                         </div>
-                        <div className="h-8 w-px bg-slate-200 dark:bg-slate-800 mx-2"></div>
-                    </div>
-                </div>
-            </div>
 
-            {!activeItem && viewTab === 'overview' && (
-                /* Course Overview UI (Mirroring CourseDetail) */
-                <div className="animate-in fade-in duration-500">
-                    {/* Hero Section */}
-                    <div className="bg-pink-50 dark:bg-slate-900/50 pt-10 pb-12 border-b border-pink-100 dark:border-slate-800">
-                        <div className="container mx-auto px-6">
-                            <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-8">
-                                <div className="max-w-3xl space-y-4">
-                                    {fullCourse.category && (
-                                        <span className="px-3 py-1 bg-primary/10 text-primary text-xs font-bold rounded-full uppercase tracking-wider">
-                                            {fullCourse.category}
-                                        </span>
-                                    )}
-                                    <h1 className="text-4xl lg:text-5xl font-extrabold text-slate-900 dark:text-white leading-tight">
-                                        {fullCourse.title}
-                                    </h1>
-                                    <p className="text-lg text-slate-600 dark:text-slate-400 leading-relaxed max-w-2xl">
-                                        {fullCourse.description}
-                                    </p>
-                                </div>
-
-                                <div className="flex flex-col items-start lg:items-end gap-4 min-w-[320px]">
-                                    <div className="flex bg-white/50 dark:bg-slate-800/50 p-4 rounded-3xl border border-white/20 backdrop-blur-sm w-full">
-                                        <div className="flex-1">
-                                            <div className="flex justify-between items-center mb-1">
-                                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">ความคืบหน้า</p>
-                                                <span className="text-[10px] font-black text-primary">{progressPercent}%</span>
+                        {/* Body Content based on activeItem */}
+                        {activeItem?.type === 'lesson' && activeItem.data.type === 'video' && (
+                            <div className="max-w-4xl mx-auto w-full px-8 py-10">
+                                <div className="rounded-3xl overflow-hidden shadow-xl border border-slate-100 aspect-video relative group mb-12 bg-slate-900 cursor-pointer dark:border-slate-700" onClick={() => playVideo(lessonContentValue)}>
+                                    {/* Thumbnail */}
+                                    <div className={`absolute inset-0 z-10 transition-opacity duration-300 ${videoPlaying ? 'hidden' : ''}`}>
+                                        {thumbnailUrl ? (
+                                            <img alt="Lesson Thumbnail" className="w-full h-full object-cover opacity-80 group-hover:opacity-60 transition-opacity duration-300"
+                                                src={thumbnailUrl} />
+                                        ) : (
+                                            <div className="w-full h-full flex items-center justify-center">
+                                                <span className="material-symbols-outlined text-5xl text-slate-300">school</span>
                                             </div>
-                                            <div className="h-2 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
-                                                <div
-                                                    className="h-full bg-primary transition-all duration-1000"
-                                                    style={{ width: `${progressPercent}%` }}
-                                                ></div>
-                                            </div>
+                                        )}
+                                        <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
+                                            <button className="w-20 h-20 backdrop-blur-sm text-white rounded-full flex items-center justify-center hover:scale-110 transition-transform shadow-2xl bg-primary/100/90">
+                                                <span className="material-symbols-outlined text-5xl">play_circle</span>
+                                            </button>
+                                            <span className="text-white text-xs font-semibold bg-black/30 px-3 py-1 rounded-full backdrop-blur-sm">คลิกเพื่อเล่นวิดีโอ</span>
                                         </div>
                                     </div>
+                                    {/* YouTube iframe */}
+                                    <iframe ref={iframeRef}
+                                        className={`absolute inset-0 w-full h-full transition-opacity duration-300 ${videoPlaying ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+                                        title="YouTube video player"
+                                        frameBorder="0"
+                                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                                        allowFullScreen>
+                                    </iframe>
+                                </div>
 
-                                    {isFinished && (
-                                        <div className="w-full p-6 bg-linear-to-br from-green-500/10 to-emerald-500/10 dark:from-green-500/5 dark:to-emerald-500/5 border border-green-200 dark:border-green-900/30 rounded-3xl animate-in zoom-in-95 duration-500">
-                                            <div className="flex items-center gap-4 mb-6">
-                                                <div className="w-12 h-12 rounded-xl bg-green-500 flex items-center justify-center text-white shrink-0 shadow-lg shadow-green-200 dark:shadow-none">
-                                                    <span className="material-symbols-outlined text-2xl">emoji_events</span>
-                                                </div>
-                                                <div className="flex-1">
-                                                    <h4 className="text-md font-black text-green-700 dark:text-green-400 leading-tight">ยินดีด้วย! คุณเรียนจบแล้ว</h4>
-                                                    <p className="text-[10px] text-slate-600 dark:text-slate-400 mt-0.5">
-                                                        ให้คะแนนคอร์สนี้เพื่อช่วยเราพัฒนาให้ดียิ่งขึ้น
-                                                    </p>
-                                                </div>
-                                            </div>
+                                <article>
+                                    <header className="mb-10">
+                                        <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight leading-tight mb-4 dark:text-slate-100">
+                                            {activeItem.data.title}
+                                        </h2>
+                                        <div className="h-1.5 w-12 rounded-full bg-gradient-to-r from-pink-500 to-purple-500"></div>
+                                    </header>
+                                </article>
 
-                                            <div className="pt-4 border-t border-green-100 dark:border-green-900/20">
-                                                <div className="flex flex-col items-center">
-                                                    <div className="flex gap-1.5 mb-4">
-                                                        {[1, 2, 3, 4, 5].map((star) => (
-                                                            <button
-                                                                key={star}
-                                                                disabled={hasRated || submittingRating}
-                                                                onClick={() => setUserRating(star)}
-                                                                className={`material-symbols-outlined text-3xl cursor-pointer transition-all hover:scale-110 active:scale-90 ${star <= userRating ? 'text-yellow-400 fill-1' : 'text-slate-300'} ${hasRated ? 'cursor-default' : ''}`}
-                                                            >
-                                                                star
-                                                            </button>
-                                                        ))}
-                                                    </div>
-
-                                                    {!hasRated ? (
-                                                        <div className="w-full space-y-3">
-                                                            <textarea
-                                                                placeholder="บอกความรู้สึกสั้นๆ..."
-                                                                value={userComment}
-                                                                onChange={(e) => setUserComment(e.target.value)}
-                                                                disabled={submittingRating}
-                                                                className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-3 text-xs focus:ring-2 focus:ring-primary/20 outline-none min-h-[80px] transition-all"
-                                                            ></textarea>
-                                                            <button
-                                                                onClick={handleSubmitRating}
-                                                                disabled={submittingRating || userRating === 0}
-                                                                className="w-full bg-slate-900 dark:bg-white dark:text-slate-900 text-white py-2.5 rounded-xl font-bold hover:brightness-110 transition-all disabled:opacity-50 flex items-center justify-center gap-2 text-xs"
-                                                            >
-                                                                {submittingRating ? (
-                                                                    <div className="w-4 h-4 border-2 border-white/30 border-t-white dark:border-slate-900/30 dark:border-t-slate-900 rounded-full animate-spin"></div>
-                                                                ) : (
-                                                                    <>
-                                                                        <span className="material-symbols-outlined text-sm">send</span>
-                                                                        ส่งความแเห็น
-                                                                    </>
-                                                                )}
-                                                            </button>
-                                                        </div>
-                                                    ) : (
-                                                        <div className="text-center w-full">
-                                                            <div className="p-3 bg-white/50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-700/50 italic text-[11px] text-slate-500 mb-3">
-                                                                "{userComment || 'ไม่มีความแเห็นเพิ่มเติม'}"
-                                                            </div>
-                                                            <div className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 text-[10px] font-bold">
-                                                                <span className="material-symbols-outlined text-xs">check_circle</span>
-                                                                บันทึกการให้คะแนนแล้ว
-                                                            </div>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    )}
-
+                                {/* Done / Next Button for video lessons */}
+                                <div className="mt-12 pt-8 border-t border-slate-100 dark:border-slate-800 flex justify-end">
                                     <button
-                                        onClick={handleStartLearning}
-                                        className="w-full bg-primary text-white px-8 py-4 rounded-2xl font-bold text-lg shadow-lg shadow-primary/20 hover:-translate-y-0.5 active:translate-y-0 transition-all flex items-center justify-center space-x-2"
+                                        onClick={handleNextItem}
+                                        className="flex items-center gap-2 px-8 py-3 bg-primary text-white rounded-xl font-bold hover:opacity-90 transition-all shadow-lg shadow-pink-100"
                                     >
-                                        <span className="material-symbols-outlined">play_circle</span>
-                                        <span>{progress.lessons.length > 0 ? 'เรียนต่อเลย' : 'เริ่มเรียนเลย'}</span>
+                                        <span>บทเรียนถัดไป</span>
+                                        <span className="material-symbols-outlined">arrow_forward</span>
                                     </button>
                                 </div>
                             </div>
+                        )}
 
-                            {/* Quick Stats */}
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mt-12 p-6 bg-white/60 dark:bg-slate-800/60 backdrop-blur rounded-3xl border border-white dark:border-slate-700 shadow-sm">
-                                <div className="flex items-center space-x-3">
-                                    <span className="material-symbols-outlined text-primary p-2 bg-white dark:bg-slate-900 rounded-xl shadow-sm">schedule</span>
-                                    <div>
-                                        <p className="text-[10px] uppercase tracking-wider font-bold text-slate-400">เนื้อหาทั้งหมด</p>
-                                        <p className="font-bold text-sm">{fullCourse.modules?.reduce((acc, m) => acc + (m.lessons?.length || 0), 0)} บทเรียน</p>
-                                    </div>
-                                </div>
-                                <div className="flex items-center space-x-3">
-                                    <span className="material-symbols-outlined text-primary p-2 bg-white dark:bg-slate-900 rounded-xl shadow-sm">quiz</span>
-                                    <div>
-                                        <p className="text-[10px] uppercase tracking-wider font-bold text-slate-400">แบบทดสอบ</p>
-                                        <p className="font-bold text-sm">{fullCourse.modules?.reduce((acc, m) => acc + (m.quizzes?.length || 0), 0)} ชุด</p>
-                                    </div>
-                                </div>
-                                <div className="flex items-center space-x-3">
-                                    <span className="material-symbols-outlined text-primary p-2 bg-white dark:bg-slate-900 rounded-xl shadow-sm">assignment</span>
-                                    <div>
-                                        <p className="text-[10px] uppercase tracking-wider font-bold text-slate-400">งานที่มอบหมาย</p>
-                                        <p className="font-bold text-sm">{fullCourse.modules?.reduce((acc, m) => acc + (m.assignments?.length || 0), 0)} งาน</p>
-                                    </div>
-                                </div>
-                                <div className="flex items-center space-x-3">
-                                    <span className="material-symbols-outlined text-primary p-2 bg-white dark:bg-slate-900 rounded-xl shadow-sm">stars</span>
-                                    <div>
-                                        <p className="text-[10px] uppercase tracking-wider font-bold text-slate-400">สถานะ</p>
-                                        <p className="font-bold text-sm">{instance.role === 'owner' ? 'เจ้าของคอร์ส' : 'ผู้เรียน'}</p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                        {activeItem?.type === 'lesson' && activeItem.data.type === 'text' && (
+                            <div className="max-w-4xl mx-auto w-full px-8 py-10">
+                                <article className="prose prose-slate dark:prose-invert max-w-none prose-img:rounded-2xl">
+                                    <header className="mb-10">
+                                        <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight leading-tight mb-4 dark:text-slate-100">
+                                            {activeItem.data.title}
+                                        </h2>
+                                        <div className="h-1.5 w-12 rounded-full bg-gradient-to-r from-pink-500 to-purple-500"></div>
+                                    </header>
+                                    <div className="ql-editor p-0!" dangerouslySetInnerHTML={{ __html: lessonContentValue }} />
+                                    <style>{`
+                                        /* Additional styles to make Quill content look good with Tailwind */
+                                        .ql-editor h1 { font-size: 2.25rem !important; font-weight: 800 !important; margin-bottom: 1.5rem !important; }
+                                        .ql-editor h2 { font-size: 1.875rem !important; font-weight: 700 !important; margin-bottom: 1.25rem !important; }
+                                        .ql-editor h3 { font-size: 1.5rem !important; font-weight: 600 !important; margin-bottom: 1rem !important; }
+                                        .ql-editor p { margin-bottom: 1rem !important; }
+                                        .dark .ql-editor { color: #e2e8f0; }
+                                        /* Fix alignment classes not working due to Tailwind Preflight */
+                                        .ql-align-center { text-align: center !important; }
+                                        .ql-align-right { text-align: right !important; }
+                                        .ql-align-justify { text-align: justify !important; }
+                                    `}</style>
+                                </article>
 
-                    <main className="pt-8 pb-20 container mx-auto px-6">
-                        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
-                            {/* Main Overview Content */}
-                            <div className="lg:col-span-8 space-y-10">
-                                <section>
-                                    <div className="flex items-center justify-between mb-8">
-                                        <h3 className="text-3xl font-bold">รายละเอียดหลักสูตร</h3>
-                                        <span className="px-4 py-1.5 bg-slate-100 dark:bg-slate-800 rounded-full text-sm font-bold text-slate-500">
-                                            {fullCourse.modules?.length || 0} บทเรียนหลัก
-                                        </span>
-                                    </div>
-
-                                    <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-3xl overflow-hidden shadow-sm">
-                                        {fullCourse.modules && fullCourse.modules.length > 0 ? (
-                                            <div className="divide-y divide-slate-100 dark:divide-slate-800">
-                                                {fullCourse.modules.map((module, idx) => (
-                                                    <div key={module.id} className="group p-6 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all">
-                                                        <div className="flex items-start justify-between">
-                                                            <div className="flex items-start space-x-4">
-                                                                <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-                                                                    <span className="text-primary font-bold">{idx + 1}</span>
-                                                                </div>
-                                                                <div className="flex flex-col">
-                                                                    <span className="text-lg font-bold group-hover:text-primary transition-colors">
-                                                                        {module.title}
-                                                                    </span>
-                                                                    <div className="mt-4 space-y-3">
-                                                                        {module.lessons?.map((lesson) => (
-                                                                            <div key={lesson.id} className="flex items-center text-sm text-slate-500 space-x-3">
-                                                                                <span className={`material-symbols-outlined text-[18px] ${progress.lessons.includes(lesson.id) ? 'text-green-500' : ''}`}>
-                                                                                    {progress.lessons.includes(lesson.id) ? 'check_circle' : (lesson.type === 'video' ? 'play_circle' : 'description')}
-                                                                                </span>
-                                                                                <span>{lesson.title}</span>
-                                                                            </div>
-                                                                        ))}
-                                                                        {module.quizzes?.map((quiz) => (
-                                                                            <div key={quiz.id} className="flex items-center text-sm text-slate-500 space-x-3">
-                                                                                <span className="material-symbols-outlined text-[18px]">quiz</span>
-                                                                                <span>แบบทดสอบ: {quiz.title}</span>
-                                                                            </div>
-                                                                        ))}
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        ) : (
-                                            <div className="p-12 text-center">
-                                                <span className="material-symbols-outlined text-4xl text-slate-300 mb-2">inventory_2</span>
-                                                <p className="text-slate-500 font-medium">ยังไม่มีรายละเอียดบทเรียน</p>
-                                            </div>
-                                        )}
-                                    </div>
-                                </section>
-                            </div>
-
-                            {/* Right Column: Sidebar */}
-                            <div className="lg:col-span-4 space-y-8">
-                                <div className="sticky top-28">
-                                    <div className="bg-white dark:bg-slate-900 p-4 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-xl overflow-hidden group">
-                                        <div className="relative rounded-2xl overflow-hidden aspect-video mb-4">
-                                            <img
-                                                src={fullCourse.thumbnail_url || "https://placehold.co/600x400/fecdd3/db2777?text=No+Image"}
-                                                alt={fullCourse.title}
-                                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                                            />
-                                            <div
-                                                onClick={handleStartLearning}
-                                                className="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
-                                            >
-                                                <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center text-primary shadow-2xl">
-                                                    <span className="material-symbols-outlined text-4xl fill-1">play_arrow</span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div className="p-2 space-y-4">
-                                            <h4 className="font-bold text-lg">คอร์สนี้รวมอะไรบ้าง?</h4>
-                                            <ul className="space-y-3">
-                                                <li className="flex items-center space-x-3 text-sm text-slate-600 dark:text-slate-400">
-                                                    <span className="material-symbols-outlined text-green-500 text-[18px]">check_circle</span>
-                                                    <span>เข้าชมได้ตลอดชีพ</span>
-                                                </li>
-                                                <li className="flex items-center space-x-3 text-sm text-slate-600 dark:text-slate-400">
-                                                    <span className="material-symbols-outlined text-green-500 text-[18px]">check_circle</span>
-                                                    <span>เข้าถึงได้ทุกที่ ทุกเวลา</span>
-                                                </li>
-                                                <li className="flex items-center space-x-3 text-sm text-slate-600 dark:text-slate-400">
-                                                    <span className="material-symbols-outlined text-green-500 text-[18px]">check_circle</span>
-                                                    <span>มีแบบทดสอบวัดระดับ</span>
-                                                </li>
-                                            </ul>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </main>
-                </div>
-            )}
-
-            {!activeItem && viewTab === 'students' && (
-                <main className="container mx-auto px-6 py-12 animate-in fade-in duration-500">
-                    <div className="bg-white dark:bg-slate-900 rounded-4xl border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden">
-                        <div className="p-8 border-b border-slate-100 dark:border-slate-800 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-                            <div>
-                                <h1 className="text-3xl font-black text-slate-900 dark:text-white mb-2 uppercase tracking-tight">จัดการนักเรียน</h1>
-                                <p className="text-slate-400 font-bold text-sm uppercase tracking-wider">จัดการการลงทะเบียนและเชิญนักเรียนใหม่เข้าสู่คอร์สของคุณ</p>
-                            </div>
-                        </div>
-
-                        <div className="p-10 space-y-12">
-                            {message && (
-                                <div className={`p-4 rounded-2xl flex items-center gap-3 animate-in slide-in-from-top-4 ${message.includes("Error") || message.includes("ความผิดพลาด") ? "bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400 border border-red-100 dark:border-red-900/30" : "bg-green-50 text-green-600 dark:bg-green-900/20 dark:text-green-400 border border-green-100 dark:border-green-900/30"}`}>
-                                    <span className="material-symbols-outlined">{message.includes("Error") || message.includes("ความผิดพลาด") ? "error" : "check_circle"}</span>
-                                    <p className="font-bold text-sm">{message}</p>
-                                </div>
-                            )}
-
-                            {/* Invite Section */}
-                            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                                <div className="lg:col-span-2 bg-slate-50 dark:bg-slate-800/50 p-8 rounded-3xl border border-slate-100 dark:border-slate-800">
-                                    <h3 className="text-lg font-black text-slate-800 dark:text-white mb-6 flex items-center gap-2">
-                                        <span className="material-symbols-outlined text-primary">person_add</span>
-                                        เชิญนักเรียนใหม่
-                                    </h3>
-                                    <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">ค้นหาด้วยชื่อผู้ใช้หรืออีเมล</p>
-                                    <AsyncSelect
-                                        isMulti
-                                        cacheOptions
-                                        loadOptions={loadUsersOptions}
-                                        value={selectedInviteOptions}
-                                        onChange={setSelectedInviteOptions}
-                                        placeholder="ระบุชื่อผู้ใช้หรืออีเมล..."
-                                        className="my-ReactSelect"
-                                        styles={{
-                                            control: (base) => ({
-                                                ...base,
-                                                borderRadius: '1rem',
-                                                padding: '4px',
-                                                border: '2px solid #E2E8F0',
-                                                backgroundColor: '#F8FAFC',
-                                                '&:hover': { borderColor: '#db2777' }
-                                            }),
-                                            menu: (base) => ({
-                                                ...base,
-                                                borderRadius: '1rem',
-                                                overflow: 'hidden'
-                                            })
-                                        }}
-                                    />
+                                {/* Done / Next Button for text lessons */}
+                                <div className="mt-12 pt-8 border-t border-slate-100 dark:border-slate-800 flex justify-end">
                                     <button
-                                        onClick={handleInvite}
-                                        disabled={loading || selectedInviteOptions.length === 0}
-                                        className="mt-6 bg-primary text-white px-8 py-3 rounded-2xl font-black shadow-lg shadow-primary/20 hover:-translate-y-0.5 transition-all disabled:opacity-50 disabled:translate-y-0 cursor-pointer uppercase tracking-widest text-xs"
+                                        onClick={handleNextItem}
+                                        className="flex items-center gap-2 px-8 py-3 bg-primary text-white rounded-xl font-bold hover:opacity-90 transition-all shadow-lg shadow-pink-100"
                                     >
-                                        {loading ? "กำลังดำเนินการ..." : "เชิญนักเรียนที่เลือก"}
+                                        <span>บทเรียนถัดไป</span>
+                                        <span className="material-symbols-outlined">arrow_forward</span>
                                     </button>
                                 </div>
-
-                                <div className="space-y-4">
-                                    <div className="bg-slate-50 dark:bg-slate-800/50 p-6 rounded-3xl border border-slate-100 dark:border-slate-800">
-                                        <div className="flex items-center gap-2 text-primary mb-3">
-                                            <span className="material-symbols-outlined text-lg">link</span>
-                                            <h3 className="font-black text-sm uppercase">เชิญด้วยลิงก์</h3>
-                                        </div>
-                                        <div className="flex gap-2">
-                                            <input
-                                                readOnly
-                                                className="flex-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-[10px] font-bold text-slate-500"
-                                                value={`https://learnnaja.com/join/${instance.id}`}
-                                            />
-                                            <button
-                                                onClick={() => {
-                                                    navigator.clipboard.writeText(`https://learnnaja.com/join/${instance.id}`);
-                                                    setMessage("คัดลอกลิงก์เรียบร้อยแล้ว!");
-                                                    setTimeout(() => setMessage(""), 2000);
-                                                }}
-                                                className="p-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl hover:bg-slate-50 text-primary transition-colors"
-                                            >
-                                                <span className="material-symbols-outlined text-sm">content_copy</span>
-                                            </button>
-                                        </div>
-                                    </div>
-                                    <div className="bg-slate-50 dark:bg-slate-800/50 p-6 rounded-3xl border border-slate-100 dark:border-slate-800">
-                                        <div className="flex items-center gap-2 text-indigo-500 mb-3">
-                                            <span className="material-symbols-outlined text-lg">pin</span>
-                                            <h3 className="font-black text-sm uppercase">รหัสคลาส</h3>
-                                        </div>
-                                        <div className="flex items-center justify-between bg-white dark:bg-slate-900 px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700">
-                                            <span className="font-black text-lg tracking-widest text-slate-700 dark:text-slate-200">LN-{String(instance.id).substring(0, 5).toUpperCase()}</span>
-                                            <button className="text-indigo-500 hover:underline text-[9px] font-black uppercase">Refresh</button>
-                                        </div>
-                                    </div>
-                                </div>
                             </div>
+                        )}
 
-                            {/* Students Table */}
-                            <div className="space-y-6">
-                                <div className="flex items-center justify-between">
-                                    <h3 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tight">
-                                        นักเรียนที่ลงทะเบียนแล้ว
-                                        <span className="text-sm font-bold text-slate-400 ml-3 bg-slate-100 dark:bg-slate-800 px-3 py-1 rounded-full">{students.length} คน</span>
-                                    </h3>
-                                </div>
-
-                                <div className="overflow-x-auto rounded-3xl border border-slate-100 dark:border-slate-800">
-                                    <table className="w-full text-left border-collapse">
-                                        <thead>
-                                            <tr className="bg-slate-50 dark:bg-slate-800/30 border-b border-slate-100 dark:border-slate-800">
-                                                <th className="py-5 px-6 font-black text-slate-400 text-[10px] uppercase tracking-widest">ข้อมูลนักเรียน</th>
-                                                <th className="py-5 px-6 font-black text-slate-400 text-[10px] uppercase tracking-widest">วันที่ลงทะเบียน</th>
-                                                <th className="py-5 px-6 font-black text-slate-400 text-[10px] uppercase tracking-widest text-right">การจัดการ</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody className="divide-y divide-slate-50 dark:divide-slate-800/50">
-                                            {students.length === 0 ? (
-                                                <tr>
-                                                    <td colSpan="3" className="py-12 text-center text-slate-400 font-bold italic">ยังไม่มีนักเรียนลงทะเบียนในคอร์สนี้</td>
-                                                </tr>
-                                            ) : (
-                                                students.map((student) => (
-                                                    <tr key={student.id} className="group hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-colors">
-                                                        <td className="py-5 px-6">
-                                                            <div className="flex items-center gap-4">
-                                                                <div className="w-10 h-10 bg-primary/10 text-primary rounded-xl flex items-center justify-center font-black">
-                                                                    {student.username ? student.username[0].toUpperCase() : '?'}
-                                                                </div>
-                                                                <div>
-                                                                    <p className="font-black text-slate-900 dark:text-white text-sm">{student.username}</p>
-                                                                    <p className="text-[10px] font-bold text-slate-400">{student.email}</p>
-                                                                </div>
-                                                            </div>
-                                                        </td>
-                                                        <td className="py-5 px-6">
-                                                            <p className="text-xs font-bold text-slate-600 dark:text-slate-400">{new Date(student.enrolled_at).toLocaleDateString()}</p>
-                                                        </td>
-                                                        <td className="py-5 px-6 text-right">
-                                                            <button
-                                                                onClick={() => handleDeleteInvite(student.id)}
-                                                                className="text-red-400 hover:text-red-600 transition-colors p-2 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl"
-                                                            >
-                                                                <span className="material-symbols-outlined text-xl">person_remove</span>
-                                                            </button>
-                                                        </td>
-                                                    </tr>
-                                                ))
-                                            )}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </main>
-            )}
-
-            {(viewTab === 'learning' || activeItem) && (
-                <main className="container mx-auto px-6 py-8 animate-in slide-in-from-right-4 duration-500">
-                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
-
-                        {/* Main Content Area */}
-                        <div className="lg:col-span-8">
-                            {activeItem?.type === 'lesson' && (
-                                <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                                    <div className="aspect-video bg-black rounded-3xl overflow-hidden shadow-2xl relative border-4 border-white dark:border-slate-800 group">
-                                        {activeItem.data.content?.video_url ? (
-                                            <iframe
-                                                className="w-full h-full"
-                                                src={activeItem.data.content.video_url.includes('youtube.com') || activeItem.data.content.video_url.includes('youtu.be')
-                                                    ? activeItem.data.content.video_url.replace('watch?v=', 'embed/')
-                                                    : activeItem.data.content.video_url}
-                                                title={activeItem.data.title}
-                                                frameBorder="0"
-                                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                                                allowFullScreen
-                                            ></iframe>
-                                        ) : (
-                                            <div className="w-full h-full flex flex-col items-center justify-center bg-slate-900 text-white">
-                                                <span className="material-symbols-outlined text-6xl opacity-20 mb-4">menu_book</span>
-                                                <p className="font-bold text-lg">เนื้อหานี้เป็นบทความอ่านประกอบ</p>
-                                            </div>
-                                        )}
+                        {activeItem?.type === 'quiz' && (
+                            <div className="max-w-4xl mx-auto w-full px-8 py-10">
+                                <div className="bg-indigo-600 p-12 rounded-3xl text-white relative overflow-hidden mb-8">
+                                    <div className="absolute top-0 right-0 p-8 opacity-10">
+                                        <span className="material-symbols-outlined text-[120px]">quiz</span>
                                     </div>
-
-                                    <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-10 rounded-3xl shadow-sm">
-                                        <div className="flex items-center gap-3 mb-6">
-                                            <span className="px-3 py-1 bg-primary/10 text-primary rounded-lg text-xs font-bold uppercase">{activeItem.data.type}</span>
-                                            <span className="text-slate-300">•</span>
-                                            <span className="text-slate-400 text-xs font-bold uppercase">{activeItem.data.duration_minutes} Minutes</span>
-                                        </div>
-                                        <h2 className="text-4xl font-black text-slate-900 dark:text-white mb-6 uppercase tracking-tight">{activeItem.data.title}</h2>
-                                        <div className="prose dark:prose-invert max-w-none">
-                                            <h4 className="flex items-center gap-2 font-black text-slate-800 dark:text-white border-l-4 border-primary pl-4 mb-4 uppercase text-sm tracking-wider">เนื้อหาบทเรียน / รายละเอียด</h4>
-                                            <p className="text-slate-600 dark:text-slate-400 leading-relaxed font-medium">
-                                                {activeItem.data.content?.transcript || "ไม่มีรายละเอียดเพิ่มเติมสำหรับบทเรียนนี้"}
-                                            </p>
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
-
-                            {activeItem?.type === 'quiz' && (
-                                <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-3xl shadow-sm overflow-hidden animate-in zoom-in-95 duration-500">
-                                    {!quizState.started ? (
-                                        <div className="p-12 text-center space-y-8">
-                                            <div className="w-24 h-24 bg-amber-50 dark:bg-amber-900/20 rounded-3xl flex items-center justify-center mx-auto text-amber-500">
-                                                <span className="material-symbols-outlined text-5xl">quiz</span>
-                                            </div>
-                                            <div className="space-y-2">
-                                                <h2 className="text-3xl font-black text-slate-900 dark:text-white uppercase">แบบทดสอบ: {activeItem.data.title}</h2>
-                                                <p className="text-slate-400 font-medium">ทำคะแนนให้ถึง {activeItem.data.passing_score}% เพื่อผ่านการทดสอบ</p>
-                                            </div>
-                                            <div className="grid grid-cols-2 gap-4 max-w-sm mx-auto">
-                                                <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded-2xl">
-                                                    <p className="text-[10px] font-bold text-slate-400 uppercase">Questions</p>
-                                                    <p className="text-xl font-black text-slate-900 dark:text-white">{activeItem.data.questions?.length || 0}</p>
-                                                </div>
-                                                <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded-2xl">
-                                                    <p className="text-[10px] font-bold text-slate-400 uppercase">Points</p>
-                                                    <p className="text-xl font-black text-slate-900 dark:text-white">{activeItem.data.questions?.reduce((acc, q) => acc + q.points, 0) || 0}</p>
-                                                </div>
-                                            </div>
-                                            <button
-                                                onClick={handleStartQuiz}
-                                                className="bg-primary text-white px-12 py-4 rounded-2xl font-black shadow-lg shadow-primary/20 hover:scale-105 transition-transform cursor-pointer"
-                                            >
-                                                เริ่มทำแบบทดสอบ
-                                            </button>
-                                        </div>
-                                    ) : quizState.finished ? (
-                                        <div className="p-12 text-center space-y-8">
-                                            <div className={`w-24 h-24 ${quizState.score >= (activeItem.data.passing_score / 100 * activeItem.data.questions?.reduce((a, q) => a + q.points, 0)) ? 'bg-green-50 text-green-500' : 'bg-red-50 text-red-500'} rounded-3xl flex items-center justify-center mx-auto`}>
-                                                <span className="material-symbols-outlined text-5xl">{quizState.score >= (activeItem.data.passing_score / 100 * activeItem.data.questions?.reduce((a, q) => a + q.points, 0)) ? 'emoji_events' : 'sentiment_very_dissatisfied'}</span>
-                                            </div>
-                                            <div>
-                                                <h2 className="text-3xl font-black text-slate-900 dark:text-white uppercase">
-                                                    {quizState.score >= (activeItem.data.passing_score / 100 * activeItem.data.questions?.reduce((a, q) => a + q.points, 0)) ? 'ยินดีด้วย! คุณผ่านแล้ว' : 'พยายามใหม่อีกครั้ง'}
-                                                </h2>
-                                                <p className="text-slate-400 font-bold mt-2 text-xl">คะแนนของคุณ: <span className="text-primary">{quizState.score}</span> / {activeItem.data.questions?.reduce((a, q) => a + q.points, 0)}</p>
-                                            </div>
-                                            <button
-                                                onClick={() => handleSelectQuiz(activeItem.data)}
-                                                className="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-8 py-3 rounded-xl font-bold hover:bg-slate-200 transition-colors"
-                                            >
-                                                ทำแบบทดสอบอีกครั้ง
-                                            </button>
-                                        </div>
-                                    ) : (
-                                        <div className="p-10 space-y-8">
-                                            <div className="flex justify-between items-center bg-slate-50 dark:bg-slate-800 p-4 rounded-2xl border border-slate-100 dark:border-slate-700">
-                                                <div className="flex items-center gap-3">
-                                                    <span className="w-8 h-8 bg-primary text-white rounded-lg flex items-center justify-center font-black text-xs">{quizState.currentIndex + 1}</span>
-                                                    <p className="font-bold text-slate-400 text-xs uppercase tracking-widest">คำถามจากทั้งหมด {activeItem.data.questions?.length} ข้อ</p>
-                                                </div>
-                                                <div className="w-32 h-2 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
-                                                    <div className="h-full bg-primary transition-all duration-500" style={{ width: `${((quizState.currentIndex + 1) / activeItem.data.questions?.length) * 100}%` }}></div>
-                                                </div>
-                                            </div>
-
-                                            {activeItem.data.questions?.[quizState.currentIndex] && (
-                                                <div className="space-y-6">
-                                                    <h3 className="text-2xl font-black text-slate-800 dark:text-white leading-snug">
-                                                        {activeItem.data.questions[quizState.currentIndex].question}
-                                                    </h3>
-                                                    <div className="grid grid-cols-1 gap-3">
-                                                        {safeParse(activeItem.data.questions[quizState.currentIndex].choices).map((choice, cIdx) => {
-                                                            const q = activeItem.data.questions[quizState.currentIndex];
-                                                            const isSelected = q.type === 'multiple_choice'
-                                                                ? (Array.isArray(quizState.answers[q.id]) && quizState.answers[q.id].includes(cIdx.toString()))
-                                                                : (quizState.answers[q.id] === cIdx.toString());
-
-                                                            return (
-                                                                <button
-                                                                    key={cIdx}
-                                                                    onClick={() => handleAnswerQuiz(q.id, cIdx.toString(), q.type)}
-                                                                    className={`p-5 rounded-2xl border-2 text-left font-bold transition-all flex items-center gap-4 ${isSelected
-                                                                        ? 'bg-primary/5 border-primary text-primary shadow-sm'
-                                                                        : 'bg-white dark:bg-slate-800 border-slate-100 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:border-slate-300'}`}
-                                                                >
-                                                                    <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${isSelected ? 'border-primary bg-primary' : 'border-slate-200'}`}>
-                                                                        {isSelected && <span className="w-2 h-2 bg-white rounded-full"></span>}
-                                                                    </div>
-                                                                    {choice}
-                                                                </button>
-                                                            );
-                                                        })}
-                                                    </div>
-                                                </div>
-                                            )}
-
-                                            <div className="flex justify-between pt-6 border-t border-slate-100 dark:border-slate-800">
-                                                <button
-                                                    disabled={quizState.currentIndex === 0}
-                                                    onClick={() => setQuizState(prev => ({ ...prev, currentIndex: prev.currentIndex - 1 }))}
-                                                    className="px-6 py-3 font-bold text-slate-400 disabled:opacity-30 hover:text-slate-600 transition-colors"
-                                                >
-                                                    ย้อนกลับ
-                                                </button>
-                                                {quizState.currentIndex === activeItem.data.questions?.length - 1 ? (
-                                                    <button
-                                                        onClick={handleSubmitQuiz}
-                                                        className="bg-primary text-white px-10 py-3 rounded-xl font-black shadow-lg shadow-primary/20 hover:opacity-90 transition-all"
-                                                    >
-                                                        ส่งคำตอบ
-                                                    </button>
-                                                ) : (
-                                                    <button
-                                                        onClick={() => setQuizState(prev => ({ ...prev, currentIndex: prev.currentIndex + 1 }))}
-                                                        className="bg-slate-900 dark:bg-slate-700 text-white px-10 py-3 rounded-xl font-black hover:opacity-90 transition-all"
-                                                    >
-                                                        ข้อถัดไป
-                                                    </button>
-                                                )}
-                                            </div>
-                                        </div>
-                                    )}
-                                </div>
-                            )}
-
-                            {activeItem?.type === 'assignment' && (
-                                <div className="space-y-8 animate-in slide-in-from-right-4 duration-500">
-                                    <div className="bg-indigo-600 p-12 rounded-3xl text-white relative overflow-hidden">
-                                        <div className="absolute top-0 right-0 p-8 opacity-10">
-                                            <span className="material-symbols-outlined text-[120px]">assignment</span>
-                                        </div>
-                                        <div className="relative z-10 space-y-4">
-                                            <span className="px-3 py-1 bg-white/20 rounded-lg text-[10px] font-bold uppercase tracking-widest">Project Assignment</span>
-                                            <h2 className="text-4xl font-black uppercase tracking-tight">{activeItem.data.title}</h2>
-                                            <p className="text-white/70 font-medium max-w-xl">
-                                                กำหนดเวลาส่งและรายละเอียดงานจะระบุอยู่ด้านล่าง กรุณาตรวจสอบให้ครบถ้วนก่อนส่งงาน
-                                            </p>
-                                        </div>
-                                    </div>
-
-                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                        <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm flex items-center gap-4">
-                                            <div className="w-12 h-12 bg-indigo-50 dark:bg-indigo-900/20 rounded-2xl flex items-center justify-center text-indigo-500">
-                                                <span className="material-symbols-outlined">stars</span>
-                                            </div>
-                                            <div>
-                                                <p className="text-[10px] font-bold text-slate-400 uppercase">Max Score</p>
-                                                <p className="text-xl font-black text-slate-900 dark:text-white">{activeItem.data.max_score} pts</p>
-                                            </div>
-                                        </div>
-                                        <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm flex items-center gap-4">
-                                            <div className="w-12 h-12 bg-amber-50 dark:bg-amber-900/20 rounded-2xl flex items-center justify-center text-amber-500">
-                                                <span className="material-symbols-outlined">description</span>
-                                            </div>
-                                            <div>
-                                                <p className="text-[10px] font-bold text-slate-400 uppercase">Submission</p>
-                                                <p className="text-xl font-black text-slate-900 dark:text-white uppercase">{activeItem.data.submission_type?.replace('_', ' ') || "N/A"}</p>
-                                            </div>
-                                        </div>
-                                        <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm flex items-center gap-4">
-                                            <div className="w-12 h-12 bg-green-50 dark:bg-green-900/20 rounded-2xl flex items-center justify-center text-green-500">
-                                                <span className="material-symbols-outlined">check_circle</span>
-                                            </div>
-                                            <div>
-                                                <p className="text-[10px] font-bold text-slate-400 uppercase">Status</p>
-                                                <p className="text-xl font-black text-slate-900 dark:text-white">Not Submitted</p>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-10 rounded-3xl shadow-sm">
-                                        <h4 className="flex items-center gap-2 font-black text-slate-800 dark:text-white border-l-4 border-indigo-500 pl-4 mb-6 uppercase text-sm tracking-wider">คำอธิบายงาน</h4>
-                                        <p className="text-slate-600 dark:text-slate-400 leading-relaxed font-medium mb-10 whitespace-pre-line">
-                                            {activeItem.data.description || "ไม่มีคำอธิบายสำหรับงานนี้"}
+                                    <div className="relative z-10 space-y-4">
+                                        <span className="px-3 py-1 bg-white/20 rounded-lg text-[10px] font-bold uppercase tracking-widest">Quiz</span>
+                                        <h2 className="text-4xl font-black uppercase tracking-tight">{activeItem.data.title}</h2>
+                                        <p className="text-white/70 font-medium max-w-xl">
+                                            {activeItem.data.description || "ทำแบบทดสอบเพื่อตรวจสอบความรู้ของคุณ"}
                                         </p>
-
-                                        <div className="p-8 bg-slate-50 dark:bg-slate-800/50 rounded-3xl border-2 border-dashed border-slate-200 dark:border-slate-700 text-center space-y-4">
-                                            <span className="material-symbols-outlined text-4xl text-slate-300">upload_file</span>
-                                            <p className="text-sm font-bold text-slate-400">ลากไฟล์มาวางที่นี่ หรือ <span className="text-primary hover:underline cursor-pointer">เลือกไฟล์</span> เพื่อส่งงาน</p>
-                                            <p className="text-[10px] text-slate-400 uppercase">รองรับไฟล์: .PDF, .ZIP (ไม่เกิน 10MB)</p>
-                                        </div>
-
-                                        <div className="mt-8 flex justify-end">
-                                            <button className="bg-indigo-600 text-white px-10 py-3 rounded-xl font-black shadow-lg shadow-indigo-200 dark:shadow-none hover:opacity-90 transition-all cursor-pointer">
-                                                ส่งมอบงานชิ้นนี้
-                                            </button>
+                                        <div className="flex gap-4 text-sm font-bold bg-white/10 w-fit px-4 py-2 rounded-xl">
+                                            <span>เกณฑ์ผ่าน: {activeItem.data.passing_score}%</span>
+                                            <span>•</span>
+                                            <span>คำถาม: {activeItem.data.questions?.length || 0} ข้อ</span>
                                         </div>
                                     </div>
                                 </div>
-                            )}
-                        </div>
 
-                        {/* Sidebar Area */}
-                        <div className="lg:col-span-4 space-y-6">
-                            <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-6 rounded-4xl shadow-sm flex flex-col h-[calc(100vh-160px)] sticky top-28">
-                                <div className="flex items-center justify-between mb-8 px-2">
-                                    <h3 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tight">เนื้อหาบทเรียน</h3>
-                                    {instance?.role === 'owner' && fullCourse?.modules?.some(m => m.instance_id) && (
-                                        <span className="bg-primary/10 text-primary text-[9px] font-black px-2 py-1 rounded-lg uppercase tracking-wider border border-primary/20">Customized</span>
-                                    )}
-                                </div>
-
-                                {instance?.role === 'owner' && isTeacher && fullCourse?.modules?.every(m => !m.instance_id) && (
-                                    <div className="p-5 bg-amber-50 dark:bg-amber-900/10 border border-amber-100 dark:border-amber-900/30 rounded-3xl mb-8">
-                                        <div className="flex items-center gap-3 mb-3">
-                                            <div className="w-8 h-8 bg-amber-100 dark:bg-amber-900/30 rounded-xl flex items-center justify-center text-amber-600">
-                                                <span className="material-symbols-outlined text-[20px]">edit_note</span>
-                                            </div>
-                                            <p className="text-[10px] font-bold text-amber-800 dark:text-amber-400 uppercase tracking-wider">เนื้อหาจากต้นฉบับ</p>
-                                        </div>
-                                        <p className="text-[11px] text-amber-600/80 dark:text-amber-400/60 mb-4 font-medium leading-relaxed">คอร์สนี้ใช้เนื้อหาจากต้นฉบับ คุณสามารถเริ่มการปรับแต่งเพื่อแก้ไขบทเรียนได้โดยไม่กระทบต้นฉบับ</p>
+                                {!quizStarted && !quizSubmitted && (
+                                    <div className="text-center p-12 bg-slate-50 border border-slate-100 rounded-3xl dark:bg-slate-800/50 dark:border-slate-700">
                                         <button
-                                            onClick={handleCustomize}
-                                            className="w-full py-3 bg-amber-500 text-white rounded-2xl text-[11px] font-bold shadow-lg shadow-amber-500/20 hover:bg-amber-600 transition-all active:scale-95 cursor-pointer uppercase tracking-widest"
+                                            onClick={handleStartQuiz}
+                                            className="bg-primary text-white px-8 py-4 rounded-xl font-bold shadow-lg shadow-pink-200 dark:shadow-none hover:bg-pink-600 transition-all text-lg cursor-pointer"
                                         >
-                                            ปรับแต่งเนื้อหา
+                                            Start Quiz
                                         </button>
                                     </div>
                                 )}
 
-                                <div className="flex-1 overflow-y-auto space-y-6 pr-2 custom-scrollbar">
-                                    {fullCourse?.modules?.map((module, mIdx) => (
-                                        <div key={module.id} className="space-y-3">
-                                            <div className="flex items-center justify-between px-2 py-1">
-                                                <div className="flex items-center gap-2">
-                                                    <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest shrink-0">M{mIdx + 1}</span>
-                                                    <h4 className="font-black text-slate-900 dark:text-white text-[11px] uppercase truncate">{module.title}</h4>
-                                                </div>
-                                                {instance?.role === 'owner' && module.instance_id && (
-                                                    <button onClick={() => handleDeleteModule(module.id)} className="text-red-400 hover:text-red-600 transition-colors">
-                                                        <span className="material-symbols-outlined text-sm">delete</span>
-                                                    </button>
-                                                )}
-                                            </div>
+                                {quizStarted && !quizSubmitted && activeItem.data.questions?.length > 0 && (
+                                    <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-8 rounded-3xl shadow-sm">
+                                        <div className="mb-6 flex justify-between items-center text-sm font-bold text-slate-500">
+                                            <span>คำถามที่ {currentQuestionIdx + 1} จาก {activeItem.data.questions.length}</span>
+                                        </div>
 
-                                            {/* Teacher Action Buttons for Module */}
-                                            {instance?.role === 'owner' && isTeacher && module.instance_id && (
-                                                <div className="flex flex-wrap gap-1 px-2 mb-2">
-                                                    <button onClick={() => handleAddLesson(module.id)} className="text-[9px] font-bold bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded hover:bg-primary/20 transition-colors">+ Lesson</button>
-                                                    <button onClick={() => handleAddQuiz(module.id)} className="text-[9px] font-bold bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded hover:bg-amber-500/20 transition-colors">+ Quiz</button>
-                                                    <button onClick={() => handleAddAssignment(module.id)} className="text-[9px] font-bold bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded hover:bg-indigo-500/20 transition-colors">+ Task</button>
-                                                </div>
-                                            )}
+                                        {(() => {
+                                            const q = activeItem.data.questions[currentQuestionIdx];
+                                            let choices = q.choices;
+                                            if (typeof choices === 'string') {
+                                                try { choices = JSON.parse(choices); } catch (e) { /* ignore */ }
+                                            }
 
-                                            <div className="space-y-2">
-                                                {module.lessons?.map((lesson) => (
-                                                    <div key={lesson.id} className="relative group">
-                                                        <button
-                                                            onClick={() => handleSelectLesson(lesson)}
-                                                            className={`w-full flex items-center gap-3 p-3 rounded-2xl transition-all text-left border-2 group ${activeItem?.type === 'lesson' && activeItem.data.id === lesson.id
-                                                                ? 'bg-primary text-white border-primary shadow-lg shadow-primary/20'
-                                                                : 'bg-[#F8FAFC] dark:bg-slate-800/50 text-slate-600 dark:text-slate-400 border-transparent hover:border-slate-200 dark:hover:border-slate-700'
-                                                                }`}
-                                                        >
-                                                            <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 transition-colors ${activeItem?.type === 'lesson' && activeItem.data.id === lesson.id ? 'bg-white/20' : 'bg-white dark:bg-slate-700 border border-slate-100 dark:border-slate-600'
-                                                                }`}>
-                                                                {progress.lessons.includes(lesson.id) ? (
-                                                                    <span className="material-symbols-outlined text-[18px] text-green-500">check_circle</span>
+                                            return (
+                                                <div className="space-y-6">
+                                                    <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100">{q.question}</h3>
+
+                                                    <div className="space-y-3">
+                                                        {choices?.map((choice, idx) => (
+                                                            <label key={idx} className="flex items-center gap-3 p-4 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-xl cursor-pointer hover:border-primary transition-all">
+                                                                {q.type === 'multiple_choice' ? (
+                                                                    <input
+                                                                        type="checkbox"
+                                                                        className="w-5 h-5 accent-primary"
+                                                                        checked={(quizAnswers[q.id] || []).includes(choice)}
+                                                                        onChange={() => handleAnswerQuestion(q.id, choice, q.type)}
+                                                                    />
                                                                 ) : (
-                                                                    <span className={`material-symbols-outlined text-[18px] ${activeItem?.type === 'lesson' && activeItem.data.id === lesson.id ? 'text-white' : 'text-slate-400'}`}>play_circle</span>
+                                                                    <input
+                                                                        type="radio"
+                                                                        name={`q-${q.id}`}
+                                                                        className="w-5 h-5 accent-primary"
+                                                                        checked={quizAnswers[q.id] === choice}
+                                                                        onChange={() => handleAnswerQuestion(q.id, choice, q.type)}
+                                                                    />
                                                                 )}
-                                                            </div>
-                                                            <div className="min-w-0">
-                                                                <p className="font-bold text-[11px] truncate">{lesson.title}</p>
-                                                                <p className={`text-[9px] font-bold uppercase mt-0.5 ${activeItem?.type === 'lesson' && activeItem.data.id === lesson.id ? 'text-white/70' : 'text-slate-400'}`}>
-                                                                    {lesson.duration_minutes}m • {lesson.type}
-                                                                </p>
-                                                            </div>
-                                                        </button>
-                                                        {instance?.role === 'owner' && module.instance_id && (
-                                                            <button
-                                                                onClick={(e) => { e.stopPropagation(); handleDeleteLesson(lesson.id); }}
-                                                                className="absolute right-2 top-1/2 -translate-y-1/2 p-2 opacity-0 group-hover:opacity-100 text-red-400 hover:text-red-600 transition-all"
-                                                            >
-                                                                <span className="material-symbols-outlined text-[14px]">delete</span>
-                                                            </button>
-                                                        )}
+                                                                <span className="font-medium text-slate-700 dark:text-slate-300">{choice}</span>
+                                                            </label>
+                                                        ))}
                                                     </div>
-                                                ))}
+                                                </div>
+                                            );
+                                        })()}
 
-                                                {module.quizzes?.map(quiz => {
-                                                    const quizResult = progress.quizzes.find(r => r.quiz_id === quiz.id);
-                                                    const isPassed = quizResult?.passed;
-
-                                                    return (
-                                                        <div key={quiz.id} className="space-y-1 group relative">
-                                                            <button
-                                                                onClick={() => handleSelectQuiz(quiz)}
-                                                                className={`w-full flex items-center gap-3 p-3 rounded-2xl transition-all text-left border-2 group ${activeItem?.type === 'quiz' && activeItem.data.id === quiz.id
-                                                                    ? 'bg-amber-500 text-white border-amber-500 shadow-lg shadow-amber-500/20'
-                                                                    : 'bg-amber-50/50 dark:bg-amber-900/10 text-amber-700 dark:text-amber-500 border-amber-100 dark:border-amber-900/30 hover:border-amber-300'
-                                                                    }`}
-                                                            >
-                                                                <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 transition-colors ${activeItem?.type === 'quiz' && activeItem.data.id === quiz.id ? 'bg-white/20' : 'bg-white dark:bg-amber-900/30 border border-amber-100 dark:border-amber-900/60'
-                                                                    }`}>
-                                                                    {isPassed ? (
-                                                                        <span className="material-symbols-outlined text-[18px] text-green-500">task_alt</span>
-                                                                    ) : (
-                                                                        <span className={`material-symbols-outlined text-[18px] ${activeItem?.type === 'quiz' && activeItem.data.id === quiz.id ? 'text-white' : 'text-amber-500'}`}>quiz</span>
-                                                                    )}
-                                                                </div>
-                                                                <div className="min-w-0">
-                                                                    <p className="font-bold text-[11px] truncate uppercase tracking-tight">Quiz: {quiz.title}</p>
-                                                                    <p className={`text-[9px] font-bold uppercase mt-0.5 ${activeItem?.type === 'quiz' && activeItem.data.id === quiz.id ? 'text-white/70' : 'text-amber-500/60'}`}>
-                                                                        {isPassed ? `Passed: ${quizResult.score} pts` : `${quiz.questions?.length || 0} Questions`}
-                                                                    </p>
-                                                                </div>
-                                                            </button>
-                                                            {instance?.role === 'owner' && module.instance_id && (
-                                                                <div className="absolute right-2 top-3 flex gap-1 opacity-0 group-hover:opacity-100 transition-all">
-                                                                    <button onClick={(e) => { e.stopPropagation(); handleAddQuestion(quiz.id); }} className="p-1.5 text-amber-600 hover:bg-amber-100 rounded-lg">
-                                                                        <span className="material-symbols-outlined text-[14px]">add_circle</span>
-                                                                    </button>
-                                                                    <button onClick={(e) => { e.stopPropagation(); handleDeleteQuiz(quiz.id); }} className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg">
-                                                                        <span className="material-symbols-outlined text-[14px]">delete</span>
-                                                                    </button>
-                                                                </div>
-                                                            )}
-                                                        </div>
-                                                    );
-                                                })}
-
-                                                {module.assignments?.map(item => (
-                                                    <div key={item.id} className="relative group">
-                                                        <button
-                                                            onClick={() => handleSelectAssignment(item)}
-                                                            className={`w-full flex items-center gap-3 p-3 rounded-2xl transition-all text-left border-2 group ${activeItem?.type === 'assignment' && activeItem.data.id === item.id
-                                                                ? 'bg-indigo-600 text-white border-indigo-600 shadow-lg shadow-indigo-600/20'
-                                                                : 'bg-indigo-50/50 dark:bg-indigo-900/10 text-indigo-700 dark:text-indigo-500 border-indigo-100 dark:border-indigo-900/30 hover:border-indigo-300'
-                                                                }`}
-                                                        >
-                                                            <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 transition-colors ${activeItem?.type === 'assignment' && activeItem.data.id === item.id ? 'bg-white/20' : 'bg-white dark:bg-indigo-900/30 border border-indigo-100 dark:border-indigo-900/60'
-                                                                }`}>
-                                                                {progress.assignments.includes(item.id) ? (
-                                                                    <span className="material-symbols-outlined text-[18px] text-green-500">check_circle</span>
-                                                                ) : (
-                                                                    <span className={`material-symbols-outlined text-[18px] ${activeItem?.type === 'assignment' && activeItem.data.id === item.id ? 'text-white' : 'text-indigo-500'}`}>assignment</span>
-                                                                )}
-                                                            </div>
-                                                            <div className="min-w-0">
-                                                                <p className="font-bold text-[11px] truncate uppercase tracking-tight">งาน: {item.title}</p>
-                                                                <p className={`text-[9px] font-bold uppercase mt-0.5 ${activeItem?.type === 'assignment' && activeItem.data.id === item.id ? 'text-white/70' : 'text-indigo-500/60'}`}>
-                                                                    {progress.assignments.includes(item.id) ? 'Submitted' : `${item.max_score} pts • ${item.submission_type}`}
-                                                                </p>
-                                                            </div>
-                                                        </button>
-                                                        {instance?.role === 'owner' && module.instance_id && (
-                                                            <button
-                                                                onClick={(e) => { e.stopPropagation(); handleDeleteAssignment(item.id); }}
-                                                                className="absolute right-2 top-1/2 -translate-y-1/2 p-2 opacity-0 group-hover:opacity-100 text-red-400 hover:text-red-600 transition-all"
-                                                            >
-                                                                <span className="material-symbols-outlined text-[14px]">delete</span>
-                                                            </button>
-                                                        )}
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    ))}
-                                    {(!fullCourse?.modules || fullCourse.modules.length === 0) && (
-                                        <div className="p-8 text-center bg-slate-50 dark:bg-slate-800/30 rounded-2xl border-2 border-dashed border-slate-200 dark:border-slate-700">
-                                            <p className="text-slate-400 italic text-[10px] font-bold">ยังไม่มีเนื้อหาในคอร์สนี้</p>
-                                        </div>
-                                    )}
-
-                                    {instance?.role === 'owner' && fullCourse?.modules?.some(m => m.instance_id) && (
-                                        <div className="mt-4 px-2">
-                                            <div className="flex gap-2 mb-4">
-                                                <input
-                                                    className="flex-1 px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-[10px] font-bold outline-none focus:ring-2 focus:ring-primary/20 transition-all font-sans"
-                                                    placeholder="ชื่อโมดูลใหม่..."
-                                                    value={newModuleName}
-                                                    onChange={(e) => setNewModuleName(e.target.value)}
-                                                />
-                                                <button
-                                                    onClick={handleAddModule}
-                                                    className="bg-primary text-white px-4 py-2 rounded-xl text-[10px] font-bold hover:opacity-90 transition-all active:scale-95 whitespace-nowrap"
-                                                >
-                                                    เพิ่มบทเรียน
-                                                </button>
-                                            </div>
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </main>
-            )}
-
-            {isQuestionModalOpen && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300">
-                    <div className="bg-white dark:bg-slate-900 w-full max-w-2xl rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 flex flex-col max-h-[90vh] overflow-hidden">
-                        <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-slate-900/50">
-                            <div>
-                                <h3 className="text-xl font-bold">สร้างคำถามใหม่</h3>
-                                <p className="text-xs text-slate-400">สร้างโจทย์และกำหนดตัวเลือกสำหรับแบบทดสอบ</p>
-                            </div>
-                            <button onClick={() => setIsQuestionModalOpen(false)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors">
-                                <span className="material-symbols-outlined">close</span>
-                            </button>
-                        </div>
-
-                        <div className="flex-1 overflow-y-auto p-8 space-y-6">
-                            <div className="space-y-2">
-                                <label className="block text-xs font-bold text-slate-400 uppercase">คำถาม / โจทย์</label>
-                                <textarea
-                                    className="w-full bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-2xl px-4 py-3 focus:ring-2 focus:ring-primary transition-all min-h-[100px]"
-                                    placeholder="ใส่คำถามที่นี่..."
-                                    value={qModalData.question}
-                                    onChange={(e) => updateQForm('question', e.target.value)}
-                                />
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-2">
-                                    <label className="block text-xs font-bold text-slate-400 uppercase">ประเภทคำถาม</label>
-                                    <select
-                                        className="w-full bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2 text-sm"
-                                        value={qModalData.type}
-                                        onChange={(e) => updateQForm('type', e.target.value)}
-                                    >
-                                        <option value="single_choice">Single Choice (หนึ่งคำตอบ)</option>
-                                        <option value="multiple_choice">Multiple Choice (หลายคำตอบ)</option>
-                                        <option value="true_false">True / False (ใช่-ไม่ใช่)</option>
-                                    </select>
-                                </div>
-                                <div className="space-y-2">
-                                    <label className="block text-xs font-bold text-slate-400 uppercase">คะแนน (Points)</label>
-                                    <input
-                                        type="number"
-                                        className="w-full bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2 text-sm"
-                                        value={qModalData.points}
-                                        onChange={(e) => updateQForm('points', parseInt(e.target.value))}
-                                    />
-                                </div>
-                            </div>
-
-                            <div className="space-y-4">
-                                <div className="flex justify-between items-center">
-                                    <label className="block text-xs font-bold text-slate-400 uppercase">ตัวเลือกคำตอบ <span className="text-primary font-medium lowercase italic">(ติกเลือกข้อที่ถูกต้อง)</span></label>
-                                    {qModalData.type !== 'true_false' && (
-                                        <button onClick={addChoice} className="text-primary text-[10px] font-black uppercase hover:underline">+ เพิ่มตัวเลือก</button>
-                                    )}
-                                </div>
-
-                                <div className="space-y-3">
-                                    {qModalData.choices.map((choice, idx) => (
-                                        <div key={idx} className="flex gap-3">
+                                        <div className="mt-8 pt-6 border-t border-slate-100 dark:border-slate-700 flex justify-between">
                                             <button
-                                                onClick={() => toggleCorrectAnswer(idx)}
-                                                className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all border-2 ${qModalData.correctAnswers.includes(idx) ? 'bg-green-500 border-green-500 text-white' : 'bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-300'}`}
+                                                onClick={() => setCurrentQuestionIdx(prev => prev - 1)}
+                                                disabled={currentQuestionIdx === 0}
+                                                className="px-6 py-2 rounded-xl font-bold bg-slate-100 text-slate-500 disabled:opacity-50 dark:bg-slate-700 dark:text-slate-300"
                                             >
-                                                <span className="material-symbols-outlined text-[18px]">check_circle</span>
+                                                ย้อนกลับ
                                             </button>
-                                            <input
-                                                className="flex-1 bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2 text-sm"
-                                                placeholder={`ตัวเลือกที่ ${idx + 1}`}
-                                                value={choice}
-                                                readOnly={qModalData.type === 'true_false'}
-                                                onChange={(e) => handleChoiceChange(idx, e.target.value)}
-                                            />
-                                            {qModalData.type !== 'true_false' && qModalData.choices.length > 2 && (
-                                                <button onClick={() => removeChoice(idx)} className="p-2 text-slate-300 hover:text-red-500 transition-colors">
-                                                    <span className="material-symbols-outlined text-sm">close</span>
+
+                                            {currentQuestionIdx < activeItem.data.questions.length - 1 ? (
+                                                <button
+                                                    onClick={() => setCurrentQuestionIdx(prev => prev + 1)}
+                                                    className="px-6 py-2 rounded-xl font-bold bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 hover:opacity-90"
+                                                >
+                                                    ถัดไป
+                                                </button>
+                                            ) : (
+                                                <button
+                                                    onClick={handleSubmitQuiz}
+                                                    className="px-8 py-2 rounded-xl font-bold bg-primary text-white shadow-lg hover:bg-pink-600"
+                                                >
+                                                    ส่งคำตอบ
                                                 </button>
                                             )}
                                         </div>
-                                    ))}
+                                    </div>
+                                )}
+
+                                {quizSubmitted && (
+                                    <div className="text-center p-12 bg-white border border-slate-200 rounded-3xl dark:bg-slate-800 dark:border-slate-700 shadow-sm space-y-6">
+                                        <div className="w-24 h-24 bg-green-100 text-green-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                                            <span className="material-symbols-outlined text-5xl">task_alt</span>
+                                        </div>
+                                        <h3 className="text-3xl font-black">ส่งคำตอบเรียบร้อย!</h3>
+                                        <div className="text-xl font-bold text-slate-600 dark:text-slate-300">
+                                            คะแนนของคุณ: <span className="text-primary text-4xl ml-2">{quizScore.earned}</span> / {quizScore.total}
+                                        </div>
+                                        {((quizScore.earned / quizScore.total) * 100) >= activeItem.data.passing_score ? (
+                                            <p className="text-green-500 font-bold bg-green-50 w-fit mx-auto px-4 py-1 rounded-full dark:bg-green-900/30">ผ่านเกณฑ์!</p>
+                                        ) : (
+                                            <p className="text-red-500 font-bold bg-red-50 w-fit mx-auto px-4 py-1 rounded-full dark:bg-red-900/30">ยังไม่ผ่านเกณฑ์ ลองใหม่อีกครั้ง</p>
+                                        )}
+                                        <div className="pt-6 flex flex-wrap justify-center gap-3">
+                                            <button
+                                                onClick={handleStartQuiz}
+                                                className="px-8 py-3 rounded-xl font-bold bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300 hover:bg-slate-200 transition-all cursor-pointer"
+                                            >
+                                                ทำแบบทดสอบอีกครั้ง
+                                            </button>
+                                            <button
+                                                onClick={handleNextItem}
+                                                className="px-8 py-3 rounded-xl font-bold bg-primary text-white shadow-lg shadow-pink-100 hover:scale-105 transition-all cursor-pointer flex items-center gap-2"
+                                            >
+                                                <span>บทเรียนถัดไป</span>
+                                                <span className="material-symbols-outlined">arrow_forward</span>
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {activeItem?.type === 'assignment' && (
+                            <div className="max-w-4xl mx-auto w-full px-8 py-10">
+                                <div className="bg-blue-600 p-12 rounded-3xl text-white relative overflow-hidden mb-8">
+                                    <div className="absolute top-0 right-0 p-8 opacity-10">
+                                        <span className="material-symbols-outlined text-[120px]">assignment</span>
+                                    </div>
+                                    <div className="relative z-10 space-y-4">
+                                        <span className="px-3 py-1 bg-white/20 rounded-lg text-[10px] font-bold uppercase tracking-widest">Assignment</span>
+                                        <h2 className="text-4xl font-black uppercase tracking-tight">{activeItem.data.title}</h2>
+                                    </div>
+                                </div>
+                                <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-10 rounded-3xl shadow-sm">
+                                    <h4 className="flex items-center gap-2 font-black text-slate-800 dark:text-white border-l-4 border-blue-500 pl-4 mb-6 uppercase text-sm tracking-wider">คำอธิบายงาน</h4>
+                                    <p className="text-slate-600 dark:text-slate-400 leading-relaxed font-medium mb-10 whitespace-pre-line">
+                                        {activeItem.data.description || "ส่งงานของคุณได้ที่นี่ (รายละเอียดเบื้องต้น)"}
+                                    </p>
+                                    <div className="p-8 bg-slate-50 dark:bg-slate-800/50 rounded-3xl border-2 border-dashed border-slate-200 dark:border-slate-700 text-center space-y-4">
+                                        <span className="material-symbols-outlined text-4xl text-slate-300">upload_file</span>
+                                        <p className="text-sm font-bold text-slate-400">อัปโหลดไฟล์งานของคุณ</p>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
+                        )}
 
-                        <div className="p-6 bg-slate-50 dark:bg-slate-900/50 border-t border-slate-100 dark:border-slate-800 flex justify-end gap-3">
-                            <button onClick={() => setIsQuestionModalOpen(false)} className="px-6 py-2 text-sm font-bold text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-xl transition-all">ยกเลิก</button>
-                            <button onClick={handleSaveQuestion} className="bg-primary text-white px-8 py-2 rounded-xl text-sm font-black shadow-lg shadow-primary/20 hover:scale-105 transition-all">บันทึกคำถาม</button>
-                        </div>
                     </div>
                 </div>
-            )}
+            </main>
         </div>
     );
-
 }
 
 export default MyDetailCourse;

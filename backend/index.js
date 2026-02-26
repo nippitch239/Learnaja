@@ -21,7 +21,7 @@ const multer = require("multer");
 
 const { v4: uuidv4 } = require("uuid");
 
-const ALLOWED_ORIGINS = (process.env.CORS_ORIGIN || "http://localhost:5173,http://localhost")
+const ALLOWED_ORIGINS = (process.env.CORS_ORIGIN || "http://localhost,http://localhost:5173")
     .split(",")
     .map(o => o.trim());
 
@@ -992,6 +992,70 @@ router.delete("/questions/:id", verifyToken, verifyQuestionAccess, async (req, r
     try {
         await db.query("delete from course_quiz_questions where id = ?", [req.params.id]);
         res.json({ message: "Question deleted" });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Edit Question
+router.put("/questions/:id", verifyToken, verifyQuestionAccess, async (req, res) => {
+    try {
+        const { question, type, choices, correct_answer, points } = req.body;
+        await db.query(
+            "update course_quiz_questions set question = ?, type = ?, choices = ?, correct_answer = ?, points = ? where id = ?",
+            [question, type || 'single_choice', JSON.stringify(choices), correct_answer, points || 10, req.params.id]
+        );
+        res.json({ message: "Question updated" });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Reorder Modules in Instance
+router.post("/instances/:id/modules/reorder", verifyToken, verifyInstanceOwner, async (req, res) => {
+    try {
+        const { order } = req.body; // array of module IDs in new order
+        if (!Array.isArray(order)) return res.status(400).json({ message: "order must be an array" });
+        for (let i = 0; i < order.length; i++) {
+            await db.query("update course_modules set order_index = ? where id = ?", [i + 1, order[i]]);
+        }
+        res.json({ message: "Modules reordered" });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Edit Module
+router.put("/modules/:id", verifyToken, verifyModuleAccess, async (req, res) => {
+    try {
+        const { title } = req.body;
+        await db.query("update course_modules set title = ? where id = ?", [title, req.params.id]);
+        res.json({ message: "Module updated" });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Edit Lesson
+router.put("/lessons/:id", verifyToken, verifyLessonAccess, async (req, res) => {
+    try {
+        const { title, duration_minutes, content } = req.body;
+        await db.query(
+            "update course_lessons set title = ?, duration_minutes = ?, content = ? where id = ?",
+            [title, duration_minutes || 0, JSON.stringify(content), req.params.id]
+        );
+        res.json({ message: "Lesson updated" });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Edit Quiz
+router.put("/quizzes/:id", verifyToken, verifyQuizAccess, async (req, res) => {
+    try {
+        const { title, passing_score } = req.body;
+        await db.query("update course_quizzes set title = ?, passing_score = ? where id = ?", [title, passing_score || 0, req.params.id]);
+        res.json({ message: "Quiz updated" });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }

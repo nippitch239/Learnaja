@@ -144,9 +144,9 @@ function InviteStudent() {
                 <h2 className="text-2xl font-bold text-slate-800 dark:text-white">Current Students</h2>
                 <button
                     className="bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 px-6 py-2 rounded-xl hover:bg-slate-300 dark:hover:bg-slate-600 transition-all cursor-pointer"
-                    onClick={() => navigate(-1)}
+                    onClick={() => navigate(`/mycourses/${id}/edit`)}
                 >
-                    Back to Course
+                    Back to Editor
                 </button>
             </div>
 

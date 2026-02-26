@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Link, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useContext } from "react";
 import AuthProvider, { AuthContext } from "./context/AuthContext";
 import Login from "./pages/Login";
@@ -19,10 +19,13 @@ import MyDetailCourse from "./pages/MyDetailCourse";
 import InviteStudent from "./pages/InviteStudent";
 import Profile from "./pages/Profile";
 import EditProfile from "./pages/EditProfile";
-// import CourseTeacher from "./pages/CourseTeacher";
-// import EditStudent from "./pages/EditStudent";
-// import EditInfo from "./pages/EditInfo";
-// import EditCurriculum from "./pages/EditCurriculum";
+import CourseTeacher from "./pages/CourseTeacher";
+import EditStudent from "./pages/EditStudent";
+import EditInfo from "./pages/EditInfo";
+import EditCurriculum from "./pages/EditCurriculum";
+import Lesson from "./pages/Lesson";
+import InstanceDetail from "./pages/InstanceDetail";
+import EditInstanceCurriculum from "./pages/EditInstanceCurriculum";
 
 function AppContent() {
 
@@ -32,9 +35,7 @@ function AppContent() {
   return (
     <BrowserRouter>
 
-      {/* <nav> */}
       {token && <Navbar />}
-      {/* </nav> */}
 
       <Routes>
         <Route
@@ -45,7 +46,6 @@ function AppContent() {
           path="/home"
           element={token ? <Home /> : <Navigate to="/login" />}
         />
-
 
         <Route
           path="/login"
@@ -81,13 +81,10 @@ function AppContent() {
           path="/courses/:id/edit"
           element={
             <RequireAuth>
-
               <CourseEdit />
-
             </RequireAuth>
           }
         />
-
 
         <Route
           path="/mycourses"
@@ -100,6 +97,28 @@ function AppContent() {
             <RequireAuth>
               <RequireOwner>
                 <MyDetailCourse />
+              </RequireOwner>
+            </RequireAuth>
+          }
+        />
+
+        <Route
+          path="/mycourses/:id/view"
+          element={
+            <RequireAuth>
+              <RequireOwner>
+                <InstanceDetail />
+              </RequireOwner>
+            </RequireAuth>
+          }
+        />
+
+        <Route
+          path="/mycourses/:id/edit"
+          element={
+            <RequireAuth>
+              <RequireOwner>
+                <EditInstanceCurriculum />
               </RequireOwner>
             </RequireAuth>
           }
@@ -128,7 +147,7 @@ function AppContent() {
         />
 
         {/* ทำไว้ดูดีไซน์เฉยๆ */}
-        {/* <Route
+        <Route
           path="/courseTeacher"
           element={token ? <CourseTeacher /> : <Navigate to="/login" />}
         />
@@ -143,12 +162,13 @@ function AppContent() {
         <Route
           path="/editCurriculum"
           element={token ? <EditCurriculum /> : <Navigate to="/login" />}
-        /> */}
-      </Routes>
+        />
 
-      
-        
- 
+        <Route
+          path="/lesson"
+          element={token ? <Lesson /> : <Navigate to="/login" />}
+        />
+      </Routes>
 
       <Footer />
 

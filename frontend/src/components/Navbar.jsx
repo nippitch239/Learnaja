@@ -37,38 +37,26 @@ function Navbar() {
     const toggleDropdown = () => {
         setIsDropdownOpen(!isDropdownOpen);
     }
+
     return (
         <div className="bg-background-light dark:bg-background-dark text-slate-800 dark:text-slate-100">
             <nav className="fixed top-4 left-0 right-0 z-50 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-                <div
-                    className="bg-primary rounded-2xl shadow-lg px-6 py-3 flex items-center justify-between">
+                <div className="bg-primary rounded-2xl shadow-lg px-6 py-3 flex items-center justify-between">
                     <Link to="/home">
                         <div className="flex items-center space-x-2">
-                            <span
-                                className="material-symbols-outlined text-white text-3xl">book_4</span>
-                            <span
-                                className="text-white font-bold text-2xl tracking-tight">Learnaja</span>
+                            <span className="material-symbols-outlined text-white text-3xl">book_4</span>
+                            <span className="text-white font-bold text-2xl tracking-tight">Learnaja</span>
                         </div>
                     </Link>
-                    {/* <div className="hidden md:flex flex-1 max-w-xl mx-8">
-                        <div className="relative w-full">
-                            <span
-                                className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-[#fb90a9]">search</span>
-                            <input
-                                className="w-full bg-white/20 border-none rounded-full py-2 pl-12 pr-4 text-white placeholder-white/70 focus:ring-2 focus:ring-white/50 transition-all"
-                                placeholder="ค้นหาคอร์สเรียน..." type="text" />
-                        </div>
-                    </div> */}
+                    {/* Search bar commented out */}
                     <div className="flex items-center space-x-6 text-white font-medium">
-                        <Link className="hidden lg:block hover:opacity-80 transition"
-                            to="/mycourses">My Courses</Link>
-                        {user?.roles?.includes("admin") && <li><Link to="/admin" className="text-slate-700 dark:text-slate-300">Admin</Link></li>}
+                        <Link className="hidden lg:block hover:opacity-80 transition" to="/mycourses">คอร์สของฉัน</Link>
                         <div className="hidden lg:flex items-center space-x-1">
                             <span className="text-sm">{user?.point} Points</span>
                             <span className="material-symbols-outlined text-xl">toll</span>
                         </div>
 
-                        <div //image, profile
+                        <div
                             ref={dropdownRef}
                             className="relative flex items-center space-x-2 border-l border-white/20 pl-4">
                             <Link onClick={(e) => e.stopPropagation()} to="/profile">
@@ -78,10 +66,11 @@ function Navbar() {
                             </Link>
                             <div>
                                 <span
-                                    className="material-symbols-outlined text-sm hover:opacity-80 transition cursor-pointer " onClick={toggleDropdown}>expand_more</span>
+                                    className="material-symbols-outlined text-sm hover:opacity-80 transition cursor-pointer align-middle"
+                                    onClick={toggleDropdown}>expand_more</span>
                                 <div id="dropdown-menu" className={`absolute right-0 mt-2 w-48 bg-white dark:bg-slate-800 rounded-lg shadow-lg py-2 ${isDropdownOpen ? 'block' : 'hidden'}`}>
                                     <Link onClick={() => toggleDropdown()} to="/profile">
-                                        <li className="px-4 py-2  text-primary list-none">
+                                        <li className="px-4 py-2 text-primary list-none">
                                             <div className="flex items-center">
                                                 <img src={profile.image_profile ? `${API_BASE}${profile.image_profile}` : "/images/user.png"} alt="user profile" className="h-8 w-8 rounded-full bg-white/20 border border-white/40 object-cover inline-block mr-2" />
                                                 <span className="align-middle">{profile.username || "Guest"}</span>
@@ -89,10 +78,31 @@ function Navbar() {
                                             <hr className="mt-3 border-slate-200 dark:border-slate-700" />
                                         </li>
                                     </Link>
-                                    <Link onClick={() => toggleDropdown()} to="/mycourses"><li className="px-4 py-2 hover:bg-primary/10 dark:hover:bg-slate-700 cursor-pointer text-primary list-none "><span className="material-symbols-outlined text-sm mr-2">school</span>คอร์สของฉัน</li></Link>
-                                    <Link onClick={() => toggleDropdown()} to="/courses"><li className="px-4 py-2 hover:bg-primary/10  dark:hover:bg-slate-700 cursor-pointer text-primary list-none "><span className="material-symbols-outlined text-sm mr-2 align-middle">school</span>คอร์สทั้งหมด</li></Link>
-                                    <li className="px-4 py-2 hover:bg-primary/10 dark:hover:bg-slate-700 cursor-pointer text-primary list-none"><span className="material-symbols-outlined text-sm mr-2">Settings</span>การตั้งค่า</li>
-                                    <li className="px-4 py-2 hover:bg-primary/10 dark:hover:bg-slate-700 cursor-pointer text-primary list-none "><button onClick={handleLogout}><span className="material-symbols-outlined text-sm mr-2">logout</span>ออกจากระบบ</button></li>
+                                    <Link onClick={() => toggleDropdown()} to="/mycourses">
+                                        <li className="px-4 py-2 hover:bg-primary/10 dark:hover:bg-slate-700 cursor-pointer text-primary list-none">
+                                            <span className="material-symbols-outlined text-sm mr-2 align-middle">Book</span>คอร์สของฉัน
+                                        </li>
+                                    </Link>
+                                    <Link onClick={() => toggleDropdown()} to="/courses">
+                                        <li className="px-4 py-2 hover:bg-primary/10 dark:hover:bg-slate-700 cursor-pointer text-primary list-none">
+                                            <span className="material-symbols-outlined text-sm mr-2 align-middle">school</span>คอร์สทั้งหมด
+                                        </li>
+                                    </Link>
+                                    <li className="px-4 py-2 hover:bg-primary/10 dark:hover:bg-slate-700 cursor-pointer text-primary list-none">
+                                        <span className="material-symbols-outlined text-sm mr-2 align-middle">Settings</span>การตั้งค่า
+                                    </li>
+                                    {user?.roles?.includes("admin") && (
+                                        <li className="px-4 py-2 hover:bg-primary/10 dark:hover:bg-slate-700 cursor-pointer text-primary list-none">
+                                            <Link onClick={() => toggleDropdown()} to="/admin">
+                                                <span className="material-symbols-outlined text-sm mr-2 align-middle">admin_panel_settings</span>Admin
+                                            </Link>
+                                        </li>
+                                    )}
+                                    <li className="px-4 py-2 hover:bg-primary/10 dark:hover:bg-slate-700 cursor-pointer text-primary list-none">
+                                        <button onClick={handleLogout}>
+                                            <span className="material-symbols-outlined text-sm mr-2 align-middle">logout</span>ออกจากระบบ
+                                        </button>
+                                    </li>
                                 </div>
                             </div>
                         </div>
