@@ -1,9 +1,10 @@
 import { useState } from "react";
 
 import api from "../services/api";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 function Register() {
+  const navigate = useNavigate();
   const [username, setUsername] = useState("");
   const [name, setName] = useState("");
   const [firstname, setFirstname] = useState("");
@@ -40,16 +41,19 @@ function Register() {
       });
 
       setMessage(res.data.message);
+      console.log(res.data.message);
       setTimeout(() => {
         setMessage("");
+        navigate("/login");
       }, 3000);
 
-      navigate("/login");
     } catch (err) {
       if (err.response) {
         setMessage(err.response.data.message);
+        console.log(err.response.data.message);
       } else {
         setMessage("Server error");
+        console.log("Server error");
       }
     }
   };
