@@ -36,6 +36,9 @@ function MyCourses() {
 
                     {courses.map(course => (
                         <div key={course.id} onClick={(e) => { e.stopPropagation(); navigate(`/mycourses/${course.id}`) }} className="border border-slate-200 p-5 rounded-xl cursor-pointer hover:shadow-md transition-shadow">
+                            <span className="inline-block text-xs font-bold text-slate-400 bg-slate-100 dark:bg-slate-800 dark:text-slate-500 px-2 py-0.5 rounded-md mb-2">
+                                Instance #{course.id}
+                            </span>
                             <h3 className="text-slate-700 dark:text-slate-300 text-3xl">{course.title}</h3>
                             <p className="mb-5">{course.description}</p>
                             <Link className="bg-primary text-white px-6 py-2 rounded-xl hover:bg-[#FF9DB8]" to={`/mycourses/${course.id}`} onClick={(e) => { e.stopPropagation(); }}>View</Link>
@@ -53,6 +56,9 @@ function MyCourses() {
 
                     {invitedCourses.map(course => (
                         <div key={course.id} onClick={(e) => { e.stopPropagation(); navigate(`/mycourses/${course.id}`) }} className="border border-slate-200 p-5 rounded-xl cursor-pointer hover:shadow-md transition-shadow">
+                            <span className="inline-block text-xs font-bold text-slate-400 bg-slate-100 dark:bg-slate-800 dark:text-slate-500 px-2 py-0.5 rounded-md mb-2">
+                                Instance #{course.id}
+                            </span>
                             <h3 className="text-slate-700 dark:text-slate-300 text-3xl">{course.title}</h3>
                             <p className="mb-5">{course.description}</p>
                             <Link className="bg-primary text-white px-6 py-2 rounded-xl hover:bg-[#FF9DB8]" to={`/mycourses/${course.id}`} onClick={(e) => { e.stopPropagation(); }}>View</Link>

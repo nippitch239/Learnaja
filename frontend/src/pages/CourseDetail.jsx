@@ -8,9 +8,10 @@ function CourseDetail() {
   const { id } = useParams();
   const [course, setCourse] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [isowner, setIsOwner] = useState(false);
-  const [ownedInstanceId, setOwnedInstanceId] = useState(null);
+  const [ownedInstances, setOwnedInstances] = useState([]);
   const [message, setMessage] = useState("");
+  const [buying, setBuying] = useState(false);
+  const [showInstances, setShowInstances] = useState(false);
   const [ratings, setRatings] = useState([]);
 
   const { user } = useContext(AuthContext);
@@ -39,14 +40,8 @@ function CourseDetail() {
   const calculateOwnership = async () => {
     try {
       const data = await fetchMyCourses();
-      const instance = data?.find(c => c.template_id === parseInt(id));
-      if (instance) {
-        setIsOwner(true);
-        setOwnedInstanceId(instance.id);
-      } else {
-        setIsOwner(false);
-        setOwnedInstanceId(null);
-      }
+      const instances = data?.filter(c => c.template_id === parseInt(id)) || [];
+      setOwnedInstances(instances);
     } catch (err) {
       console.error(err);
     }
@@ -62,18 +57,21 @@ function CourseDetail() {
   };
 
   const handleBuy = async () => {
+    if (!user) return navigate('/login');
     try {
-      if (isowner) return;
-
+      setBuying(true);
       const res = await api.post(`/courses/${id}/buy`, {
         id: user.id
       });
-      setMessage(res.data.message);
+      setMessage(res.data.message || "ซื้อคอร์สสำเร็จ!");
       await calculateOwnership();
+      setTimeout(() => setMessage(""), 4000);
     } catch (err) {
       console.error(err);
-      setMessage(err.response?.data?.message || "Error purchasing course");
-      setTimeout(() => setMessage(""), 3000);
+      setMessage(err.response?.data?.message || "เกิดข้อผิดพลาดในการซื้อ");
+      setTimeout(() => setMessage(""), 4000);
+    } finally {
+      setBuying(false);
     }
   };
 
@@ -130,23 +128,19 @@ function CourseDetail() {
                   </span>
                 </div>
 
+                {/* Buy Button */}
                 <div className="flex gap-3 w-full">
-                  {isowner ? (
-                    <button
-                      onClick={() => navigate(`/mycourses/${ownedInstanceId}`)}
-                      className="flex-1 bg-primary text-white px-8 py-4 rounded-2xl font-bold text-lg shadow-lg shadow-pink-200 dark:shadow-none hover:-translate-y-0.5 transition-all flex items-center justify-center space-x-2"
-                    >
-                      <span className="material-symbols-outlined">play_circle</span>
-                      <span>เริ่มเรียนเลย</span>
-                    </button>
-                  ) : (
-                    <button
-                      onClick={handleBuy}
-                      className="flex-1 bg-primary text-white px-8 py-4 rounded-2xl font-bold text-lg shadow-lg shadow-pink-200 dark:shadow-none hover:-translate-y-0.5 transition-all"
-                    >
-                      ซื้อคอร์สนี้
-                    </button>
-                  )}
+                  <button
+                    onClick={handleBuy}
+                    disabled={buying}
+                    className="flex-1 bg-primary text-white px-8 py-4 rounded-2xl font-bold text-lg shadow-lg shadow-pink-200 dark:shadow-none hover:-translate-y-0.5 transition-all disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
+                  >
+                    {buying ? (
+                      <><span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></span><span>กำลังซื้อ...</span></>
+                    ) : (
+                      <><span className="material-symbols-outlined">shopping_cart</span><span>{ownedInstances.length > 0 ? "ซื้อเพิ่มอีกคอร์ส" : "ซื้อคอร์สนี้"}</span></>
+                    )}
+                  </button>
 
                   {user?.roles?.includes('admin') && (
                     <Link
@@ -157,11 +151,53 @@ function CourseDetail() {
                     </Link>
                   )}
                 </div>
-                {message && <p className="text-sm font-bold text-primary animate-pulse">{message}</p>}
-                {isowner && (
-                  <p className="text-xs text-slate-400 font-medium">
-                    คุณเป็นเจ้าของคอร์สนี้แล้ว
+
+                {/* Message */}
+                {message && (
+                  <p className="text-sm font-bold text-primary animate-pulse flex items-center space-x-1">
+                    <span className="material-symbols-outlined text-base">info</span>
+                    <span>{message}</span>
                   </p>
+                )}
+
+                {/* Owned Instances List */}
+                {ownedInstances.length > 0 && (
+                  <div className="w-full mt-2">
+                    <button
+                      onClick={() => setShowInstances(!showInstances)}
+                      className="flex items-center justify-between w-full px-4 py-3 rounded-xl bg-primary/10 hover:bg-primary/20 transition-colors"
+                    >
+                      <span className="flex items-center space-x-2 font-bold text-primary text-sm">
+                        <span className="material-symbols-outlined text-base">library_books</span>
+                        <span>คอร์สที่คุณซื้อแล้ว ({ownedInstances.length} คอร์ส)</span>
+                      </span>
+                      <span className={`material-symbols-outlined text-primary text-sm transition-transform ${showInstances ? 'rotate-180' : ''}`}>expand_more</span>
+                    </button>
+                    {showInstances && (
+                      <div className="mt-2 rounded-xl border border-primary/20 overflow-hidden divide-y divide-primary/10">
+                        {ownedInstances.map((inst, idx) => (
+                          <button
+                            key={inst.id}
+                            onClick={() => navigate(`/mycourses/${inst.id}`)}
+                            className="w-full flex items-center justify-between px-4 py-3 hover:bg-primary/5 transition-colors text-left group"
+                          >
+                            <div className="flex items-center space-x-3">
+                              <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                                <span className="text-primary font-bold text-sm">{idx + 1}</span>
+                              </div>
+                              <div>
+                                <p className="font-bold text-sm text-slate-800 dark:text-slate-100 group-hover:text-primary transition-colors">
+                                  {inst.title}
+                                </p>
+                                <p className="text-xs text-slate-400">Instance #{inst.id}</p>
+                              </div>
+                            </div>
+                            <span className="material-symbols-outlined text-primary text-base">arrow_forward</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 )}
               </div>
             </div>
