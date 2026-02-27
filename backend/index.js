@@ -21,6 +21,7 @@ const multer = require("multer");
 
 const { v4: uuidv4 } = require("uuid");
 
+
 const ALLOWED_ORIGINS = (process.env.CORS_ORIGIN || "http://localhost,http://localhost:5173")
     .split(",")
     .map(o => o.trim());
@@ -255,6 +256,10 @@ router.get("/courses", async (req, res) => {
             query += " order by rating desc";
         } else if (sortBy === 'rating_asc') {
             query += " order by rating asc";
+        } else if (sortBy === 'price_desc') {
+            query += " order by price desc";
+        } else if (sortBy === 'price_asc') {
+            query += " order by price asc";
         } else if (sortBy === 'rating') { // backward compatibility
             query += " order by rating desc";
         } else {
@@ -431,20 +436,21 @@ router.get("/instances/:id/full", verifyToken, async (req, res) => {
             const [lessons] = await db.query("select * from course_lessons where module_id = ? order by order_index", [module.id]);
             module.lessons = lessons;
 
-            const [quizzes] = await db.query("select * from course_quizzes where module_id = ?", [module.id]);
+            const [quizzes] = await db.query("select * from course_quizzes where module_id = ? order by order_index", [module.id]);
             for (let quiz of quizzes) {
                 const [questions] = await db.query("select * from course_quiz_questions where quiz_id = ?", [quiz.id]);
                 quiz.questions = questions;
             }
             module.quizzes = quizzes;
 
-            const [assignments] = await db.query("select * from course_assignments where module_id = ?", [module.id]);
+            const [assignments] = await db.query("select * from course_assignments where module_id = ? order by order_index", [module.id]);
             module.assignments = assignments;
         }
 
         instance.modules = modules;
         res.json(instance);
     } catch (err) {
+        console.error("DEBUG: /instances/:id/full error ->", err);
         res.status(500).json({ error: err.message });
     }
 });
@@ -819,11 +825,11 @@ router.post("/instances/:id/customize", verifyToken, verifyInstanceOwner, async 
                 );
             }
 
-            const [quizzes] = await connection.query("select * from course_quizzes where module_id = ?", [mod.id]);
+            const [quizzes] = await connection.query("select * from course_quizzes where module_id = ? order by order_index", [mod.id]);
             for (let quiz of quizzes) {
                 const [quizRes] = await connection.query(
-                    "insert into course_quizzes (module_id, title, passing_score) values (?, ?, ?)",
-                    [newModId, quiz.title, quiz.passing_score]
+                    "insert into course_quizzes (module_id, title, passing_score, order_index) values (?, ?, ?, ?)",
+                    [newModId, quiz.title, quiz.passing_score, quiz.order_index || 0]
                 );
                 const newQuizId = quizRes.insertId;
 
@@ -836,11 +842,11 @@ router.post("/instances/:id/customize", verifyToken, verifyInstanceOwner, async 
                 }
             }
 
-            const [assignments] = await connection.query("select * from course_assignments where module_id = ?", [mod.id]);
+            const [assignments] = await connection.query("select * from course_assignments where module_id = ? order by order_index", [mod.id]);
             for (let ass of assignments) {
                 await connection.query(
-                    "insert into course_assignments (module_id, title, description, max_score, submission_type) values (?, ?, ?, ?, ?)",
-                    [newModId, ass.title, ass.description, ass.max_score, ass.submission_type]
+                    "insert into course_assignments (module_id, title, description, max_score, submission_type, order_index) values (?, ?, ?, ?, ?, ?)",
+                    [newModId, ass.title, ass.description, ass.max_score, ass.submission_type, ass.order_index || 0]
                 );
             }
         }
@@ -906,10 +912,10 @@ router.post("/modules/:id/lessons", verifyToken, verifyModuleAccess, async (req,
 router.post("/modules/:id/quizzes", verifyToken, verifyModuleAccess, async (req, res) => {
     try {
         const { id } = req.params;
-        const { title, passing_score } = req.body;
+        const { title, passing_score, order_index } = req.body;
         const [result] = await db.query(
-            "insert into course_quizzes (module_id, title, passing_score) values (?, ?, ?)",
-            [id, title, passing_score || 70]
+            "insert into course_quizzes (module_id, title, passing_score, order_index) values (?, ?, ?, ?)",
+            [id, title, passing_score || 70, order_index || 0]
         );
         res.status(201).json({ message: "Quiz added", quizId: result.insertId });
     } catch (err) {
@@ -936,10 +942,10 @@ router.post("/quizzes/:id/questions", verifyToken, verifyQuizAccess, async (req,
 router.post("/modules/:id/assignments", verifyToken, verifyModuleAccess, async (req, res) => {
     try {
         const { id } = req.params;
-        const { title, description, max_score, submission_type } = req.body;
+        const { title, description, max_score, submission_type, order_index } = req.body;
         const [result] = await db.query(
-            "insert into course_assignments (module_id, title, description, max_score, submission_type) values (?, ?, ?, ?, ?)",
-            [id, title, description, max_score || 100, submission_type || 'file_upload']
+            "insert into course_assignments (module_id, title, description, max_score, submission_type, order_index) values (?, ?, ?, ?, ?, ?)",
+            [id, title, description, max_score || 100, submission_type || 'file_upload', order_index || 0]
         );
         res.status(201).json({ message: "Assignment added", assignmentId: result.insertId });
     } catch (err) {
@@ -1025,6 +1031,29 @@ router.post("/instances/:id/modules/reorder", verifyToken, verifyInstanceOwner, 
     }
 });
 
+// Reorder Items within a Module
+router.post("/modules/:id/items/reorder", verifyToken, verifyModuleAccess, async (req, res) => {
+    try {
+        const { order } = req.body; // array of objects { type: 'lesson'|'quiz'|'assignment', id: number }
+        if (!Array.isArray(order)) return res.status(400).json({ message: "order must be an array" });
+
+        for (let i = 0; i < order.length; i++) {
+            const item = order[i];
+            let table = "";
+            if (item.type === 'lesson') table = "course_lessons";
+            else if (item.type === 'quiz') table = "course_quizzes";
+            else if (item.type === 'assignment') table = "course_assignments";
+
+            if (table) {
+                await db.query(`update ${table} set order_index = ? where id = ?`, [i + 1, item.id]);
+            }
+        }
+        res.json({ message: "Items reordered" });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // Edit Module
 router.put("/modules/:id", verifyToken, verifyModuleAccess, async (req, res) => {
     try {
@@ -1056,6 +1085,17 @@ router.put("/quizzes/:id", verifyToken, verifyQuizAccess, async (req, res) => {
         const { title, passing_score } = req.body;
         await db.query("update course_quizzes set title = ?, passing_score = ? where id = ?", [title, passing_score || 0, req.params.id]);
         res.json({ message: "Quiz updated" });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Edit Assignment
+router.put("/assignments/:id", verifyToken, verifyAssignmentAccess, async (req, res) => {
+    try {
+        const { title, description } = req.body;
+        await db.query("update course_assignments set title = ?, description = ? where id = ?", [title, description, req.params.id]);
+        res.json({ message: "Assignment updated" });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
@@ -1220,6 +1260,7 @@ router.post("/instances/:id/quiz-result", verifyToken, async (req, res) => {
 
         res.json({ message: "Quiz result saved" });
     } catch (err) {
+        console.error("DEBUG: /instances/:id/quiz-result error ->", err);
         res.status(500).json({ error: err.message });
     }
 });
@@ -1231,12 +1272,12 @@ router.get("/instances/:id/progress", verifyToken, async (req, res) => {
         const userId = req.user.id;
 
         const [progressRows] = await db.query(
-            "SELECT content_type, content_id FROM course_progress WHERE user_id = ? AND instance_id = ?",
+            "SELECT DISTINCT content_type, content_id FROM course_progress WHERE user_id = ? AND instance_id = ?",
             [userId, instanceId]
         );
 
         const [quizRows] = await db.query(
-            "SELECT quiz_id, score, passed FROM course_quiz_results WHERE user_id = ? AND instance_id = ?",
+            "SELECT DISTINCT quiz_id, score, passed FROM course_quiz_results WHERE user_id = ? AND instance_id = ?",
             [userId, instanceId]
         );
 
@@ -1513,6 +1554,33 @@ async function verifyQuestionAccess(req, res, next) {
         next();
     } catch (err) { res.status(500).json({ error: err.message }); }
 }
+
+// Video Upload Logic
+const videoStorage = multer.diskStorage({
+    destination: "uploads/",
+    filename: (req, file, cb) => {
+        const uniqueName = "vid-" + uuidv4() + path.extname(file.originalname);
+        cb(null, uniqueName);
+    },
+});
+
+const videoUpload = multer({
+    storage: videoStorage,
+    limits: { fileSize: 1024 * 1024 * 1024 }, // 1GB limit for videos
+    fileFilter: (req, file, cb) => {
+        const allowedTypes = ["video/mp4", "video/webm", "video/ogg", "video/quicktime"];
+        if (!allowedTypes.includes(file.mimetype)) {
+            return cb(new Error("Only video files (mp4, webm, ogg, mov) are allowed"));
+        }
+        cb(null, true);
+    },
+});
+
+router.post("/upload-video", verifyToken, videoUpload.single("video"), (req, res) => {
+    if (!req.file) return res.status(400).json({ message: "No file uploaded" });
+    const videoPath = `/uploads/${req.file.filename}`;
+    res.json({ message: "Video uploaded successfully", videoPath });
+});
 
 function checkRole(requiredRole) {
     return (req, res, next) => {

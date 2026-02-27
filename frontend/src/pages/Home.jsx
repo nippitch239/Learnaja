@@ -64,34 +64,24 @@ function Home() {
                     <section id="Catagory" className="pb-24 scroll-mt-24">
                         <h2 className="text-2xl font-bold text-slate-900 dark:text-white pt-24">หมวดหมู่หลักสูตร</h2>
                         <div className="flex flex-wrap gap-6 mt-6 justify-center">
-                            <div className="flex flex-col items-center space-y-2 bg-white dark:bg-slate-800 rounded-2xl p-4 border border-slate-200 dark:border-slate-700 hover:shadow-lg transition-all w-1/2 sm:w-1/3 md:w-1/4 lg:w-1/6">
-                                <span className="material-symbols-outlined text-primary text-3xl">code</span>
-                                <span className="text-sm font-medium text-slate-900 dark:text-white">Programming</span>
-                            </div>
-                            <div className="flex flex-col items-center space-y-2 bg-white dark:bg-slate-800 rounded-2xl p-4 border border-slate-200 dark:border-slate-700 hover:shadow-lg transition-all w-1/2 sm:w-1/3 md:w-1/4 lg:w-1/6">
-                                <span className="material-symbols-outlined text-primary text-3xl">brush</span>
-                                <span className="text-sm font-medium text-slate-900 dark:text-white">Design</span>
-                            </div>
-                            <div className="flex flex-col items-center space-y-2 bg-white dark:bg-slate-800 rounded-2xl p-4 border border-slate-200 dark:border-slate-700 hover:shadow-lg transition-all w-1/2 sm:w-1/3 md:w-1/4 lg:w-1/6">
-                                <span className="material-symbols-outlined text-primary text-3xl">bar_chart</span>
-                                <span className="text-sm font-medium text-slate-900 dark:text-white">Data Science</span>
-                            </div>
-                            <div className="flex flex-col items-center space-y-2 bg-white dark:bg-slate-800 rounded-2xl p-4 border border-slate-200 dark:border-slate-700 hover:shadow-lg transition-all w-1/2 sm:w-1/3 md:w-1/4 lg:w-1/6">
-                                <span className="material-symbols-outlined text-primary text-3xl">network_check</span>
-                                <span className="text-sm font-medium text-slate-900 dark:text-white">Networking</span>
-                            </div>
-                            <div className="flex flex-col items-center space-y-2 bg-white dark:bg-slate-800 rounded-2xl p-4 border border-slate-200 dark:border-slate-700 hover:shadow-lg transition-all w-1/2 sm:w-1/3 md:w-1/4 lg:w-1/6">
-                                <span className="material-symbols-outlined text-primary text-3xl">security</span>
-                                <span className="text-sm font-medium text-slate-900 dark:text-white">Cybersecurity</span>
-                            </div>
-                            <div className="flex flex-col items-center space-y-2 bg-white dark:bg-slate-800 rounded-2xl p-4 border border-slate-200 dark:border-slate-700 hover:shadow-lg transition-all w-1/2 sm:w-1/3 md:w-1/4 lg:w-1/6">
-                                <span className="material-symbols-outlined text-primary text-3xl">translate</span>
-                                <span className="text-sm font-medium text-slate-900 dark:text-white">Language</span>
-                            </div>
-                            <div className="flex flex-col items-center space-y-2 bg-white dark:bg-slate-800 rounded-2xl p-4 border border-slate-200 dark:border-slate-700 hover:shadow-lg transition-all w-1/2 sm:w-1/3 md:w-1/4 lg:w-1/6">
-                                <span className="material-symbols-outlined text-primary text-3xl">business</span>
-                                <span className="text-sm font-medium text-slate-900 dark:text-white">Business</span>
-                            </div>
+                            {[
+                                { name: "Programming", icon: "code" },
+                                { name: "Design", icon: "brush" },
+                                { name: "Business", icon: "business" },
+                                { name: "Networking", icon: "network_check" },
+                                { name: "Data Science", icon: "bar_chart" },
+                                { name: "Cybersecurity", icon: "security" },
+                                { name: "Language", icon: "translate" }
+                            ].map((cat) => (
+                                <div
+                                    key={cat.name}
+                                    onClick={() => navigate(`/courses?category=${cat.name}`)}
+                                    className="flex flex-col items-center space-y-2 bg-white dark:bg-slate-800 rounded-2xl p-4 border border-slate-200 dark:border-slate-700 hover:shadow-lg transition-all w-1/2 sm:w-1/3 md:w-1/4 lg:w-1/6 cursor-pointer group hover:border-primary/50"
+                                >
+                                    <span className="material-symbols-outlined text-primary text-3xl group-hover:scale-110 transition-transform">{cat.icon}</span>
+                                    <span className="text-sm font-medium text-slate-900 dark:text-white">{cat.name}</span>
+                                </div>
+                            ))}
                         </div>
                     </section>
                     <section>

@@ -112,6 +112,10 @@ function EditInstanceCurriculum() {
     const [editQuizTitle, setEditQuizTitle] = useState("");
     const [editQuizPassingScore, setEditQuizPassingScore] = useState("");
 
+    const [editAssignmentId, setEditAssignmentId] = useState(null);
+    const [editAssignmentTitle, setEditAssignmentTitle] = useState("");
+    const [editAssignmentDescription, setEditAssignmentDescription] = useState("");
+
     // Quiz Question Form States (for adding)
     const [activeQuizDialog, setActiveQuizDialog] = useState(null);
     const [questionType, setQuestionType] = useState('single_choice');
@@ -127,6 +131,12 @@ function EditInstanceCurriculum() {
     const [editQuestionChoices, setEditQuestionChoices] = useState(['', '', '', '']);
     const [editQuestionCorrect, setEditQuestionCorrect] = useState("0");
     const [editQuestionPoints, setEditQuestionPoints] = useState(10);
+
+    // Video upload state
+    const [videoFile, setVideoFile] = useState(null);
+    const [editVideoFile, setEditVideoFile] = useState(null);
+    const [videoSourceType, setVideoSourceType] = useState('url'); // 'url' or 'file'
+    const [editVideoSourceType, setEditVideoSourceType] = useState('url');
 
     // Drag-and-drop state for module reordering
     const [dragIdx, setDragIdx] = useState(null);
@@ -221,36 +231,99 @@ function EditInstanceCurriculum() {
         }
     };
 
+    const handleDeleteAssignment = async (assignmentId) => {
+        if (!window.confirm("คุณต้องการลบงานนี้ใช่หรือไม่?")) return;
+        try {
+            setIsSaving(true);
+            await api.delete(`/assignments/${assignmentId}`);
+            await loadInstanceData();
+        } catch (err) {
+            alert("ไม่สามารถลบงานได้");
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    const submitEditAssignment = async () => {
+        if (!editAssignmentTitle.trim()) return;
+        try {
+            setIsSaving(true);
+            await api.put(`/assignments/${editAssignmentId}`, {
+                title: editAssignmentTitle,
+                description: editAssignmentDescription
+            });
+            setEditAssignmentId(null);
+            await loadInstanceData();
+        } catch (err) {
+            alert("ไม่สามารถแก้ไขงานได้");
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
     const handleAddContent = async (moduleId) => {
         if (!contentTitle.trim()) return alert("กรุณากรอกชื่อเรื่อง");
 
         try {
             setIsSaving(true);
+            let finalContent = {};
+
+            if (contentType === 'video') {
+                if (videoSourceType === 'file' && videoFile) {
+                    const formData = new FormData();
+                    formData.append('video', videoFile);
+                    const uploadRes = await api.post('/upload-video', formData, {
+                        headers: { 'Content-Type': 'multipart/form-data' }
+                    });
+                    finalContent = { videoUrl: uploadRes.data.videoPath };
+                } else {
+                    finalContent = { videoUrl: contentBody };
+                }
+            } else if (contentType === 'text') {
+                finalContent = { html: contentBody };
+            } else if (contentType === 'quiz') {
+                finalContent = { passing_score: parseInt(contentExtra) || 70 };
+            }
+
+            const mod = instance.modules.find(m => m.id === moduleId);
+            const items = getSortedModuleItems(mod);
+            const nextOrder = items.length > 0 ? Math.max(...items.map(i => i.order_index || 0)) + 1 : 1;
+
             if (contentType === 'quiz') {
                 await api.post(`/modules/${moduleId}/quizzes`, {
                     title: contentTitle,
-                    passing_score: parseInt(contentExtra) || 60
+                    passing_score: finalContent.passing_score,
+                    order_index: nextOrder
+                });
+            } else if (contentType === 'assignment') {
+                await api.post(`/modules/${moduleId}/assignments`, {
+                    title: contentTitle,
+                    description: contentBody,
+                    order_index: nextOrder
                 });
             } else {
-                let contentData = {};
-                if (contentType === 'video') contentData = { videoUrl: contentBody };
-                if (contentType === 'text') contentData = { html: contentBody };
-
                 await api.post(`/modules/${moduleId}/lessons`, {
                     title: contentTitle,
                     type: contentType,
-                    content: contentData,
-                    duration_minutes: parseInt(contentExtra) || 0
+                    content: finalContent,
+                    duration_minutes: parseInt(contentExtra) || 0,
+                    order_index: nextOrder
                 });
             }
 
-            setActiveModuleDialog(null);
             setContentTitle("");
             setContentBody("");
             setContentExtra("");
+            setVideoFile(null);
+            setVideoSourceType('url');
+            setActiveModuleDialog(null);
+            setError(null);
             await loadInstanceData();
         } catch (err) {
-            alert(err.response?.data?.message || "เกิดข้อผิดพลาดในการเพิ่มเนื้อหา");
+            console.error(err);
+            const msg = err.response?.data?.message || "เกิดข้อผิดพลาดในการเพิ่มเนื้อหา";
+            setError(msg);
+            alert(msg);
         } finally {
             setIsSaving(false);
         }
@@ -274,19 +347,38 @@ function EditInstanceCurriculum() {
         if (!editLessonTitle.trim()) return;
         try {
             setIsSaving(true);
-            let contentData = {};
-            if (type === 'video') contentData = { videoUrl: editLessonContent };
-            if (type === 'text') contentData = { html: editLessonContent };
+            let finalContent = {};
+
+            if (type === 'video') {
+                if (editVideoSourceType === 'file' && editVideoFile) {
+                    const formData = new FormData();
+                    formData.append('video', editVideoFile);
+                    const uploadRes = await api.post('/upload-video', formData, {
+                        headers: { 'Content-Type': 'multipart/form-data' }
+                    });
+                    finalContent = { videoUrl: uploadRes.data.videoPath };
+                } else {
+                    finalContent = { videoUrl: editLessonContent };
+                }
+            } else if (type === 'text') {
+                finalContent = { html: editLessonContent };
+            }
 
             await api.put(`/lessons/${editLessonId}`, {
                 title: editLessonTitle,
                 duration_minutes: parseInt(editLessonDuration) || 0,
-                content: contentData
+                content: finalContent
             });
             setEditLessonId(null);
+            setEditVideoFile(null);
+            setEditVideoSourceType('url');
+            setError(null);
             await loadInstanceData();
         } catch (err) {
-            alert("ไม่สามารถแก้ไขเนื้อหาได้");
+            console.error(err);
+            const msg = err.response?.data?.message || "ไม่สามารถแก้ไขเนื้อหาได้";
+            setError(msg);
+            alert(msg);
         } finally {
             setIsSaving(false);
         }
@@ -304,6 +396,64 @@ function EditInstanceCurriculum() {
             await loadInstanceData();
         } catch (err) {
             alert("ไม่สามารถแก้ไขแบบทดสอบได้");
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    const handleMoveModule = async (index, direction) => {
+        const newModules = [...instance.modules];
+        if (direction === 'up' && index > 0) {
+            [newModules[index], newModules[index - 1]] = [newModules[index - 1], newModules[index]];
+        } else if (direction === 'down' && index < newModules.length - 1) {
+            [newModules[index], newModules[index + 1]] = [newModules[index + 1], newModules[index]];
+        } else {
+            return;
+        }
+
+        try {
+            setIsSaving(true);
+            const order = newModules.map(m => m.id);
+            await api.post(`/instances/${id}/modules/reorder`, { order });
+            await loadInstanceData();
+        } catch (err) {
+            alert("ไม่สามารถเปลี่ยนลำดับบทเรียนได้");
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    const getSortedModuleItems = (module) => {
+        const items = [
+            ...(module.lessons || []).map(l => ({ ...l, itemType: 'lesson' })),
+            ...(module.quizzes || []).map(q => ({ ...q, itemType: 'quiz' })),
+            ...(module.assignments || []).map(a => ({ ...a, itemType: 'assignment' }))
+        ];
+        return items.sort((a, b) => (a.order_index || 0) - (b.order_index || 0));
+    };
+
+    const handleMoveItem = async (moduleId, itemType, itemId, direction) => {
+        const module = instance.modules.find(m => m.id === moduleId);
+        if (!module) return;
+
+        const items = getSortedModuleItems(module);
+        const index = items.findIndex(item => item.itemType === itemType && item.id === itemId);
+
+        if (direction === 'up' && index > 0) {
+            [items[index], items[index - 1]] = [items[index - 1], items[index]];
+        } else if (direction === 'down' && index < items.length - 1) {
+            [items[index], items[index + 1]] = [items[index + 1], items[index]];
+        } else {
+            return;
+        }
+
+        try {
+            setIsSaving(true);
+            const order = items.map(item => ({ type: item.itemType, id: item.id }));
+            await api.post(`/modules/${moduleId}/items/reorder`, { order });
+            await loadInstanceData();
+        } catch (err) {
+            alert("ไม่สามารถเปลี่ยนลำดับได้");
         } finally {
             setIsSaving(false);
         }
@@ -334,7 +484,7 @@ function EditInstanceCurriculum() {
                 } else {
                     // single choice
                     if (!questionCorrect) return alert("กรุณาเลือกคำตอบที่ถูกต้อง");
-                    payload.correct_answer = payload.choices[parseInt(questionCorrect)]; 
+                    payload.correct_answer = payload.choices[parseInt(questionCorrect)];
                 }
             }
 
@@ -561,6 +711,14 @@ function EditInstanceCurriculum() {
                                     >
                                         <div className="flex items-center justify-between bg-slate-50 dark:bg-slate-900/50 p-4 rounded-xl border border-slate-100 dark:border-slate-800">
                                             <div className="flex items-center space-x-3 w-full">
+                                                <div className="flex flex-col items-center gap-1 mr-1">
+                                                    <button onClick={() => handleMoveModule(mIdx, 'up')} className="text-slate-300 hover:text-primary transition-colors disabled:opacity-30" disabled={mIdx === 0 || isSaving}>
+                                                        <span className="material-symbols-outlined text-[18px]">keyboard_arrow_up</span>
+                                                    </button>
+                                                    <button onClick={() => handleMoveModule(mIdx, 'down')} className="text-slate-300 hover:text-primary transition-colors disabled:opacity-30" disabled={mIdx === instance.modules.length - 1 || isSaving}>
+                                                        <span className="material-symbols-outlined text-[18px]">keyboard_arrow_down</span>
+                                                    </button>
+                                                </div>
                                                 <span
                                                     className="material-symbols-outlined text-slate-400 cursor-grab active:cursor-grabbing select-none"
                                                     title="ลากเพื่อเปลี่ยนลำดับ"
@@ -592,313 +750,390 @@ function EditInstanceCurriculum() {
                                         </div>
 
                                         <div className="space-y-2 pl-4 border-l-2 border-slate-100 dark:border-slate-800 ml-6">
-                                            {module.lessons?.map((lesson, lIdx) => (
-                                                <div className="flex flex-col p-4 bg-white dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-700 hover:border-primary/30 transition-colors group" key={lesson.id}>
-                                                    {editLessonId === lesson.id ? (
-                                                        <div className="space-y-3">
-                                                            <input type="text" value={editLessonTitle} onChange={(e) => setEditLessonTitle(e.target.value)} className="w-full p-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 font-bold text-sm rounded-lg" placeholder="ชื่อเนื้อหา" autoFocus />
-                                                            {lesson.type === 'video' ? (
-                                                                <>
-                                                                    <input type="text" value={editLessonContent} onChange={(e) => setEditLessonContent(e.target.value)} className="w-full p-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 text-xs rounded-lg" placeholder="URL วิดีโอ" />
-                                                                    <input type="number" value={editLessonDuration} onChange={(e) => setEditLessonDuration(e.target.value)} className="w-full p-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 text-xs rounded-lg" placeholder="ความยาว (นาที)" />
-                                                                </>
-                                                            ) : (
-                                                                <RichTextEditor
-                                                                    value={editLessonContent}
-                                                                    onChange={setEditLessonContent}
-                                                                    placeholder="เขียนเนื้อหาบทเรียน..."
-                                                                />
-                                                            )}
-                                                            <div className="flex gap-2 justify-end">
-                                                                <button onClick={() => setEditLessonId(null)} className="px-3 py-1 bg-slate-200 text-xs font-bold rounded-lg dark:text-slate-800">ยกเลิก</button>
-                                                                <button onClick={() => submitEditLesson(lesson.type)} disabled={isSaving} className="px-3 py-1 bg-primary text-white text-xs font-bold rounded-lg">บันทึกเนื้อหา</button>
-                                                            </div>
-                                                        </div>
-                                                    ) : (
-                                                        <div className="flex items-center justify-between">
-                                                            <div className="flex items-center space-x-4">
-                                                                <span className="material-symbols-outlined text-slate-300">
-                                                                    {lesson.type === 'video' ? 'play_circle' : 'article'}
-                                                                </span>
-                                                                <div>
-                                                                    <p className="font-semibold text-slate-700 dark:text-slate-200">
-                                                                        {mIdx + 1}.{lIdx + 1} {lesson.title}
-                                                                    </p>
-                                                                    <p className="text-xs text-slate-400">{lesson.type === 'video' ? 'วิดีโอ' : 'ข้อความ'} {lesson.duration_minutes > 0 ? `• ${lesson.duration_minutes} นาที` : ''}</p>
-                                                                </div>
-                                                            </div>
-                                                            <div className="flex items-center space-x-4">
-                                                                <button onClick={() => handleDeleteLesson(lesson.id)} className="text-slate-300 hover:text-red-500 transition-colors" disabled={isSaving}>
-                                                                    <span className="material-symbols-outlined">delete</span>
-                                                                </button>
-                                                                <button onClick={() => {
-                                                                    setEditLessonId(lesson.id);
-                                                                    setEditLessonTitle(lesson.title);
-                                                                    setEditLessonDuration(lesson.duration_minutes || "");
-                                                                    try {
-                                                                        let contentObj = lesson.content;
-                                                                        if (typeof contentObj === 'string') contentObj = JSON.parse(contentObj);
-                                                                        setEditLessonContent(lesson.type === 'video' ? (contentObj?.videoUrl || "") : (contentObj?.html || ""));
-                                                                    } catch { setEditLessonContent(""); }
-                                                                }} className="material-symbols-outlined text-slate-300 hover:text-slate-500 transition-colors">edit</button>
-                                                            </div>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            ))}
-
-                                            {module.quizzes?.map((quiz, qIdx) => (
-                                                <div key={`quiz-${quiz.id}`} className="space-y-2">
-                                                    <div className="flex flex-col p-4 bg-white dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-700 hover:border-primary/30 transition-colors group">
-                                                        {editQuizId === quiz.id ? (
-                                                            <div className="space-y-3">
-                                                                <input type="text" value={editQuizTitle} onChange={(e) => setEditQuizTitle(e.target.value)} className="w-full p-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 font-bold text-sm rounded-lg" placeholder="ชื่อแบบทดสอบ" autoFocus />
-                                                                <div className="flex items-center gap-2">
-                                                                    <span className="text-xs font-bold text-slate-500">เกณฑ์ผ่าน:</span>
-                                                                    <input type="number" value={editQuizPassingScore} onChange={(e) => setEditQuizPassingScore(e.target.value)} className="w-20 p-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 text-xs rounded-lg text-center" placeholder="%" />
-                                                                    <span className="text-xs font-bold text-slate-500">%</span>
-                                                                </div>
-                                                                <div className="flex gap-2 justify-end">
-                                                                    <button onClick={() => setEditQuizId(null)} className="px-3 py-1 bg-slate-200 text-xs font-bold rounded-lg dark:text-slate-800">ยกเลิก</button>
-                                                                    <button onClick={submitEditQuiz} disabled={isSaving} className="px-3 py-1 bg-purple-500 text-white text-xs font-bold rounded-lg hover:bg-purple-600">บันทึกแบบทดสอบ</button>
-                                                                </div>
-                                                            </div>
-                                                        ) : (
-                                                            <div className="flex items-center justify-between">
-                                                                <div className="flex items-center space-x-4">
-                                                                    <span className="material-symbols-outlined text-purple-400">quiz</span>
-                                                                    <div>
-                                                                        <p className="font-semibold text-slate-700 dark:text-slate-200">
-                                                                            แบบทดสอบ: {quiz.title}
-                                                                        </p>
-                                                                        <p className="text-xs text-slate-400">เกณฑ์ผ่าน: {quiz.passing_score}% | {quiz.questions?.length || 0} คำถาม</p>
-                                                                    </div>
-                                                                </div>
-                                                                <div className="flex items-center space-x-4">
-                                                                    <button
-                                                                        onClick={() => {
-                                                                            setActiveQuizDialog(quiz.id);
-                                                                            setQuestionType('single_choice');
-                                                                            setQuestionText('');
-                                                                            setQuestionChoices(['', '', '', '']);
-                                                                            setQuestionCorrect('0');
-                                                                        }}
-                                                                        className="text-slate-400 hover:text-primary transition-colors text-xs font-bold"
-                                                                    >
-                                                                        + เพิ่มคำถาม
-                                                                    </button>
-                                                                    <button onClick={() => {
-                                                                        setEditQuizId(quiz.id);
-                                                                        setEditQuizTitle(quiz.title);
-                                                                        setEditQuizPassingScore(quiz.passing_score);
-                                                                    }} className="material-symbols-outlined text-slate-300 hover:text-slate-500 transition-colors">edit</button>
-                                                                    <button
-                                                                        onClick={() => handleDeleteQuiz(quiz.id)}
-                                                                        className="text-slate-300 hover:text-red-500 transition-colors"
-                                                                        disabled={isSaving}
-                                                                    >
-                                                                        <span className="material-symbols-outlined">delete</span>
-                                                                    </button>
-                                                                </div>
-                                                            </div>
-                                                        )}
-                                                    </div>
-
-                                                    {/* Questions List */}
-                                                    {quiz.questions?.length > 0 && (
-                                                        <div className="pl-12 space-y-2">
-                                                            {quiz.questions.map((q, idx) => (
-                                                                <div key={q.id} className="bg-slate-50 dark:bg-slate-900/40 rounded-lg border border-slate-100 dark:border-slate-800/50">
-                                                                    {editQuestionId === q.id ? (
-                                                                        /* ── Edit Question Form ── */
-                                                                        <div className="p-4 space-y-3">
-                                                                            {/* Type selector */}
-                                                                            <div className="flex flex-wrap gap-2">
-                                                                                {['single_choice', 'multiple_choice', 'true_false'].map(t => (
-                                                                                    <button key={t} onClick={() => { setEditQuestionType(t); setEditQuestionCorrect(t === 'true_false' ? 'True' : t === 'multiple_choice' ? '' : '0'); }}
-                                                                                        className={`px-3 py-1 rounded-full text-xs font-bold ${editQuestionType === t ? 'bg-purple-500 text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-500'}`}>
-                                                                                        {t === 'single_choice' ? 'Single Choice' : t === 'multiple_choice' ? 'Multiple Choice' : 'True / False'}
-                                                                                    </button>
-                                                                                ))}
+                                            {getSortedModuleItems(module).map((item, itemIdx) => (
+                                                <div key={`${item.itemType}-${item.id}`}>
+                                                    {item.itemType === 'lesson' ? (
+                                                        <div className="flex flex-col p-4 bg-white dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-700 hover:border-primary/30 transition-colors group">
+                                                            {editLessonId === item.id ? (
+                                                                <div className="space-y-3">
+                                                                    <input type="text" value={editLessonTitle} onChange={(e) => setEditLessonTitle(e.target.value)} className="w-full p-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 font-bold text-sm rounded-lg" placeholder="ชื่อเนื้อหา" autoFocus />
+                                                                    {item.type === 'video' ? (
+                                                                        <div className="space-y-3 p-3 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-100 dark:border-slate-800">
+                                                                            <div className="flex gap-2 mb-2">
+                                                                                <button onClick={() => setEditVideoSourceType('url')} className={`px-3 py-1 text-[10px] font-bold rounded-full transition-all ${editVideoSourceType === 'url' ? 'bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900' : 'bg-slate-200 text-slate-500'}`}>ใช้ URL</button>
+                                                                                <button onClick={() => setEditVideoSourceType('file')} className={`px-3 py-1 text-[10px] font-bold rounded-full transition-all ${editVideoSourceType === 'file' ? 'bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900' : 'bg-slate-200 text-slate-500'}`}>อัปโหลดไฟล์</button>
                                                                             </div>
-                                                                            {/* Question text */}
-                                                                            <textarea
-                                                                                value={editQuestionText}
-                                                                                onChange={e => setEditQuestionText(e.target.value)}
-                                                                                placeholder="คำถาม..."
-                                                                                className="w-full p-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg outline-none text-sm"
-                                                                                autoFocus
-                                                                            />
-                                                                            {/* Choices */}
-                                                                            {editQuestionType !== 'true_false' && (
+
+                                                                            {editVideoSourceType === 'url' ? (
+                                                                                <input type="text" value={editLessonContent} onChange={(e) => setEditLessonContent(e.target.value)} className="w-full p-2 bg-white dark:bg-slate-900 border border-slate-200 text-xs rounded-lg" placeholder="YouTube URL หรือไฟล์ URL" />
+                                                                            ) : (
                                                                                 <div className="space-y-2">
-                                                                                    <p className="text-xs font-bold text-slate-500">ตัวเลือก (อย่างน้อย 2)</p>
-                                                                                    {editQuestionChoices.map((choice, cIdx) => (
-                                                                                        <div key={cIdx} className="flex items-center gap-2">
-                                                                                            {editQuestionType === 'single_choice' ? (
-                                                                                                <input type="radio" name={`eq-correct-${q.id}`}
-                                                                                                    checked={editQuestionCorrect === cIdx.toString()}
-                                                                                                    onChange={() => setEditQuestionCorrect(cIdx.toString())} />
-                                                                                            ) : (
-                                                                                                <input type="checkbox"
-                                                                                                    checked={editQuestionCorrect.split(',').includes(cIdx.toString())}
-                                                                                                    onChange={e => {
-                                                                                                        let cur = editQuestionCorrect ? editQuestionCorrect.split(',') : [];
-                                                                                                        if (e.target.checked) cur.push(cIdx.toString());
-                                                                                                        else cur = cur.filter(i => i !== cIdx.toString());
-                                                                                                        setEditQuestionCorrect(cur.join(','));
-                                                                                                    }} />
-                                                                                            )}
-                                                                                            <input type="text" value={choice}
-                                                                                                onChange={e => { const n = [...editQuestionChoices]; n[cIdx] = e.target.value; setEditQuestionChoices(n); }}
-                                                                                                placeholder={`ตัวเลือกที่ ${cIdx + 1}`}
-                                                                                                className="flex-1 p-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm" />
-                                                                                            {editQuestionChoices.length > 2 && (
-                                                                                                <button onClick={() => { const n = [...editQuestionChoices]; n.splice(cIdx, 1); setEditQuestionChoices(n); }} className="text-red-400 hover:text-red-600">
-                                                                                                    <span className="material-symbols-outlined text-sm">close</span>
-                                                                                                </button>
-                                                                                            )}
-                                                                                        </div>
-                                                                                    ))}
-                                                                                    <button onClick={() => setEditQuestionChoices([...editQuestionChoices, ''])} className="text-xs text-primary font-bold">+ เพิ่มตัวเลือก</button>
+                                                                                    <input type="file" accept="video/*" onChange={(e) => setEditVideoFile(e.target.files[0])} className="w-full p-2 bg-white dark:bg-slate-900 border border-slate-200 text-xs rounded-lg" />
+                                                                                    {item.content?.videoUrl?.startsWith('/uploads/') && (
+                                                                                        <p className="text-[10px] text-slate-500 italic px-1">ไฟล์ปัจจุบัน: {item.content.videoUrl}</p>
+                                                                                    )}
                                                                                 </div>
                                                                             )}
-                                                                            {editQuestionType === 'true_false' && (
-                                                                                <div className="flex gap-4">
-                                                                                    <label className="flex items-center gap-2 text-sm bg-green-50 text-green-700 px-4 py-2 rounded-lg border border-green-200 cursor-pointer">
-                                                                                        <input type="radio" name={`eq-tf-${q.id}`} checked={editQuestionCorrect === 'True'} onChange={() => setEditQuestionCorrect('True')} />
-                                                                                        True (ถูก)
-                                                                                    </label>
-                                                                                    <label className="flex items-center gap-2 text-sm bg-red-50 text-red-700 px-4 py-2 rounded-lg border border-red-200 cursor-pointer">
-                                                                                        <input type="radio" name={`eq-tf-${q.id}`} checked={editQuestionCorrect === 'False'} onChange={() => setEditQuestionCorrect('False')} />
-                                                                                        False (ผิด)
-                                                                                    </label>
+                                                                            <input type="number" value={editLessonDuration} onChange={(e) => setEditLessonDuration(e.target.value)} className="w-full p-2 bg-white dark:bg-slate-900 border border-slate-200 text-xs rounded-lg" placeholder="ความยาว (นาที)" />
+                                                                            {error && (
+                                                                                <div className="text-red-500 text-[10px] font-bold mt-1 bg-red-50 dark:bg-red-900/20 p-2 rounded-lg border border-red-100 dark:border-red-900/30 flex items-center gap-1">
+                                                                                    <span className="material-symbols-outlined text-sm">error</span>
+                                                                                    {error}
                                                                                 </div>
                                                                             )}
-                                                                            {/* Points + actions */}
-                                                                            <div className="flex items-center justify-between pt-2 border-t border-slate-200 dark:border-slate-700">
-                                                                                <div className="flex items-center gap-2">
-                                                                                    <span className="text-xs font-bold text-slate-500">คะแนน:</span>
-                                                                                    <input type="number" value={editQuestionPoints} onChange={e => setEditQuestionPoints(e.target.value)} className="w-16 p-1 border rounded text-xs text-center dark:bg-slate-800 dark:border-slate-700" />
-                                                                                </div>
-                                                                                <div className="flex gap-2">
-                                                                                    <button onClick={() => setEditQuestionId(null)} className="px-3 py-1.5 text-slate-500 text-xs font-bold">ยกเลิก</button>
-                                                                                    <button onClick={submitEditQuestion} disabled={isSaving} className="px-4 py-1.5 bg-purple-500 text-white text-xs rounded-lg font-bold hover:bg-purple-600">
-                                                                                        {isSaving ? 'บันทึก...' : 'บันทึกคำถาม'}
-                                                                                    </button>
-                                                                                </div>
-                                                                            </div>
                                                                         </div>
                                                                     ) : (
-                                                                        /* ── Read-only Question Row ── */
-                                                                        <div className="flex justify-between items-start p-3">
-                                                                            <div className="flex-1 min-w-0">
-                                                                                <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">{idx + 1}. {q.question}</p>
-                                                                                <p className="text-xs text-slate-500 mt-1">ชนิด: {q.type} | เฉลย: {q.correct_answer} | {q.points} คะแนน</p>
-                                                                                {/* Show choices preview */}
-                                                                                {q.type !== 'true_false' && (() => {
-                                                                                    try {
-                                                                                        let cs = q.choices;
-                                                                                        if (typeof cs === 'string') cs = JSON.parse(cs);
-                                                                                        return Array.isArray(cs) && cs.length > 0 ? (
-                                                                                            <div className="mt-1.5 flex flex-wrap gap-1">
-                                                                                                {cs.map((c, ci) => (
-                                                                                                    <span key={ci} className={`text-[11px] px-2 py-0.5 rounded-full border ${q.correct_answer?.includes(c)
-                                                                                                        ? 'bg-green-50 border-green-300 text-green-700 font-bold'
-                                                                                                        : 'bg-slate-100 border-slate-200 text-slate-500 dark:bg-slate-800 dark:border-slate-700'
-                                                                                                        }`}>{c}</span>
-                                                                                                ))}
-                                                                                            </div>
-                                                                                        ) : null;
-                                                                                    } catch { return null; }
-                                                                                })()}
+                                                                        <RichTextEditor
+                                                                            value={editLessonContent}
+                                                                            onChange={setEditLessonContent}
+                                                                            placeholder="เขียนเนื้อหาบทเรียน..."
+                                                                        />
+                                                                    )}
+                                                                    <div className="flex gap-2 justify-end">
+                                                                        <button onClick={() => setEditLessonId(null)} className="px-3 py-1 bg-slate-200 text-xs font-bold rounded-lg dark:text-slate-800">ยกเลิก</button>
+                                                                        <button onClick={() => submitEditLesson(item.type)} disabled={isSaving} className="px-3 py-1 bg-primary text-white text-xs font-bold rounded-lg">บันทึกเนื้อหา</button>
+                                                                    </div>
+                                                                </div>
+                                                            ) : (
+                                                                <div className="flex items-center justify-between">
+                                                                    <div className="flex items-center space-x-4">
+                                                                        <div className="flex flex-col items-center gap-1 mr-1">
+                                                                            <button onClick={() => handleMoveItem(module.id, 'lesson', item.id, 'up')} className="text-slate-300 hover:text-primary transition-colors disabled:opacity-30" disabled={itemIdx === 0 || isSaving}>
+                                                                                <span className="material-symbols-outlined text-[18px]">keyboard_arrow_up</span>
+                                                                            </button>
+                                                                            <button onClick={() => handleMoveItem(module.id, 'lesson', item.id, 'down')} className="text-slate-300 hover:text-primary transition-colors disabled:opacity-30" disabled={itemIdx === getSortedModuleItems(module).length - 1 || isSaving}>
+                                                                                <span className="material-symbols-outlined text-[18px]">keyboard_arrow_down</span>
+                                                                            </button>
+                                                                        </div>
+                                                                        <span className="material-symbols-outlined text-slate-300">
+                                                                            {item.type === 'video' ? 'play_circle' : 'article'}
+                                                                        </span>
+                                                                        <div>
+                                                                            <p className="font-semibold text-slate-700 dark:text-slate-200">
+                                                                                {item.title}
+                                                                            </p>
+                                                                            <p className="text-xs text-slate-400">{item.type === 'video' ? 'วิดีโอ' : 'ข้อความ'} {item.duration_minutes > 0 ? `• ${item.duration_minutes} นาที` : ''}</p>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div className="flex items-center space-x-4">
+                                                                        <button onClick={() => handleDeleteLesson(item.id)} className="text-slate-300 hover:text-red-500 transition-colors" disabled={isSaving}>
+                                                                            <span className="material-symbols-outlined">delete</span>
+                                                                        </button>
+                                                                        <button onClick={() => {
+                                                                            setEditLessonId(item.id);
+                                                                            setEditLessonTitle(item.title);
+                                                                            setEditLessonDuration(item.duration_minutes || "");
+                                                                            setError(null);
+                                                                            try {
+                                                                                let contentObj = item.content;
+                                                                                if (typeof contentObj === 'string') contentObj = JSON.parse(contentObj);
+                                                                                setEditLessonContent(item.type === 'video' ? (contentObj?.videoUrl || "") : (contentObj?.html || ""));
+                                                                            } catch { setEditLessonContent(""); }
+                                                                        }} className="material-symbols-outlined text-slate-300 hover:text-slate-500 transition-colors">edit</button>
+                                                                    </div>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    ) : item.itemType === 'quiz' ? (
+                                                        <div className="space-y-2">
+                                                            <div className="flex flex-col p-4 bg-white dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-700 hover:border-primary/30 transition-colors group">
+                                                                {editQuizId === item.id ? (
+                                                                    <div className="space-y-3">
+                                                                        <input type="text" value={editQuizTitle} onChange={(e) => setEditQuizTitle(e.target.value)} className="w-full p-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 font-bold text-sm rounded-lg" placeholder="ชื่อแบบทดสอบ" autoFocus />
+                                                                        <div className="flex items-center gap-2">
+                                                                            <span className="text-xs font-bold text-slate-500">เกณฑ์ผ่าน:</span>
+                                                                            <input type="number" value={editQuizPassingScore} onChange={(e) => setEditQuizPassingScore(e.target.value)} className="w-20 p-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 text-xs rounded-lg text-center" placeholder="%" />
+                                                                            <span className="text-xs font-bold text-slate-500">%</span>
+                                                                        </div>
+                                                                        <div className="flex gap-2 justify-end">
+                                                                            <button onClick={() => setEditQuizId(null)} className="px-3 py-1 bg-slate-200 text-xs font-bold rounded-lg dark:text-slate-800">ยกเลิก</button>
+                                                                            <button onClick={submitEditQuiz} disabled={isSaving} className="px-3 py-1 bg-purple-500 text-white text-xs font-bold rounded-lg hover:bg-purple-600">บันทึกแบบทดสอบ</button>
+                                                                        </div>
+                                                                    </div>
+                                                                ) : (
+                                                                    <div className="flex items-center justify-between">
+                                                                        <div className="flex items-center space-x-4">
+                                                                            <div className="flex flex-col items-center gap-1 mr-1">
+                                                                                <button onClick={() => handleMoveItem(module.id, 'quiz', item.id, 'up')} className="text-slate-300 hover:text-primary transition-colors disabled:opacity-30" disabled={itemIdx === 0 || isSaving}>
+                                                                                    <span className="material-symbols-outlined text-[18px]">keyboard_arrow_up</span>
+                                                                                </button>
+                                                                                <button onClick={() => handleMoveItem(module.id, 'quiz', item.id, 'down')} className="text-slate-300 hover:text-primary transition-colors disabled:opacity-30" disabled={itemIdx === getSortedModuleItems(module).length - 1 || isSaving}>
+                                                                                    <span className="material-symbols-outlined text-[18px]">keyboard_arrow_down</span>
+                                                                                </button>
                                                                             </div>
-                                                                            <div className="flex items-center gap-1 ml-2 shrink-0">
-                                                                                <button onClick={() => handleEditQuestion(q)} className="text-slate-300 hover:text-purple-500 transition-colors" title="แก้ไขคำถาม">
-                                                                                    <span className="material-symbols-outlined text-sm">edit</span>
-                                                                                </button>
-                                                                                <button onClick={() => handleDeleteQuestion(q.id)} className="text-slate-300 hover:text-red-500 transition-colors" title="ลบคำถาม">
-                                                                                    <span className="material-symbols-outlined text-sm">delete</span>
-                                                                                </button>
+                                                                            <span className="material-symbols-outlined text-purple-400">quiz</span>
+                                                                            <div>
+                                                                                <p className="font-semibold text-slate-700 dark:text-slate-200">
+                                                                                    แบบทดสอบ: {item.title}
+                                                                                </p>
+                                                                                <p className="text-xs text-slate-400">เกณฑ์ผ่าน: {item.passing_score}% | {item.questions?.length || 0} คำถาม</p>
                                                                             </div>
                                                                         </div>
-                                                                    )}
-                                                                </div>
-                                                            ))}
-                                                        </div>
-                                                    )}
-
-                                                    {/* Add Question Dialog */}
-                                                    {activeQuizDialog === quiz.id && (
-                                                        <div className="ml-12 p-4 bg-slate-50 dark:bg-slate-900/80 rounded-xl border border-purple-200 dark:border-purple-900/50 space-y-4">
-                                                            <div className="flex gap-2">
-                                                                <button onClick={() => { setQuestionType('single_choice'); setQuestionCorrect('0'); }} className={`px-3 py-1 rounded-full text-xs font-bold ${questionType === 'single_choice' ? 'bg-purple-500 text-white' : 'bg-slate-200 dark:bg-slate-800 text-slate-500'}`}>Single Choice (1 คำตอบ)</button>
-                                                                <button onClick={() => { setQuestionType('multiple_choice'); setQuestionCorrect(''); }} className={`px-3 py-1 rounded-full text-xs font-bold ${questionType === 'multiple_choice' ? 'bg-purple-500 text-white' : 'bg-slate-200 dark:bg-slate-800 text-slate-500'}`}>Multiple Choice (หลายคำตอบ)</button>
-                                                                <button onClick={() => { setQuestionType('true_false'); setQuestionCorrect('True'); }} className={`px-3 py-1 rounded-full text-xs font-bold ${questionType === 'true_false' ? 'bg-purple-500 text-white' : 'bg-slate-200 dark:bg-slate-800 text-slate-500'}`}>True/False (ถูก/ผิด)</button>
+                                                                        <div className="flex items-center space-x-4">
+                                                                            <button
+                                                                                onClick={() => {
+                                                                                    setActiveQuizDialog(item.id);
+                                                                                    setQuestionType('single_choice');
+                                                                                    setQuestionText('');
+                                                                                    setQuestionChoices(['', '', '', '']);
+                                                                                    setQuestionCorrect('0');
+                                                                                }}
+                                                                                className="text-slate-400 hover:text-primary transition-colors text-xs font-bold"
+                                                                            >
+                                                                                + เพิ่มคำถาม
+                                                                            </button>
+                                                                            <button onClick={() => {
+                                                                                setEditQuizId(item.id);
+                                                                                setEditQuizTitle(item.title);
+                                                                                setEditQuizPassingScore(item.passing_score);
+                                                                            }} className="material-symbols-outlined text-slate-300 hover:text-slate-500 transition-colors">edit</button>
+                                                                            <button
+                                                                                onClick={() => handleDeleteQuiz(item.id)}
+                                                                                className="text-slate-300 hover:text-red-500 transition-colors"
+                                                                                disabled={isSaving}
+                                                                            >
+                                                                                <span className="material-symbols-outlined">delete</span>
+                                                                            </button>
+                                                                        </div>
+                                                                    </div>
+                                                                )}
                                                             </div>
 
-                                                            <textarea
-                                                                value={questionText}
-                                                                onChange={(e) => setQuestionText(e.target.value)}
-                                                                placeholder="คำถาม..."
-                                                                className="w-full p-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg outline-none text-sm"
-                                                            ></textarea>
-
-                                                            {questionType !== 'true_false' && (
-                                                                <div className="space-y-2">
-                                                                    <p className="text-xs font-bold text-slate-500">ตัวเลือก (อย่างน้อย 2)</p>
-                                                                    {questionChoices.map((choice, cIdx) => (
-                                                                        <div key={cIdx} className="flex items-center gap-2">
-                                                                            {questionType === 'single_choice' ? (
-                                                                                <input type="radio" name={`correct-${quiz.id}`} checked={questionCorrect === cIdx.toString()} onChange={() => setQuestionCorrect(cIdx.toString())} />
+                                                            {/* Questions List */}
+                                                            {item.questions?.length > 0 && (
+                                                                <div className="pl-12 space-y-2">
+                                                                    {item.questions.map((q, qSubIdx) => (
+                                                                        <div key={q.id} className="bg-slate-50 dark:bg-slate-900/40 rounded-lg border border-slate-100 dark:border-slate-800/50">
+                                                                            {editQuestionId === q.id ? (
+                                                                                /* ── Edit Question Form ── */
+                                                                                <div className="p-4 space-y-3">
+                                                                                    <div className="flex flex-wrap gap-2">
+                                                                                        {['single_choice', 'multiple_choice', 'true_false'].map(t => (
+                                                                                            <button key={t} onClick={() => { setEditQuestionType(t); setEditQuestionCorrect(t === 'true_false' ? 'True' : t === 'multiple_choice' ? '' : '0'); }}
+                                                                                                className={`px-3 py-1 rounded-full text-xs font-bold ${editQuestionType === t ? 'bg-purple-500 text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-500'}`}>
+                                                                                                {t === 'single_choice' ? 'Single Choice' : t === 'multiple_choice' ? 'Multiple Choice' : 'True / False'}
+                                                                                            </button>
+                                                                                        ))}
+                                                                                    </div>
+                                                                                    <textarea
+                                                                                        value={editQuestionText}
+                                                                                        onChange={e => setEditQuestionText(e.target.value)}
+                                                                                        placeholder="คำถาม..."
+                                                                                        className="w-full p-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg outline-none text-sm"
+                                                                                        autoFocus
+                                                                                    />
+                                                                                    {editQuestionType !== 'true_false' && (
+                                                                                        <div className="space-y-2">
+                                                                                            <p className="text-xs font-bold text-slate-500">ตัวเลือก (อย่างน้อย 2)</p>
+                                                                                            {editQuestionChoices.map((choice, cIdx) => (
+                                                                                                <div key={cIdx} className="flex items-center gap-2">
+                                                                                                    {editQuestionType === 'single_choice' ? (
+                                                                                                        <input type="radio" name={`eq-correct-${q.id}`}
+                                                                                                            checked={editQuestionCorrect === cIdx.toString()}
+                                                                                                            onChange={() => setEditQuestionCorrect(cIdx.toString())} />
+                                                                                                    ) : (
+                                                                                                        <input type="checkbox"
+                                                                                                            checked={editQuestionCorrect.split(',').includes(cIdx.toString())}
+                                                                                                            onChange={e => {
+                                                                                                                let cur = editQuestionCorrect ? editQuestionCorrect.split(',') : [];
+                                                                                                                if (e.target.checked) cur.push(cIdx.toString());
+                                                                                                                else cur = cur.filter(i => i !== cIdx.toString());
+                                                                                                                setEditQuestionCorrect(cur.join(','));
+                                                                                                            }} />
+                                                                                                    )}
+                                                                                                    <input type="text" value={choice}
+                                                                                                        onChange={e => { const n = [...editQuestionChoices]; n[cIdx] = e.target.value; setEditQuestionChoices(n); }}
+                                                                                                        placeholder={`ตัวเลือกที่ ${cIdx + 1}`}
+                                                                                                        className="flex-1 p-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm" />
+                                                                                                    {editQuestionChoices.length > 2 && (
+                                                                                                        <button onClick={() => { const n = [...editQuestionChoices]; n.splice(cIdx, 1); setEditQuestionChoices(n); }} className="text-red-400 hover:text-red-600">
+                                                                                                            <span className="material-symbols-outlined text-sm">close</span>
+                                                                                                        </button>
+                                                                                                    )}
+                                                                                                </div>
+                                                                                            ))}
+                                                                                            <button onClick={() => setEditQuestionChoices([...editQuestionChoices, ''])} className="text-xs text-primary font-bold">+ เพิ่มตัวเลือก</button>
+                                                                                        </div>
+                                                                                    )}
+                                                                                    {editQuestionType === 'true_false' && (
+                                                                                        <div className="flex gap-4">
+                                                                                            <label className="flex items-center gap-2 text-sm bg-green-50 text-green-700 px-4 py-2 rounded-lg border border-green-200 cursor-pointer">
+                                                                                                <input type="radio" name={`eq-tf-${q.id}`} checked={editQuestionCorrect === 'True'} onChange={() => setEditQuestionCorrect('True')} />
+                                                                                                True (ถูก)
+                                                                                            </label>
+                                                                                            <label className="flex items-center gap-2 text-sm bg-red-50 text-red-700 px-4 py-2 rounded-lg border border-red-200 cursor-pointer">
+                                                                                                <input type="radio" name={`eq-tf-${q.id}`} checked={editQuestionCorrect === 'False'} onChange={() => setEditQuestionCorrect('False')} />
+                                                                                                False (ผิด)
+                                                                                            </label>
+                                                                                        </div>
+                                                                                    )}
+                                                                                    <div className="flex items-center justify-between pt-2 border-t border-slate-200 dark:border-slate-700">
+                                                                                        <div className="flex items-center gap-2">
+                                                                                            <span className="text-xs font-bold text-slate-500">คะแนน:</span>
+                                                                                            <input type="number" value={editQuestionPoints} onChange={e => setEditQuestionPoints(e.target.value)} className="w-16 p-1 border rounded text-xs text-center dark:bg-slate-800 dark:border-slate-700" />
+                                                                                        </div>
+                                                                                        <div className="flex gap-2">
+                                                                                            <button onClick={() => setEditQuestionId(null)} className="px-3 py-1.5 text-slate-500 text-xs font-bold">ยกเลิก</button>
+                                                                                            <button onClick={submitEditQuestion} disabled={isSaving} className="px-4 py-1.5 bg-purple-500 text-white text-xs rounded-lg font-bold hover:bg-purple-600">
+                                                                                                {isSaving ? 'บันทึก...' : 'บันทึกคำถาม'}
+                                                                                            </button>
+                                                                                        </div>
+                                                                                    </div>
+                                                                                </div>
                                                                             ) : (
-                                                                                <input type="checkbox" checked={questionCorrect.split(',').includes(cIdx.toString())} onChange={(e) => {
-                                                                                    let current = questionCorrect ? questionCorrect.split(',') : [];
-                                                                                    if (e.target.checked) current.push(cIdx.toString());
-                                                                                    else current = current.filter(i => i !== cIdx.toString());
-                                                                                    setQuestionCorrect(current.join(','));
-                                                                                }} />
+                                                                                <div className="flex justify-between items-start p-3">
+                                                                                    <div className="flex-1 min-w-0">
+                                                                                        <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">{qSubIdx + 1}. {q.question}</p>
+                                                                                        <p className="text-xs text-slate-500 mt-1">ชนิด: {q.type} | เฉลย: {q.correct_answer} | {q.points} คะแนน</p>
+                                                                                        {q.type !== 'true_false' && (() => {
+                                                                                            try {
+                                                                                                let cs = q.choices;
+                                                                                                if (typeof cs === 'string') cs = JSON.parse(cs);
+                                                                                                return Array.isArray(cs) && cs.length > 0 ? (
+                                                                                                    <div className="mt-1.5 flex flex-wrap gap-1">
+                                                                                                        {cs.map((c, ci) => (
+                                                                                                            <span key={ci} className={`text-[11px] px-2 py-0.5 rounded-full border ${q.correct_answer?.includes(c)
+                                                                                                                ? 'bg-green-50 border-green-300 text-green-700 font-bold'
+                                                                                                                : 'bg-slate-100 border-slate-200 text-slate-500 dark:bg-slate-800 dark:border-slate-700'
+                                                                                                                }`}>{c}</span>
+                                                                                                        ))}
+                                                                                                    </div>
+                                                                                                ) : null;
+                                                                                            } catch { return null; }
+                                                                                        })()}
+                                                                                    </div>
+                                                                                    <div className="flex items-center gap-1 ml-2 shrink-0">
+                                                                                        <button onClick={() => handleEditQuestion(q)} className="text-slate-300 hover:text-purple-500 transition-colors" title="แก้ไขคำถาม">
+                                                                                            <span className="material-symbols-outlined text-sm">edit</span>
+                                                                                        </button>
+                                                                                        <button onClick={() => handleDeleteQuestion(q.id)} className="text-slate-300 hover:text-red-500 transition-colors" title="ลบคำถาม">
+                                                                                            <span className="material-symbols-outlined text-sm">delete</span>
+                                                                                        </button>
+                                                                                    </div>
+                                                                                </div>
                                                                             )}
-                                                                            <input
-                                                                                type="text"
-                                                                                value={choice}
-                                                                                onChange={(e) => {
-                                                                                    const newChoices = [...questionChoices];
-                                                                                    newChoices[cIdx] = e.target.value;
-                                                                                    setQuestionChoices(newChoices);
-                                                                                }}
-                                                                                placeholder={`ตัวเลือกที่ ${cIdx + 1}`}
-                                                                                className="flex-1 p-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg outline-none text-sm"
-                                                                            />
                                                                         </div>
                                                                     ))}
-                                                                    <button onClick={() => setQuestionChoices([...questionChoices, ""])} className="text-xs text-primary font-bold">+ เพิ่มตัวเลือก</button>
                                                                 </div>
                                                             )}
 
-                                                            {questionType === 'true_false' && (
-                                                                <div className="flex gap-4">
-                                                                    <label className="flex items-center gap-2 text-sm bg-green-50 text-green-700 px-4 py-2 rounded-lg border border-green-200 cursor-pointer">
-                                                                        <input type="radio" name={`tf-${quiz.id}`} checked={questionCorrect === 'True'} onChange={() => setQuestionCorrect('True')} />
-                                                                        True (ถูก)
-                                                                    </label>
-                                                                    <label className="flex items-center gap-2 text-sm bg-red-50 text-red-700 px-4 py-2 rounded-lg border border-red-200 cursor-pointer">
-                                                                        <input type="radio" name={`tf-${quiz.id}`} checked={questionCorrect === 'False'} onChange={() => setQuestionCorrect('False')} />
-                                                                        False (ผิด)
-                                                                    </label>
+                                                            {/* Add Question Dialog */}
+                                                            {activeQuizDialog === item.id && (
+                                                                <div className="ml-12 p-4 bg-slate-50 dark:bg-slate-900/80 rounded-xl border border-purple-200 dark:border-purple-900/50 space-y-4">
+                                                                    <div className="flex gap-2">
+                                                                        <button onClick={() => { setQuestionType('single_choice'); setQuestionCorrect('0'); }} className={`px-3 py-1 rounded-full text-xs font-bold ${questionType === 'single_choice' ? 'bg-purple-500 text-white' : 'bg-slate-200 dark:bg-slate-800 text-slate-500'}`}>Single Choice (1 คำตอบ)</button>
+                                                                        <button onClick={() => { setQuestionType('multiple_choice'); setQuestionCorrect(''); }} className={`px-3 py-1 rounded-full text-xs font-bold ${questionType === 'multiple_choice' ? 'bg-purple-500 text-white' : 'bg-slate-200 dark:bg-slate-800 text-slate-500'}`}>Multiple Choice (หลายคำตอบ)</button>
+                                                                        <button onClick={() => { setQuestionType('true_false'); setQuestionCorrect('True'); }} className={`px-3 py-1 rounded-full text-xs font-bold ${questionType === 'true_false' ? 'bg-purple-500 text-white' : 'bg-slate-200 dark:bg-slate-800 text-slate-500'}`}>True/False (ถูก/ผิด)</button>
+                                                                    </div>
+
+                                                                    <textarea
+                                                                        value={questionText}
+                                                                        onChange={(e) => setQuestionText(e.target.value)}
+                                                                        placeholder="คำถาม..."
+                                                                        className="w-full p-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg outline-none text-sm"
+                                                                    ></textarea>
+
+                                                                    {questionType !== 'true_false' && (
+                                                                        <div className="space-y-2">
+                                                                            <p className="text-xs font-bold text-slate-500">ตัวเลือก (อย่างน้อย 2)</p>
+                                                                            {questionChoices.map((choice, cIdx) => (
+                                                                                <div key={cIdx} className="flex items-center gap-2">
+                                                                                    {questionType === 'single_choice' ? (
+                                                                                        <input type="radio" name={`correct-${item.id}`} checked={questionCorrect === cIdx.toString()} onChange={() => setQuestionCorrect(cIdx.toString())} />
+                                                                                    ) : (
+                                                                                        <input type="checkbox" checked={questionCorrect.split(',').includes(cIdx.toString())} onChange={(e) => {
+                                                                                            let current = questionCorrect ? questionCorrect.split(',') : [];
+                                                                                            if (e.target.checked) current.push(cIdx.toString());
+                                                                                            else current = current.filter(i => i !== cIdx.toString());
+                                                                                            setQuestionCorrect(current.join(','));
+                                                                                        }} />
+                                                                                    )}
+                                                                                    <input
+                                                                                        type="text"
+                                                                                        value={choice}
+                                                                                        onChange={(e) => {
+                                                                                            const newChoices = [...questionChoices];
+                                                                                            newChoices[cIdx] = e.target.value;
+                                                                                            setQuestionChoices(newChoices);
+                                                                                        }}
+                                                                                        placeholder={`ตัวเลือกที่ ${cIdx + 1}`}
+                                                                                        className="flex-1 p-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg outline-none text-sm"
+                                                                                    />
+                                                                                </div>
+                                                                            ))}
+                                                                            <button onClick={() => setQuestionChoices([...questionChoices, ""])} className="text-xs text-primary font-bold">+ เพิ่มตัวเลือก</button>
+                                                                        </div>
+                                                                    )}
+
+                                                                    {questionType === 'true_false' && (
+                                                                        <div className="flex gap-4">
+                                                                            <label className="flex items-center gap-2 text-sm bg-green-50 text-green-700 px-4 py-2 rounded-lg border border-green-200 cursor-pointer">
+                                                                                <input type="radio" name={`tf-${item.id}`} checked={questionCorrect === 'True'} onChange={() => setQuestionCorrect('True')} />
+                                                                                True (ถูก)
+                                                                            </label>
+                                                                            <label className="flex items-center gap-2 text-sm bg-red-50 text-red-700 px-4 py-2 rounded-lg border border-red-200 cursor-pointer">
+                                                                                <input type="radio" name={`tf-${item.id}`} checked={questionCorrect === 'False'} onChange={() => setQuestionCorrect('False')} />
+                                                                                False (ผิด)
+                                                                            </label>
+                                                                        </div>
+                                                                    )}
+
+                                                                    <div className="flex items-center justify-between border-t border-slate-100 dark:border-slate-800 pt-3">
+                                                                        <div className="flex items-center gap-2">
+                                                                            <span className="text-xs font-bold text-slate-500">คะแนน:</span>
+                                                                            <input type="number" value={questionPoints} onChange={(e) => setQuestionPoints(e.target.value)} className="w-16 p-1 border rounded text-xs text-center dark:bg-slate-800 dark:border-slate-700" />
+                                                                        </div>
+                                                                        <div className="flex gap-2">
+                                                                            <button onClick={() => setActiveQuizDialog(null)} className="px-3 py-1.5 text-slate-500 text-xs font-bold">ยกเลิก</button>
+                                                                            <button onClick={() => handleAddQuestion(item.id)} disabled={isSaving} className="px-4 py-1.5 bg-purple-500 text-white text-xs rounded-lg font-bold">ยืนยันเพิ่มคำถาม</button>
+                                                                        </div>
+                                                                    </div>
                                                                 </div>
                                                             )}
-
-                                                            <div className="flex items-center justify-between border-t border-slate-100 dark:border-slate-800 pt-3">
-                                                                <div className="flex items-center gap-2">
-                                                                    <span className="text-xs font-bold text-slate-500">คะแนน:</span>
-                                                                    <input type="number" value={questionPoints} onChange={(e) => setQuestionPoints(e.target.value)} className="w-16 p-1 border rounded text-xs text-center dark:bg-slate-800 dark:border-slate-700" />
+                                                        </div>
+                                                    ) : (
+                                                        /* Assignment branch */
+                                                        <div className="flex flex-col p-4 bg-white dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-700 hover:border-primary/30 transition-colors group">
+                                                            {editAssignmentId === item.id ? (
+                                                                <div className="space-y-3">
+                                                                    <input type="text" value={editAssignmentTitle} onChange={(e) => setEditAssignmentTitle(e.target.value)} className="w-full p-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 font-bold text-sm rounded-lg" placeholder="ชื่องาน" autoFocus />
+                                                                    <textarea value={editAssignmentDescription} onChange={(e) => setEditAssignmentDescription(e.target.value)} className="w-full p-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 text-xs rounded-lg min-h-[80px]" placeholder="คำอธิบายงาน" />
+                                                                    <div className="flex gap-2 justify-end">
+                                                                        <button onClick={() => setEditAssignmentId(null)} className="px-3 py-1 bg-slate-200 text-xs font-bold rounded-lg dark:text-slate-800">ยกเลิก</button>
+                                                                        <button onClick={submitEditAssignment} disabled={isSaving} className="px-3 py-1 bg-blue-500 text-white text-xs font-bold rounded-lg hover:bg-blue-600">บันทึกงาน</button>
+                                                                    </div>
                                                                 </div>
-                                                                <div className="flex gap-2">
-                                                                    <button onClick={() => setActiveQuizDialog(null)} className="px-3 py-1.5 text-slate-500 text-xs font-bold">ยกเลิก</button>
-                                                                    <button onClick={() => handleAddQuestion(quiz.id)} disabled={isSaving} className="px-4 py-1.5 bg-purple-500 text-white text-xs rounded-lg font-bold">ยืนยันเพิ่มคำถาม</button>
+                                                            ) : (
+                                                                <div className="flex items-center justify-between">
+                                                                    <div className="flex items-center space-x-4">
+                                                                        <div className="flex flex-col items-center gap-1 mr-1">
+                                                                            <button onClick={() => handleMoveItem(module.id, 'assignment', item.id, 'up')} className="text-slate-300 hover:text-primary transition-colors disabled:opacity-30" disabled={itemIdx === 0 || isSaving}>
+                                                                                <span className="material-symbols-outlined text-[18px]">keyboard_arrow_up</span>
+                                                                            </button>
+                                                                            <button onClick={() => handleMoveItem(module.id, 'assignment', item.id, 'down')} className="text-slate-300 hover:text-primary transition-colors disabled:opacity-30" disabled={itemIdx === getSortedModuleItems(module).length - 1 || isSaving}>
+                                                                                <span className="material-symbols-outlined text-[18px]">keyboard_arrow_down</span>
+                                                                            </button>
+                                                                        </div>
+                                                                        <span className="material-symbols-outlined text-blue-400">assignment</span>
+                                                                        <div>
+                                                                            <p className="font-semibold text-slate-700 dark:text-slate-200">
+                                                                                งาน: {item.title}
+                                                                            </p>
+                                                                            <p className="text-xs text-slate-400">Assignment</p>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div className="flex items-center space-x-4">
+                                                                        <button onClick={() => {
+                                                                            setEditAssignmentId(item.id);
+                                                                            setEditAssignmentTitle(item.title);
+                                                                            setEditAssignmentDescription(item.description || "");
+                                                                        }} className="material-symbols-outlined text-slate-300 hover:text-slate-500 transition-colors">edit</button>
+                                                                        <button onClick={() => handleDeleteAssignment(item.id)} className="text-slate-300 hover:text-red-500 transition-colors" disabled={isSaving}>
+                                                                            <span className="material-symbols-outlined">delete</span>
+                                                                        </button>
+                                                                    </div>
                                                                 </div>
-                                                            </div>
+                                                            )}
                                                         </div>
                                                     )}
                                                 </div>
@@ -919,6 +1154,10 @@ function EditInstanceCurriculum() {
                                                             onClick={() => setContentType('quiz')}
                                                             className={`px-3 py-1 rounded-full text-xs font-bold ${contentType === 'quiz' ? 'bg-primary text-white' : 'bg-slate-200 dark:bg-slate-800 text-slate-500'}`}
                                                         >ควิซ (แบบทดสอบ)</button>
+                                                        <button
+                                                            onClick={() => setContentType('assignment')}
+                                                            className={`px-3 py-1 rounded-full text-xs font-bold ${contentType === 'assignment' ? 'bg-primary text-white' : 'bg-slate-200 dark:bg-slate-800 text-slate-500'}`}
+                                                        >การบ้าน / งาน</button>
                                                     </div>
 
                                                     <input
@@ -930,22 +1169,42 @@ function EditInstanceCurriculum() {
                                                     />
 
                                                     {contentType === 'video' && (
-                                                        <>
-                                                            <input
-                                                                type="text"
-                                                                value={contentBody}
-                                                                onChange={(e) => setContentBody(e.target.value)}
-                                                                placeholder="URL สมมติของวิดีโอ (เช่น Youtube Link)"
-                                                                className="w-full p-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg outline-none text-sm"
-                                                            />
+                                                        <div className="space-y-3 p-3 bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700">
+                                                            <div className="flex gap-2">
+                                                                <button onClick={() => setVideoSourceType('url')} className={`px-3 py-1 text-[10px] font-bold rounded-full transition-all ${videoSourceType === 'url' ? 'bg-primary text-white' : 'bg-slate-100 text-slate-500'}`}>ใช้ URL</button>
+                                                                <button onClick={() => setVideoSourceType('file')} className={`px-3 py-1 text-[10px] font-bold rounded-full transition-all ${videoSourceType === 'file' ? 'bg-primary text-white' : 'bg-slate-100 text-slate-500'}`}>อัปโหลดไฟล์</button>
+                                                            </div>
+
+                                                            {videoSourceType === 'url' ? (
+                                                                <input
+                                                                    type="text"
+                                                                    value={contentBody}
+                                                                    onChange={(e) => setContentBody(e.target.value)}
+                                                                    placeholder="URL วิดีโอ (YouTube, MP4, etc.)"
+                                                                    className="w-full p-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg outline-none text-sm"
+                                                                />
+                                                            ) : (
+                                                                <input
+                                                                    type="file"
+                                                                    accept="video/*"
+                                                                    onChange={(e) => setVideoFile(e.target.files[0])}
+                                                                    className="w-full p-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg outline-none text-sm"
+                                                                />
+                                                            )}
                                                             <input
                                                                 type="number"
                                                                 value={contentExtra}
                                                                 onChange={(e) => setContentExtra(e.target.value)}
                                                                 placeholder="ความยาว (นาที)"
-                                                                className="w-full p-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg outline-none text-sm"
+                                                                className="w-full p-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg outline-none text-sm"
                                                             />
-                                                        </>
+                                                            {error && (
+                                                                <div className="text-red-500 text-[10px] font-bold mt-1 bg-red-50 dark:bg-red-900/20 p-2 rounded-lg border border-red-100 dark:border-red-900/30 flex items-center gap-1">
+                                                                    <span className="material-symbols-outlined text-sm">error</span>
+                                                                    {error}
+                                                                </div>
+                                                            )}
+                                                        </div>
                                                     )}
 
                                                     {contentType === 'text' && (
@@ -963,6 +1222,15 @@ function EditInstanceCurriculum() {
                                                             onChange={(e) => setContentExtra(e.target.value)}
                                                             placeholder="คะแนนที่ผ่าน (เช่น 60)"
                                                             className="w-full p-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg outline-none text-sm"
+                                                        />
+                                                    )}
+
+                                                    {contentType === 'assignment' && (
+                                                        <textarea
+                                                            value={contentBody}
+                                                            onChange={(e) => setContentBody(e.target.value)}
+                                                            placeholder="คำอธิบายงาน..."
+                                                            className="w-full p-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg outline-none text-sm min-h-[100px]"
                                                         />
                                                     )}
 
@@ -984,7 +1252,7 @@ function EditInstanceCurriculum() {
                                                 </div>
                                             ) : (
                                                 <button
-                                                    onClick={() => { setActiveModuleDialog(module.id); setContentType('video'); setContentTitle(""); setContentBody(""); setContentExtra(""); }}
+                                                    onClick={() => { setActiveModuleDialog(module.id); setContentType('video'); setContentTitle(""); setContentBody(""); setContentExtra(""); setError(null); }}
                                                     className="w-full py-3 border border-dashed border-slate-200 dark:border-slate-800 rounded-xl text-slate-400 text-xs font-bold hover:border-primary hover:text-primary transition-all flex items-center justify-center space-x-2"
                                                 >
                                                     <span className="material-symbols-outlined text-sm">add</span>

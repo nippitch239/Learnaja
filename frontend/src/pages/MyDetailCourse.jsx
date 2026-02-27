@@ -3,6 +3,8 @@ import { Link, useParams, useNavigate } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
 import api from "../services/api";
 import 'quill/dist/quill.snow.css';
+import Plyr from 'plyr';
+import 'plyr/dist/plyr.css';
 
 function MyDetailCourse() {
     const { id } = useParams();
@@ -18,6 +20,7 @@ function MyDetailCourse() {
     const [activeItem, setActiveItem] = useState(null);
     const [videoPlaying, setVideoPlaying] = useState(false);
     const iframeRef = useRef(null);
+    const plyrRef = useRef(null);
 
     const [quizStarted, setQuizStarted] = useState(false);
     const [currentQuestionIdx, setCurrentQuestionIdx] = useState(0);
@@ -28,6 +31,41 @@ function MyDetailCourse() {
     // Progress
     const [progress, setProgress] = useState({ lessons: [], assignments: [], quizzes: [] });
     const [totalItemsCount, setTotalItemsCount] = useState(0);
+
+    const getAllSortedItems = (courseData) => {
+        if (!courseData) return [];
+        let items = [];
+        courseData.modules?.forEach((module, mIdx) => {
+            const moduleItems = [
+                ...(module.lessons || []).map(l => ({ type: 'lesson', data: l, moduleIndex: mIdx, order: l.order_index || 0 })),
+                ...(module.assignments || []).map(a => ({ type: 'assignment', data: a, moduleIndex: mIdx, order: a.order_index || 0 })),
+                ...(module.quizzes || []).map(q => ({ type: 'quiz', data: q, moduleIndex: mIdx, order: q.order_index || 0 }))
+            ];
+            moduleItems.sort((a, b) => a.order - b.order);
+            items.push(...moduleItems);
+        });
+        return items;
+    };
+
+    const handleNextItem = () => {
+        const items = getAllSortedItems(course);
+        if (!activeItem) {
+            if (items.length > 0) handleItemClick(items[0].type, items[0].data, items[0].moduleIndex);
+            return;
+        }
+
+        const currentIndex = items.findIndex(item =>
+            item.type === activeItem.type && item.data.id === activeItem.data.id
+        );
+
+        if (currentIndex !== -1 && currentIndex < items.length - 1) {
+            const nextItem = items[currentIndex + 1];
+            handleItemClick(nextItem.type, nextItem.data, nextItem.moduleIndex);
+            if (nextItem.moduleIndex !== activeItem.moduleIndex) setOpenModule(nextItem.moduleIndex);
+        } else {
+            alert("คุณเรียนจบเนื้อหาทั้งหมดแล้ว! ยินดีด้วย!");
+        }
+    };
 
     useEffect(() => {
         if (!user) {
@@ -62,16 +100,10 @@ function MyDetailCourse() {
                     console.error("Failed to fetch progress", e);
                 }
 
-                // Set initial active item
-                if (res.data.modules && res.data.modules.length > 0) {
-                    const firstModule = res.data.modules[0];
-                    if (firstModule.lessons && firstModule.lessons.length > 0) {
-                        setActiveItem({ type: 'lesson', data: firstModule.lessons[0], moduleIndex: 0 });
-                    } else if (firstModule.quizzes && firstModule.quizzes.length > 0) {
-                        setActiveItem({ type: 'quiz', data: firstModule.quizzes[0], moduleIndex: 0 });
-                    } else if (firstModule.assignments && firstModule.assignments.length > 0) {
-                        setActiveItem({ type: 'assignment', data: firstModule.assignments[0], moduleIndex: 0 });
-                    }
+                // Set initial active item using sorted items
+                const allItems = getAllSortedItems(res.data);
+                if (allItems.length > 0) {
+                    setActiveItem({ type: allItems[0].type, data: allItems[0].data, moduleIndex: allItems[0].moduleIndex });
                 }
             } catch (err) {
                 console.error(err);
@@ -182,24 +214,54 @@ function MyDetailCourse() {
         }).catch(console.error);
     };
 
-    const playVideo = (videoUrl) => {
-        setVideoPlaying(true);
-        if (iframeRef.current) {
-            iframeRef.current.src = videoUrl + "?autoplay=1";
-        }
-    };
-
     const getContentValue = (content, type) => {
         if (!content) return "";
         try {
             const parsed = typeof content === 'string' ? JSON.parse(content) : content;
-            if (type === 'video') return parsed?.videoUrl || content;
-            if (type === 'text') return parsed?.html || content;
-            return content;
+            if (type === 'video') return (parsed?.videoUrl !== undefined ? parsed.videoUrl : content) || "";
+            if (type === 'text') return (parsed?.html !== undefined ? parsed.html : content) || "";
+            return content || "";
         } catch {
-            return content;
+            return content || "";
         }
     };
+
+    const getYoutubeId = (url) => {
+        if (!url) return null;
+        let regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+        let match = url.match(regExp);
+        return (match && match[2].length === 11) ? match[2] : null;
+    };
+
+    const lessonContentValue = activeItem?.type === 'lesson' ? getContentValue(activeItem.data.content, activeItem.data.type) : "";
+    const activeYoutubeId = activeItem?.type === 'lesson' && activeItem?.data?.type === 'video' ? getYoutubeId(lessonContentValue) : null;
+    const thumbnailUrl = activeYoutubeId ? `https://img.youtube.com/vi/${activeYoutubeId}/maxresdefault.jpg` : null;
+
+    const playVideo = (videoUrl) => {
+        setVideoPlaying(true);
+    };
+
+
+
+    useEffect(() => {
+        let player = null;
+        if (videoPlaying && activeItem?.type === 'lesson' && activeItem.data.type === 'video') {
+            const element = document.querySelector('#plyr-player');
+            if (element) {
+                player = new Plyr('#plyr-player', {
+                    autoplay: true,
+                    controls: ['play-large', 'play', 'progress', 'current-time', 'mute', 'volume', 'captions', 'settings', 'pip', 'airplay', 'fullscreen']
+                });
+                plyrRef.current = player;
+            }
+        }
+        return () => {
+            if (player) {
+                player.destroy();
+                plyrRef.current = null;
+            }
+        };
+    }, [videoPlaying, activeItem?.data?.id, lessonContentValue]);
 
     if (loading) {
         return (
@@ -221,20 +283,21 @@ function MyDetailCourse() {
         );
     }
 
-    // Helper to extract YouTube ID for thumbnail
-    const getYoutubeId = (url) => {
-        if (!url) return null;
-        let regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
-        let match = url.match(regExp);
-        return (match && match[2].length === 11) ? match[2] : null;
-    };
-
-    const lessonContentValue = activeItem?.type === 'lesson' ? getContentValue(activeItem.data.content, activeItem.data.type) : "";
-    const activeYoutubeId = activeItem?.type === 'lesson' && activeItem?.data?.type === 'video' ? getYoutubeId(lessonContentValue) : null;
-    const thumbnailUrl = activeYoutubeId ? `https://img.youtube.com/vi/${activeYoutubeId}/maxresdefault.jpg` : null;
-
-    const completedCount = progress.lessons.length + progress.assignments.length + progress.quizzes.filter(q => q.passed == 1 || q.passed === true).length;
-    const progressPercentage = totalItemsCount > 0 ? Math.round((completedCount / totalItemsCount) * 100) : 0;
+    const modules = course.modules || [];
+    const totalModules = modules.length;
+    const finishedModulesCount = modules.filter(module => {
+        const lessons = module.lessons || [];
+        const quizzes = module.quizzes || [];
+        const assignments = module.assignments || [];
+        if (lessons.length === 0 && quizzes.length === 0 && assignments.length === 0) return false;
+        const lessonsDone = lessons.every(l => progress.lessons.includes(Number(l.id)));
+        const assignmentsDone = assignments.every(a => progress.assignments.includes(Number(a.id)));
+        const quizzesDone = quizzes.every(q =>
+            progress.quizzes.some(pq => pq.quiz_id === q.id && (pq.passed == 1 || pq.passed === true))
+        );
+        return lessonsDone && assignmentsDone && quizzesDone;
+    }).length;
+    const progressPercentage = totalModules > 0 ? Math.round((finishedModulesCount / totalModules) * 100) : 0;
 
     return (
         <div className="bg-main bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100">
@@ -251,9 +314,10 @@ function MyDetailCourse() {
                             </h2>
                             <span className="text-[11px] font-bold px-2 py-0.5 rounded-full text-primary bg-primary/20">{progressPercentage}%</span>
                         </div>
-                        <div className="w-full h-1.5 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
+                        <div className="w-full h-1.5 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden mb-2">
                             <div className={`h-full rounded-full bg-primary transition-all duration-500`} style={{ width: `${progressPercentage}%` }}></div>
                         </div>
+                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">{finishedModulesCount} / {totalModules} บทเรียนที่สำเร็จ</p>
                     </div>
 
                     <div className="flex-1 overflow-y-auto custom-scrollbar p-3 flex flex-col gap-1">
@@ -268,50 +332,55 @@ function MyDetailCourse() {
                                 </button>
 
                                 <div className={`module-items mt-1 ml-3 pl-3 border-l-2 border-slate-200 dark:border-slate-600 ${openModule === mIdx ? 'block' : 'hidden'}`}>
-                                    {module.lessons?.map((lesson, lIdx) => {
-                                        const isActive = activeItem?.type === 'lesson' && activeItem?.data?.id === lesson.id;
-                                        const isCompleted = progress.lessons.includes(lesson.id);
-                                        return (
-                                            <div key={lesson.id}
-                                                className={`flex items-center gap-2 pl-4 pr-2.5 py-2 rounded-lg text-xs cursor-pointer transition-colors ${isActive ? 'bg-primary/20 border border-primary/50 text-slate-800 font-semibold dark:text-slate-200' : 'text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700/50'}`}
-                                                onClick={() => handleItemClick('lesson', lesson, mIdx)}>
-                                                <span className={`material-symbols-outlined text-sm ${isActive ? 'text-primary-dark' : 'text-slate-300'} ${isCompleted ? 'text-green-500!' : ''}`}>
-                                                    {isCompleted ? 'check_circle' : (lesson.type === 'video' ? 'play_circle' : 'article')}
-                                                </span>
-                                                <span className="truncate">{lIdx + 1}. {lesson.title}</span>
-                                            </div>
-                                        );
-                                    })}
+                                    {(() => {
+                                        const items = [
+                                            ...(module.lessons || []).map(l => ({ ...l, itemType: 'lesson' })),
+                                            ...(module.assignments || []).map(a => ({ ...a, itemType: 'assignment' })),
+                                            ...(module.quizzes || []).map(q => ({ ...q, itemType: 'quiz' }))
+                                        ].sort((a, b) => (a.order_index || 0) - (b.order_index || 0));
 
-                                    {module.assignments?.map((assignment, aIdx) => {
-                                        const isActive = activeItem?.type === 'assignment' && activeItem?.data?.id === assignment.id;
-                                        const isCompleted = progress.assignments.includes(assignment.id);
-                                        return (
-                                            <div key={assignment.id}
-                                                className={`flex items-center gap-2 px-2.5 py-2 rounded-lg text-xs cursor-pointer transition-colors ${isActive ? 'bg-primary/20 border border-primary/50 text-slate-800 font-semibold dark:text-slate-200' : 'text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700/50'}`}
-                                                onClick={() => handleItemClick('assignment', assignment, mIdx)}>
-                                                <span className={`material-symbols-outlined text-sm ${isActive ? 'text-primary-dark' : 'text-slate-300'} ${isCompleted ? 'text-green-500!' : ''}`}>
-                                                    {isCompleted ? 'check_circle' : 'assignment'}
-                                                </span>
-                                                <span className="truncate">งาน: {assignment.title}</span>
-                                            </div>
-                                        );
-                                    })}
+                                        return items.map((item, iIdx) => {
+                                            const isActive = activeItem?.type === item.itemType && activeItem?.data?.id === item.id;
 
-                                    {module.quizzes?.map((quiz, qIdx) => {
-                                        const isActive = activeItem?.type === 'quiz' && activeItem?.data?.id === quiz.id;
-                                        const quizPassed = progress.quizzes.find(q => q.quiz_id === quiz.id && q.passed);
-                                        return (
-                                            <div key={quiz.id}
-                                                className={`flex items-center gap-2 px-2.5 py-2 rounded-lg text-xs font-medium cursor-pointer mt-1 transition-colors ${isActive ? 'bg-primary/20 text-primary-dark border border-primary/50' : 'bg-primary/10 text-primary-dark dark:bg-primary/20'}`}
-                                                onClick={() => handleItemClick('quiz', quiz, mIdx)}>
-                                                <span className={`material-symbols-outlined text-sm ${quizPassed ? 'text-green-500!' : ''}`}>
-                                                    {quizPassed ? 'check_circle' : 'quiz'}
-                                                </span>
-                                                <span className="truncate">Quiz: {quiz.title}</span>
-                                            </div>
-                                        );
-                                    })}
+                                            if (item.itemType === 'lesson') {
+                                                const isCompleted = progress.lessons.includes(item.id);
+                                                return (
+                                                    <div key={`l-${item.id}`}
+                                                        className={`flex items-center gap-2 pl-4 pr-2.5 py-2 rounded-lg text-xs cursor-pointer transition-colors ${isActive ? 'bg-primary/20 border border-primary/50 text-slate-800 font-semibold dark:text-slate-200' : 'text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700/50'}`}
+                                                        onClick={() => handleItemClick('lesson', item, mIdx)}>
+                                                        <span className={`material-symbols-outlined text-sm ${isActive ? 'text-primary-dark' : 'text-slate-300'} ${isCompleted ? 'text-green-500!' : ''}`}>
+                                                            {isCompleted ? 'check_circle' : (item.type === 'video' ? 'play_circle' : 'article')}
+                                                        </span>
+                                                        <span className="truncate">{iIdx + 1}. {item.title}</span>
+                                                    </div>
+                                                );
+                                            } else if (item.itemType === 'assignment') {
+                                                const isCompleted = progress.assignments.includes(item.id);
+                                                return (
+                                                    <div key={`a-${item.id}`}
+                                                        className={`flex items-center gap-2 px-2.5 py-2 rounded-lg text-xs cursor-pointer transition-colors ${isActive ? 'bg-primary/20 border border-primary/50 text-slate-800 font-semibold dark:text-slate-200' : 'text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700/50'}`}
+                                                        onClick={() => handleItemClick('assignment', item, mIdx)}>
+                                                        <span className={`material-symbols-outlined text-sm ${isActive ? 'text-primary-dark' : 'text-slate-300'} ${isCompleted ? 'text-green-500!' : ''}`}>
+                                                            {isCompleted ? 'check_circle' : 'assignment'}
+                                                        </span>
+                                                        <span className="truncate">{iIdx + 1}. งาน: {item.title}</span>
+                                                    </div>
+                                                );
+                                            } else {
+                                                const quizPassed = progress.quizzes.find(q => q.quiz_id === item.id && q.passed);
+                                                return (
+                                                    <div key={`q-${item.id}`}
+                                                        className={`flex items-center gap-2 px-2.5 py-2 rounded-lg text-xs font-medium cursor-pointer mt-1 transition-colors ${isActive ? 'bg-primary/20 text-primary-dark border border-primary/50' : 'bg-primary/10 text-primary-dark dark:bg-primary/20'}`}
+                                                        onClick={() => handleItemClick('quiz', item, mIdx)}>
+                                                        <span className={`material-symbols-outlined text-sm ${quizPassed ? 'text-green-500!' : ''}`}>
+                                                            {quizPassed ? 'check_circle' : 'quiz'}
+                                                        </span>
+                                                        <span className="truncate">{iIdx + 1}. Quiz: {item.title}</span>
+                                                    </div>
+                                                );
+                                            }
+                                        });
+                                    })()}
                                 </div>
                             </div>
                         ))}
@@ -361,33 +430,59 @@ function MyDetailCourse() {
 
                         {/* Body Content based on activeItem */}
                         {activeItem?.type === 'lesson' && activeItem.data.type === 'video' && (
-                            <div className="max-w-4xl mx-auto w-full px-8 py-10">
-                                <div className="rounded-3xl overflow-hidden shadow-xl border border-slate-100 aspect-video relative group mb-12 bg-slate-900 cursor-pointer dark:border-slate-700" onClick={() => playVideo(lessonContentValue)}>
-                                    {/* Thumbnail */}
-                                    <div className={`absolute inset-0 z-10 transition-opacity duration-300 ${videoPlaying ? 'hidden' : ''}`}>
+                            <div className="max-w-5xl mx-auto w-full px-4 md:px-8 py-10">
+                                <div className={`rounded-3xl overflow-hidden shadow-2xl border border-slate-100 aspect-video relative group mb-12 bg-slate-900 dark:border-slate-700 ${lessonContentValue ? 'cursor-pointer' : 'cursor-default'}`}
+                                    onClick={() => lessonContentValue ? playVideo(lessonContentValue) : null}>
+
+                                    {/* Thumbnail / Overlays */}
+                                    <div className={`absolute inset-0 z-10 transition-opacity duration-500 ${videoPlaying ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
                                         {thumbnailUrl ? (
                                             <img alt="Lesson Thumbnail" className="w-full h-full object-cover opacity-80 group-hover:opacity-60 transition-opacity duration-300"
                                                 src={thumbnailUrl} />
                                         ) : (
-                                            <div className="w-full h-full flex items-center justify-center">
-                                                <span className="material-symbols-outlined text-5xl text-slate-300">school</span>
+                                            <div className="w-full h-full flex items-center justify-center bg-slate-800">
+                                                <span className="material-symbols-outlined text-7xl text-white/10">video_library</span>
                                             </div>
                                         )}
-                                        <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
-                                            <button className="w-20 h-20 backdrop-blur-sm text-white rounded-full flex items-center justify-center hover:scale-110 transition-transform shadow-2xl bg-primary/100/90">
-                                                <span className="material-symbols-outlined text-5xl">play_circle</span>
-                                            </button>
-                                            <span className="text-white text-xs font-semibold bg-black/30 px-3 py-1 rounded-full backdrop-blur-sm">คลิกเพื่อเล่นวิดีโอ</span>
+
+                                        <div className="absolute inset-0 flex flex-col items-center justify-center gap-4">
+                                            {lessonContentValue ? (
+                                                <>
+                                                    <div className="w-20 h-20 bg-primary/90 text-white rounded-full flex items-center justify-center hover:scale-110 transition-transform shadow-2xl backdrop-blur-md border border-white/20">
+                                                        <span className="material-symbols-outlined text-5xl">play_circle</span>
+                                                    </div>
+                                                    <span className="text-white text-[11px] font-bold bg-black/40 px-5 py-2 rounded-full backdrop-blur-md border border-white/10 uppercase tracking-widest">คลิกเพื่อเริ่มเรียน</span>
+                                                </>
+                                            ) : (
+                                                <div className="flex flex-col items-center gap-3 bg-black/40 p-8 rounded-3xl backdrop-blur-md border border-white/5 max-w-xs text-center">
+                                                    <span className="material-symbols-outlined text-5xl text-yellow-500 animate-pulse">pending</span>
+                                                    <div>
+                                                        <p className="text-white font-bold text-lg mb-1">ยังไม่มีวิดีโอในขณะนี้</p>
+                                                        <p className="text-white/50 text-[10px] uppercase tracking-widest font-bold">Content is expected soon</p>
+                                                    </div>
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
-                                    {/* YouTube iframe */}
-                                    <iframe ref={iframeRef}
-                                        className={`absolute inset-0 w-full h-full transition-opacity duration-300 ${videoPlaying ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
-                                        title="YouTube video player"
-                                        frameBorder="0"
-                                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                                        allowFullScreen>
-                                    </iframe>
+
+                                    {/* Plyr Container */}
+                                    {lessonContentValue && (
+                                        <div key={activeItem?.data?.id} className={`w-full h-full ${!videoPlaying ? 'hidden' : ''}`}>
+                                            {(lessonContentValue.includes('youtube.com') || lessonContentValue.includes('youtu.be')) ? (
+                                                <div id="plyr-player" className="w-full h-full" data-plyr-provider="youtube" data-plyr-embed-id={getYoutubeId(lessonContentValue)}></div>
+                                            ) : (
+                                                <video
+                                                    id="plyr-player"
+                                                    playsInline
+                                                    controls
+                                                    className="w-full h-full"
+                                                    src={lessonContentValue.startsWith('/')
+                                                        ? `${import.meta.env.VITE_API_URL || "http://localhost:3200"}${lessonContentValue}`
+                                                        : lessonContentValue}
+                                                ></video>
+                                            )}
+                                        </div>
+                                    )}
                                 </div>
 
                                 <article>
@@ -423,13 +518,46 @@ function MyDetailCourse() {
                                     </header>
                                     <div className="ql-editor p-0!" dangerouslySetInnerHTML={{ __html: lessonContentValue }} />
                                     <style>{`
-                                        /* Additional styles to make Quill content look good with Tailwind */
+                                        /* Plyr - Force it to fill the aspect-video container */
+                                        .plyr { height: 100% !important; width: 100% !important; max-width: 100% !important; position: absolute !important; top: 0; left: 0; }
+                                        .plyr--video { height: 100% !important; background: transparent !important; }
+                                        .plyr__video-wrapper { height: 100% !important; width: 100% !important; display: flex !important; align-items: center !important; justify-content: center !important; background: #000 !important; }
+                                        .plyr__video-embed { 
+                                            height: 100% !important; 
+                                            width: 100% !important; 
+                                            padding-bottom: 0 !important; 
+                                            position: absolute !important;
+                                            top: 0 !important;
+                                            left: 0 !important;
+                                        }
+                                        .plyr__video-embed iframe {
+                                            width: 100% !important;
+                                            height: 100% !important;
+                                            position: absolute !important;
+                                            top: 0 !important;
+                                            left: 0 !important;
+                                        }
+                                        .plyr video { object-fit: contain !important; width: 100% !important; height: 100% !important; }
+                                        .plyr__poster { background-size: cover !important; }
+                                        
+                                        /* Speed/Badge Fix */
+                                        .plyr__control--overlaid { z-index: 20; }
+                                        .plyr__controls { z-index: 30; }
+                                        
+                                        /* Custom Scrollbar */
+                                        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+                                        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+                                        .custom-scrollbar::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
+                                        .dark .custom-scrollbar::-webkit-scrollbar-thumb { background: #334155; }
+
+                                        /* styles Quill content */
                                         .ql-editor h1 { font-size: 2.25rem !important; font-weight: 800 !important; margin-bottom: 1.5rem !important; }
                                         .ql-editor h2 { font-size: 1.875rem !important; font-weight: 700 !important; margin-bottom: 1.25rem !important; }
                                         .ql-editor h3 { font-size: 1.5rem !important; font-weight: 600 !important; margin-bottom: 1rem !important; }
                                         .ql-editor p { margin-bottom: 1rem !important; }
                                         .dark .ql-editor { color: #e2e8f0; }
-                                        /* Fix alignment classes not working due to Tailwind Preflight */
+
+                                        /* Fix alignment */
                                         .ql-align-center { text-align: center !important; }
                                         .ql-align-right { text-align: right !important; }
                                         .ql-align-justify { text-align: justify !important; }
@@ -605,6 +733,15 @@ function MyDetailCourse() {
                                     <div className="p-8 bg-slate-50 dark:bg-slate-800/50 rounded-3xl border-2 border-dashed border-slate-200 dark:border-slate-700 text-center space-y-4">
                                         <span className="material-symbols-outlined text-4xl text-slate-300">upload_file</span>
                                         <p className="text-sm font-bold text-slate-400">อัปโหลดไฟล์งานของคุณ</p>
+                                    </div>
+                                    <div className="mt-10 flex justify-end">
+                                        <button
+                                            onClick={handleNextItem}
+                                            className="px-8 py-3 rounded-xl font-bold bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 hover:opacity-90 transition-all flex items-center gap-2"
+                                        >
+                                            <span>ถัดไป</span>
+                                            <span className="material-symbols-outlined">arrow_forward</span>
+                                        </button>
                                     </div>
                                 </div>
                             </div>

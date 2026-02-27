@@ -239,11 +239,26 @@ function InstanceDetail() {
                                     <div className="p-2 space-y-4">
                                         <h4 className="font-bold text-lg text-slate-800 dark:text-slate-100">ความคืบหน้าของฉัน</h4>
                                         {(() => {
-                                            const completedCount =
-                                                progress.lessons.length +
-                                                progress.assignments.length +
-                                                progress.quizzes.filter(q => q.passed == 1 || q.passed === true).length;
-                                            const pct = totalItemsCount > 0 ? Math.round((completedCount / totalItemsCount) * 100) : 0;
+                                            const modules = instance.modules || [];
+                                            const totalModules = modules.length;
+
+                                            const finishedModulesCount = modules.filter(module => {
+                                                const lessons = module.lessons || [];
+                                                const quizzes = module.quizzes || [];
+                                                const assignments = module.assignments || [];
+
+                                                if (lessons.length === 0 && quizzes.length === 0 && assignments.length === 0) return false;
+
+                                                const lessonsDone = lessons.every(l => progress.lessons.includes(Number(l.id)));
+                                                const assignmentsDone = assignments.every(a => progress.assignments.includes(Number(a.id)));
+                                                const quizzesDone = quizzes.every(q =>
+                                                    progress.quizzes.some(pq => pq.quiz_id === q.id && (pq.passed == 1 || pq.passed === true))
+                                                );
+
+                                                return lessonsDone && assignmentsDone && quizzesDone;
+                                            }).length;
+
+                                            const pct = totalModules > 0 ? Math.round((finishedModulesCount / totalModules) * 100) : 0;
                                             return (
                                                 <div className="space-y-2">
                                                     <div className="flex items-center justify-between text-xs font-bold">
@@ -253,7 +268,7 @@ function InstanceDetail() {
                                                     <div className="w-full h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
                                                         <div className="h-full bg-primary rounded-full transition-all duration-500" style={{ width: `${pct}%` }}></div>
                                                     </div>
-                                                    <p className="text-[11px] text-slate-400 font-medium">{completedCount} / {totalItemsCount} หัวข้อ</p>
+                                                    <p className="text-[11px] text-slate-400 font-medium">{finishedModulesCount} / {totalModules} บทเรียน</p>
                                                 </div>
                                             );
                                         })()}

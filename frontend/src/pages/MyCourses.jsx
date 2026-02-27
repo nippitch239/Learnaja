@@ -118,13 +118,13 @@ function MyCourses() {
                             Dashboard
                         </span>
                         <h1 className="text-5xl font-black text-slate-900 dark:text-white mb-6 tracking-tight leading-tight">
-                            จัดการคอร์ส <br />
-                            <span className="text-transparent bg-clip-text bg-linear-to-r from-primary to-purple-600">
-                                และการเรียนการสอนของคุณ
+                            คอร์สของคุณ <br />
+                            <span className="text-transparent bg-clip-text bg-linear-to-r from-primary to-purple-600 py-2">
+                                และการเรียนรู้ของคุณ
                             </span>
                         </h1>
                         <p className="text-lg text-slate-500 mb-0 leading-relaxed">
-                            ยินดีต้อนรับกลับมา! {user?.name} ที่นี่คือที่สำหรับจัดการเนื้อหา ปรับแต่งบทเรียน และติดตามความคืบหน้าของคอร์สที่คุณเป็นเจ้าของ
+                            ติดตามความคืบหน้าของคอร์สของคุณ และเริ่มเรียนรู้สิ่งใหม่ๆได้เลย
                         </p>
                     </div>
                 </div>
@@ -157,7 +157,7 @@ function MyCourses() {
                             <div className="flex items-center gap-4 mb-8">
                                 <div className="w-1.5 h-8 bg-purple-500 rounded-full"></div>
                                 <h2 className="text-2xl font-black text-slate-800 dark:text-white uppercase tracking-tight">
-                                    คอร์สที่คุณได้รับเชิญร่วมสอน
+                                    คอร์สที่คุณได้รับเชิญ
                                 </h2>
                                 <div className="flex-1 h-px bg-slate-200 dark:bg-slate-800"></div>
                             </div>

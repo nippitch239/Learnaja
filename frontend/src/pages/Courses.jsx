@@ -1,13 +1,15 @@
-import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { useContext, useState, useEffect, useRef } from "react";
+import { Link, useSearchParams } from "react-router-dom";
 import { fetchCourses } from "../services/fetchCourse";
 
 function Courses() {
+    const [searchParams] = useSearchParams();
     const [courses, setCourses] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState("");
-    const [selectedCategory, setSelectedCategory] = useState("ทั้งหมด");
+    const [selectedCategory, setSelectedCategory] = useState(searchParams.get("category") || "ทั้งหมด");
     const [isCategoryDropdownOpen, setIsCategoryDropdownOpen] = useState(false);
+    const dropdownRef = useRef(null);
     const [sortBy, setSortBy] = useState("popular");
 
     const categories = [
@@ -25,6 +27,8 @@ function Courses() {
         { value: "newest", label: "ใหม่ล่าสุด" },
         { value: "rating_asc", label: "คะแนน: ต่ำไปสูง" },
         { value: "rating_desc", label: "คะแนน: สูงไปต่ำ" },
+        { value: "price_desc", label: "ราคา: สูงไปต่ำ" },
+        { value: "price_asc", label: "ราคา: ต่ำไปสูง" },
     ];
 
     useEffect(() => {
@@ -56,6 +60,16 @@ function Courses() {
         }
     };
 
+    useEffect(() => {
+        function handleClickOutside(event) {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+                setIsCategoryDropdownOpen(false);
+            }
+        }
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, []);
+
     return (
         <main className="pt-28 pb-12 max-w-7xl mx-auto px-4 lg:px-6">
             <div className="flex flex-col space-y-8">
@@ -65,7 +79,7 @@ function Courses() {
 
                     {/* Left: Category dropdown + Search */}
                     <div className="flex items-center space-x-4 w-full md:w-auto">
-                        <div className="relative">
+                        <div className="relative" ref={dropdownRef}>
                             <button
                                 onClick={() => setIsCategoryDropdownOpen(o => !o)}
                                 className="flex items-center space-x-2 px-6 py-2.5 bg-slate-50 dark:bg-slate-800 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors font-semibold text-sm"
@@ -83,7 +97,7 @@ function Courses() {
                                         <button
                                             key={cat.name}
                                             onClick={() => handleCategorySelect(cat.name)}
-                                            className={`flex items-center space-x-2 w-full px-4 py-2.5 text-sm hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors ${selectedCategory === cat.name ? "text-primary font-bold" : ""}`}
+                                            className={`flex items-center space-x-2 w-full px-4 py-2.5 text-sm hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors cursor-pointer ${selectedCategory === cat.name ? "text-primary font-bold" : ""}`}
                                         >
                                             <span className="material-symbols-outlined text-lg">{cat.icon}</span>
                                             <span>{cat.name}</span>
@@ -154,8 +168,8 @@ function Courses() {
                 ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                         {courses.map(course => (
-                            <Link to={`/courses/${course.id}`}>
-                            <div
+                            <Link
+                                to={`/courses/${course.id}`}
                                 key={course.id}
                                 className="bg-white dark:bg-surface-dark rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 border border-slate-100 dark:border-slate-800 group"
                             >
@@ -194,15 +208,11 @@ function Courses() {
 
                                     <div className="flex items-center justify-between">
                                         <span className="text-2xl font-black text-primary">{course.price}P</span>
-                                        <Link
-                                            to={`/courses/${course.id}`}
-                                            className="bg-primary/10 text-primary hover:bg-primary hover:text-white px-4 py-2 rounded-xl transition-all text-sm font-semibold"
-                                        >
+                                        <div className="bg-primary/10 text-primary group-hover:bg-primary group-hover:text-white px-4 py-2 rounded-xl transition-all text-sm font-semibold">
                                             ดูรายละเอียด
-                                        </Link>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
                             </Link>
                         ))}
                     </div>
