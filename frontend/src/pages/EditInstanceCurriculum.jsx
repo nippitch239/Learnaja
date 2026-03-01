@@ -27,14 +27,43 @@ function RichTextEditor({ value, onChange, placeholder = 'เขียนเน�
                 [{ color: [] }, { background: [] }],
                 [{ list: 'ordered' }, { list: 'bullet' }],
                 [{ align: [] }],
-                ['link', 'blockquote', 'code-block'],
+                ['link', 'blockquote', 'code-block', 'json'],
                 ['clean']
             ];
+
             const q = new Quill(containerRef.current, {
                 theme: 'snow',
                 placeholder,
-                modules: { toolbar: toolbarOptions }
+                modules: {
+                    toolbar: {
+                        container: toolbarOptions,
+                        handlers: {
+                            json: function () {
+                                const jsonInput = window.prompt("วาง JSON วางเนื้อหา (Delta JSON) ที่นี่:");
+                                if (jsonInput) {
+                                    try {
+                                        const data = JSON.parse(jsonInput);
+
+                                        if (data && (data.ops || Array.isArray(data))) {
+                                            const delta = Array.isArray(data) ? { ops: data } : data;
+                                            this.quill.setContents(delta);
+                                            return;
+                                        }
+
+                                        const formatted = JSON.stringify(data, null, 2);
+                                        const range = this.quill.getSelection(true);
+                                        this.quill.insertText(range.index, formatted, 'code-block', true);
+                                    } catch (e) {
+                                        const range = this.quill.getSelection(true);
+                                        this.quill.insertText(range.index, jsonInput);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
             });
+
             if (value) q.clipboard.dangerouslyPasteHTML(value);
             q.on('text-change', () => {
                 const html = q.getSemanticHTML();
@@ -74,6 +103,9 @@ function RichTextEditor({ value, onChange, placeholder = 'เขียนเน�
                 .dark .rich-editor-wrapper .ql-container { color: #e2e8f0; }
                 .dark .rich-editor-wrapper .ql-editor.ql-blank::before { color: #64748b; }
                 .rich-editor-wrapper .ql-editor { min-height: 160px; max-height: 400px; overflow-y: auto; padding: 12px 16px; }
+                .ql-json::after { content: "{JSON}"; font-size: 10px; font-weight: 800; vertical-align: middle; color: #64748b; }
+                .dark .ql-json::after { color: #94a3b8; }
+                .ql-json { width: auto !important; padding: 0 4px !important; }
             `}</style>
         </div>
     );
@@ -116,7 +148,6 @@ function EditInstanceCurriculum() {
     const [editAssignmentTitle, setEditAssignmentTitle] = useState("");
     const [editAssignmentDescription, setEditAssignmentDescription] = useState("");
 
-    // Quiz Question Form States (for adding)
     const [activeQuizDialog, setActiveQuizDialog] = useState(null);
     const [questionType, setQuestionType] = useState('single_choice');
     const [questionText, setQuestionText] = useState("");
@@ -124,7 +155,6 @@ function EditInstanceCurriculum() {
     const [questionCorrect, setQuestionCorrect] = useState("0");
     const [questionPoints, setQuestionPoints] = useState(10);
 
-    // Quiz Question Edit States
     const [editQuestionId, setEditQuestionId] = useState(null);
     const [editQuestionType, setEditQuestionType] = useState('single_choice');
     const [editQuestionText, setEditQuestionText] = useState("");
@@ -132,13 +162,11 @@ function EditInstanceCurriculum() {
     const [editQuestionCorrect, setEditQuestionCorrect] = useState("0");
     const [editQuestionPoints, setEditQuestionPoints] = useState(10);
 
-    // Video upload state
     const [videoFile, setVideoFile] = useState(null);
     const [editVideoFile, setEditVideoFile] = useState(null);
     const [videoSourceType, setVideoSourceType] = useState('url'); // 'url' or 'file'
     const [editVideoSourceType, setEditVideoSourceType] = useState('url');
 
-    // Drag-and-drop state for module reordering
     const [dragIdx, setDragIdx] = useState(null);
     const [dragOverIdx, setDragOverIdx] = useState(null);
     const [canDragModule, setCanDragModule] = useState(false);
@@ -643,7 +671,7 @@ function EditInstanceCurriculum() {
             <main className="pt-28 pb-12 max-w-7xl mx-auto px-4 lg:px-6">
                 <div className="flex flex-col lg:flex-row gap-8">
 
-                    {/* Sidebar - Reference from EditCurriculum.jsx */}
+                    {/* Sidebar */}
                     <aside className="w-full lg:w-64 shrink-0">
                         <div className="bg-white dark:bg-surface-dark rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 p-4 sticky top-28">
                             <nav className="space-y-1">
@@ -672,7 +700,7 @@ function EditInstanceCurriculum() {
                         </div>
                     </aside>
 
-                    {/* Content - Reference from EditCurriculum.jsx */}
+                    {/* Content  */}
                     <div className="flex-1">
                         <div className="bg-white dark:bg-surface-dark rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 overflow-hidden">
                             <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">

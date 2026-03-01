@@ -561,6 +561,24 @@ function MyDetailCourse() {
                                         .ql-align-center { text-align: center !important; }
                                         .ql-align-right { text-align: right !important; }
                                         .ql-align-justify { text-align: justify !important; }
+                                        
+                                        /* Code Block Styles */
+                                        .ql-syntax {
+                                            background-color: #1e293b !important;
+                                            color: #e2e8f0 !important;
+                                            border-radius: 12px !important;
+                                            padding: 1.5rem !important;
+                                            font-family: 'Fira Code', 'Roboto Mono', monospace !important;
+                                            font-size: 0.875rem !important;
+                                            line-height: 1.6 !important;
+                                            overflow-x: auto !important;
+                                            margin: 1.5rem 0 !important;
+                                            border: 1px solid #334155 !important;
+                                        }
+                                        .dark .ql-syntax {
+                                            background-color: #0f172a !important;
+                                            border-color: #1e293b !important;
+                                        }
                                     `}</style>
                                 </article>
 
