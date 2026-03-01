@@ -110,12 +110,18 @@ function Home() {
                                         className="cursor-pointer group bg-white dark:bg-slate-800 rounded-2xl overflow-hidden border border-slate-100 dark:border-slate-700 hover:shadow-xl transition-all duration-300 flex flex-col"
                                     >
                                         <div className="h-48 bg-slate-100 dark:bg-slate-700 relative overflow-hidden">
-                                            <img
-                                                alt={course.title}
-                                                className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                                                src={course.thumbnail_url || "/images/user.png"}
-                                                onError={(e) => { e.target.src = "/images/user.png"; }}
-                                            />
+                                            {course.thumbnail_url ? (
+                                                <img
+                                                    alt={course.title}
+                                                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                                                    src={course.thumbnail_url.startsWith('http') ? course.thumbnail_url : `${import.meta.env.VITE_API_URL || 'http://localhost:3200'}${course.thumbnail_url}`}
+                                                    onError={(e) => { e.target.src = "/images/user.png"; }}
+                                                />
+                                            ) : (
+                                                <div className="w-full h-full flex items-center justify-center">
+                                                    <span className="material-symbols-outlined text-5xl text-slate-300">school</span>
+                                                </div>
+                                            )}
                                             {course.category && (
                                                 <span className="absolute top-4 left-4 px-2 py-1 bg-white/90 dark:bg-slate-900/90 backdrop-blur-sm text-[10px] font-bold rounded shadow-sm uppercase tracking-wider">
                                                     {course.category}

@@ -146,9 +146,11 @@ function CourseDetail() {
                     <Link
                       to={`/courses/${id}/edit`}
                       className="flex items-center justify-center bg-slate-900 dark:bg-white dark:text-slate-900 text-white p-4 rounded-2xl font-bold hover:opacity-90 transition-opacity"
+                      title="แก้ไขหลักสูตร"
                     >
                       <span className="material-symbols-outlined">edit</span>
                     </Link>
+
                   )}
                 </div>
 

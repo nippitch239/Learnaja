@@ -416,7 +416,7 @@ function MyDetailCourse() {
                                         </nav>
                                         <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight dark:text-slate-100">{activeItem.data.title}</h1>
                                     </div>
-                                    {course.owner_id === user?.id && (
+                                    {course.owner_id === user?.id && user?.roles?.includes('teacher') && (
                                         <Link to={`/mycourses/${id}/edit`} className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white dark:bg-white dark:text-slate-900 rounded-xl font-bold text-xs hover:opacity-90 transition-all">
                                             <span className="material-symbols-outlined text-sm">edit</span>
                                             <span>แก้ไขคอร์สนี้</span>

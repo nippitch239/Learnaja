@@ -74,6 +74,20 @@ function MyCourses() {
                     <p className="text-sm text-slate-500 line-clamp-2 min-h-10">
                         {course.description || ""}
                     </p>
+                    {course.thumbnail_url ? (
+                        <div className="aspect-video w-full rounded-xl bg-slate-100 dark:bg-slate-800 overflow-hidden mb-2">
+                            <img
+                                src={course.thumbnail_url.startsWith('http') ? course.thumbnail_url : `${import.meta.env.VITE_API_URL || 'http://localhost:3200'}${course.thumbnail_url}`}
+                                alt={course.title}
+                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                                onError={(e) => { e.target.src = "/images/user.png"; }}
+                            />
+                        </div>
+                    ) : (
+                        <div className="aspect-video w-full rounded-xl bg-slate-100 dark:bg-slate-800 overflow-hidden mb-2 flex items-center justify-center">
+                            <span className="material-symbols-outlined text-5xl text-slate-300">school</span>
+                        </div>
+                    )}
                 </div>
 
                 <div className="pt-4 flex items-center justify-between border-t border-slate-50 dark:border-slate-800">

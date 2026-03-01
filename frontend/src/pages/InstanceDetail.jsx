@@ -226,9 +226,10 @@ function InstanceDetail() {
                                 <div className="bg-white dark:bg-slate-900 p-4 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-xl overflow-hidden group">
                                     <div className="relative rounded-2xl overflow-hidden aspect-video mb-4">
                                         <img
-                                            src={instance.thumbnail_url}
+                                            src={instance.thumbnail_url.startsWith('http') ? instance.thumbnail_url : `${import.meta.env.VITE_API_URL || 'http://localhost:3200'}${instance.thumbnail_url}`}
                                             alt={instance.title}
                                             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                                            onError={(e) => { e.target.src = "/images/user.png"; }}
                                         />
                                         <div className="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
                                             <Link to={`/mycourses/${id}`} className="w-16 h-16 bg-white rounded-full flex items-center justify-center text-primary shadow-2xl">

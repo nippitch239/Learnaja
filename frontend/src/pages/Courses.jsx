@@ -20,6 +20,8 @@ function Courses() {
         { name: "Networking", icon: "network_check" },
         { name: "Data Science", icon: "data_object" },
         { name: "Health & Wellness", icon: "health_and_safety" },
+        { name: "Cybersecurity", icon: "security" },
+        { name: "Language", icon: "language" },
     ];
 
     const sortOptions = [

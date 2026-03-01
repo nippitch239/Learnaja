@@ -9,6 +9,7 @@ import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
 import CourseDetail from "./pages/CourseDetail";
 import CourseEdit from "./pages/admin/CourseEdit";
+import CourseInfoEdit from "./pages/admin/CourseInfoEdit";
 import RequireAuth from "./Routes/RequireAuth";
 import RequireRole from "./Routes/RequireRole";
 import RequireOwner from "./Routes/RequireOwner";
@@ -26,11 +27,13 @@ import EditProfile from "./pages/EditProfile";
 // import Lesson from "./pages/Lesson";
 import InstanceDetail from "./pages/InstanceDetail";
 import EditInstanceCurriculum from "./pages/EditInstanceCurriculum";
+import EditInstanceInfo from "./pages/EditInstanceInfo";
 
 function AppContent() {
 
   const { token, user } = useContext(AuthContext);
 
+  console.log(user)
 
   return (
     <BrowserRouter>
@@ -81,7 +84,20 @@ function AppContent() {
           path="/courses/:id/edit"
           element={
             <RequireAuth>
-              <CourseEdit />
+              <RequireRole role="admin">
+                <CourseInfoEdit />
+              </RequireRole>
+            </RequireAuth>
+          }
+        />
+
+        <Route
+          path="/courses/:id/edit/curriculum"
+          element={
+            <RequireAuth>
+              <RequireRole role="admin">
+                <CourseEdit />
+              </RequireRole>
             </RequireAuth>
           }
         />
@@ -119,6 +135,17 @@ function AppContent() {
             <RequireAuth>
               <RequireOwner>
                 <EditInstanceCurriculum />
+              </RequireOwner>
+            </RequireAuth>
+          }
+        />
+
+        <Route
+          path="/mycourses/:id/edit/info"
+          element={
+            <RequireAuth>
+              <RequireOwner>
+                <EditInstanceInfo />
               </RequireOwner>
             </RequireAuth>
           }

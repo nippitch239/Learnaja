@@ -26,6 +26,8 @@ function CreateCourse() {
     "Networking",
     "Data Science",
     "Health & Wellness",
+    "Cybersecurity",
+    "Language"
   ];
 
   const handleSubmit = async (e) => {

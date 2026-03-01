@@ -44,10 +44,18 @@ function AllCourse() {
 
                     <div key={course.id} onClick={() => { navigate(`/courses/${course.id}`) }} className="group bg-white dark:bg-slate-800 rounded-2xl overflow-hidden border border-slate-100 dark:border-slate-700 hover:shadow-xl transition-all duration-300">
                         <div className="h-48 bg-accent-blue relative overflow-hidden">
-                            <img alt={course.title}
-                                className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                                src={course.thumbnail_url}
-                                loading="lazy" />
+                            {course.thumbnail_url ? (
+                                <img
+                                    src={course.thumbnail_url}
+                                    alt={course.title}
+                                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                                />
+                            ) : (
+                                <div className="w-full h-full flex items-center justify-center">
+                                    <span className="material-symbols-outlined text-5xl text-slate-300">school</span>
+                                </div>
+                            )}
+                            
                         </div>
                         <div className="p-5">
 
