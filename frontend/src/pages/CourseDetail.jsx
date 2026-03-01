@@ -65,6 +65,7 @@ function CourseDetail() {
       });
       setMessage(res.data.message || "ซื้อคอร์สสำเร็จ!");
       await calculateOwnership();
+      window.dispatchEvent(new Event("profileUpdated"));
       setTimeout(() => setMessage(""), 4000);
     } catch (err) {
       console.error(err);
@@ -180,7 +181,7 @@ function CourseDetail() {
                         {ownedInstances.map((inst, idx) => (
                           <button
                             key={inst.id}
-                            onClick={() => navigate(`/mycourses/${inst.id}`)}
+                            onClick={() => navigate(`/mycourses/${inst.id}/view`)}
                             className="w-full flex items-center justify-between px-4 py-3 hover:bg-primary/5 transition-colors text-left group"
                           >
                             <div className="flex items-center space-x-3">
