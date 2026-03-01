@@ -44,7 +44,7 @@ function Navbar() {
                 <div className="bg-primary rounded-2xl shadow-lg px-6 py-3 flex items-center justify-between">
                     <Link to="/home">
                         <div className="flex items-center space-x-2">
-                            <span className="material-symbols-outlined text-white text-3xl">book_4</span>
+                            <span><img src="/images/logo_white.png" alt="Learnaja Logo" className="h-8 w-8" /></span>
                             <span className="text-white font-bold text-2xl tracking-tight">Learnaja</span>
                         </div>
                     </Link>
