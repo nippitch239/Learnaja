@@ -19,18 +19,18 @@ import MyDetailCourse from "./pages/MyDetailCourse";
 import InviteStudent from "./pages/InviteStudent";
 import Profile from "./pages/Profile";
 import EditProfile from "./pages/EditProfile";
-import CourseTeacher from "./pages/CourseTeacher";
-import EditStudent from "./pages/EditStudent";
-import EditInfo from "./pages/EditInfo";
-import EditCurriculum from "./pages/EditCurriculum";
-import Lesson from "./pages/Lesson";
+// import CourseTeacher from "./pages/CourseTeacher";
+// import EditStudent from "./pages/EditStudent";
+// import EditInfo from "./pages/EditInfo";
+// import EditCurriculum from "./pages/EditCurriculum";
+// import Lesson from "./pages/Lesson";
 import InstanceDetail from "./pages/InstanceDetail";
 import EditInstanceCurriculum from "./pages/EditInstanceCurriculum";
 
 function AppContent() {
 
   const { token, user } = useContext(AuthContext);
-  console.log(user)
+
 
   return (
     <BrowserRouter>
@@ -44,17 +44,17 @@ function AppContent() {
         />
         <Route
           path="/home"
-          element={token ? <Home /> : <Navigate to="/login" />}
+          element={token ? <Home /> : <Navigate to="/" />}
         />
 
         <Route
           path="/login"
-          element={!token ? <Login /> : <Navigate to="/home" />}
+          element={!token ? <Login /> : <Navigate to="/" />}
         />
 
         <Route
           path="/register"
-          element={!token ? <Register /> : <Navigate to="/home" />}
+          element={!token ? <Register /> : <Navigate to="/" />}
         />
 
         <Route
@@ -147,7 +147,7 @@ function AppContent() {
         />
 
         {/* ทำไว้ดูดีไซน์เฉยๆ */}
-        <Route
+        {/* <Route
           path="/courseTeacher"
           element={token ? <CourseTeacher /> : <Navigate to="/login" />}
         />
@@ -167,7 +167,7 @@ function AppContent() {
         <Route
           path="/lesson"
           element={token ? <Lesson /> : <Navigate to="/login" />}
-        />
+        /> */}
       </Routes>
 
       <Footer />
