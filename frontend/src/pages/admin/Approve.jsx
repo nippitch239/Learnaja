@@ -40,15 +40,7 @@ function Approve() {
 
     return (
         <div className="container mx-auto px-4 py-8 max-w-6xl">
-            <div className="flex items-center justify-between mb-8">
-                <div>
-                    <h2 className="text-3xl font-extrabold text-slate-800 dark:text-white flex items-center gap-3">
-                        <span className="material-symbols-outlined text-4xl text-primary">fact_check</span>
-                        อนุมัติผู้สอน
-                    </h2>
-                    <p className="text-slate-500 mt-2">จัดการคำขอสมัครเป็นผู้สอนจากนักเรียน</p>
-                </div>
-            </div>
+
 
             {message && (
                 <div className="mb-6 p-4 rounded-xl bg-green-50 dark:bg-green-900/30 text-green-600 dark:text-green-400 font-medium flex items-center gap-2">

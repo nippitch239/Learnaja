@@ -9,7 +9,7 @@ const menuItems = [
     { key: "create", label: "สร้างคอร์สเรียน", icon: "library_add", component: <CreateCourse /> },
     { key: "all", label: "คอร์สเรียนทั้งหมด", icon: "book_5", component: <AllCourse /> },
     { key: "points", label: "จัดการคะแนน", icon: "send_money", component: <AddPoints /> },
-    { key: "approve", label: "อนุมัติคอร์สเรียน", icon: "check_circle", component: <Approve /> },
+    { key: "approve", label: "อนุมัติผู้สอน", icon: "check_circle", component: <Approve /> },
 ];
 
 function Admin() {
