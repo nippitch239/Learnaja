@@ -193,7 +193,7 @@ function CourseDetail() {
                                 <p className="font-bold text-sm text-slate-800 dark:text-slate-100 group-hover:text-primary transition-colors">
                                   {inst.title}
                                 </p>
-                                <p className="text-xs text-slate-400">Instance #{inst.id}</p>
+                                <p className="text-xs text-slate-400">#{inst.id}</p>
                               </div>
                             </div>
                             <span className="material-symbols-outlined text-primary text-base">arrow_forward</span>
