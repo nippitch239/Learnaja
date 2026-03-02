@@ -384,7 +384,7 @@ function MyDetailCourse() {
                     </div>
 
                     <div className="p-4 border-t border-slate-100 dark:border-slate-700">
-                        <Link to={`/mycourses`} className="w-full py-2.5 bg-slate-900 text-white rounded-2xl font-bold text-xs flex items-center justify-center space-x-2 shadow-sm hover:bg-slate-800 transition-all dark:hover:bg-slate-700 block text-center cursor-pointer">
+                        <Link to={`/mycourses`} className="w-full py-2.5 bg-slate-900 text-white rounded-2xl font-bold text-xs items-center justify-center space-x-2 shadow-sm hover:bg-slate-800 transition-all dark:hover:bg-slate-700 block text-center cursor-pointer">
                             <span className="material-symbols-outlined text-sm">arrow_back</span>
                             <span>กลับสู่หน้าคอร์ส</span>
                         </Link>

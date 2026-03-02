@@ -159,7 +159,7 @@ function Profile() {
                                 <p className="text-slate-500 dark:text-slate-400 text-sm">คอร์สที่คุณลงทะเบียนเรียนอยู่</p>
                             </div>
                             <Link
-                                className="dark:bg-primary/10 dark:border-primary/20 hover:bg-primary/20 text-sm font-bold text-primary flex items-center gap-1 bg-white/50 px-4 py-2 rounded-full border border-slate-100 dark:border-slate-700 transition-colors"
+                                className="dark:bg-primary/10 dark:border-primary/20 hover:bg-primary/20 text-sm font-bold text-primary flex items-center gap-1 bg-white/50 px-4 py-2 rounded-full border border-slate-100 transition-colors"
                                 to="/mycourses"
                             >
                                 ดูทั้งหมด<span className="material-symbols-outlined text-xs">arrow_forward</span>

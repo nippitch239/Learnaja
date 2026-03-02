@@ -1,5 +1,5 @@
 import { useState, useContext, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import api from '../services/api';
 
@@ -81,17 +81,20 @@ function RegisterTeacher() {
 
     if (isSuccess) {
         return (
-            <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex justify-center items-center py-12 px-4 sm:px-6 lg:px-8">
-                <div className="max-w-md w-full bg-white dark:bg-slate-900 rounded-3xl p-10 shadow-xl border border-slate-100 dark:border-slate-800 text-center animate-in fade-in zoom-in duration-500">
-                    <div className="w-20 h-20 bg-green-100 dark:bg-green-900/30 text-green-500 rounded-full flex items-center justify-center mx-auto mb-6">
-                        <span className="material-symbols-outlined text-4xl">check_circle</span>
-                    </div>
-                    <h2 className="text-3xl font-extrabold text-slate-900 dark:text-white mb-2">ส่งคำขอสำเร็จ!</h2>
-                    <p className="text-slate-500 mb-8">
-                        ระบบได้รับคำขอสมัครเป็นผู้สอนของคุณแล้ว ผู้ดูแลระบบจะทำการตรวจสอบและอนุมัติในเร็วๆ นี้
-                    </p>
-                    <div className="w-full bg-slate-100 dark:bg-slate-800 h-1 rounded-full overflow-hidden">
-                        <div className="bg-primary h-full w-full animate-[shrink_3s_linear_forwards]"></div>
+            <div className=" bg-main bg-background-light dark:bg-background-dark text-slate-800 dark:text-slate-100">
+
+                <div className="min-h-screen flex justify-center items-center py-12 px-4 sm:px-6 lg:px-8">
+                    <div className="max-w-md w-full bg-white dark:bg-slate-900 rounded-3xl p-10 shadow-xl border border-slate-100 dark:border-slate-800 text-center animate-in fade-in zoom-in duration-500">
+                        <div className="w-20 h-20 bg-green-100 dark:bg-green-900/30 text-green-500 rounded-full flex items-center justify-center mx-auto mb-6">
+                            <span className="material-symbols-outlined text-4xl">check_circle</span>
+                        </div>
+                        <h2 className="text-3xl font-extrabold text-slate-900 dark:text-white mb-2">ส่งคำขอสำเร็จ!</h2>
+                        <p className="text-slate-500 mb-8">
+                            ระบบได้รับคำขอสมัครเป็นผู้สอนของคุณแล้ว ผู้ดูแลระบบจะทำการตรวจสอบและอนุมัติในเร็วๆ นี้
+                        </p>
+                        <div className="w-full bg-slate-100 dark:bg-slate-800 h-1 rounded-full overflow-hidden">
+                            <div className="bg-primary h-full w-full animate-[shrink_3s_linear_forwards]"></div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -99,8 +102,8 @@ function RegisterTeacher() {
     }
 
     return (
-        <div className="min-h-[calc(100vh-80px)] bg-slate-50 dark:bg-slate-950 flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8 mt-15">
-            <div className="sm:mx-auto sm:w-full sm:max-w-xl">
+        <div className=" bg-main bg-background-light dark:bg-background-dark text-slate-800 dark:text-slate-100">
+            <div className="sm:mx-auto sm:w-full sm:max-w-xl py-24 ">
                 <div className="text-center mb-8">
                     <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary/10 text-primary mb-4">
                         <span className="material-symbols-outlined text-3xl">school</span>
@@ -201,6 +204,9 @@ function RegisterTeacher() {
                                 "ส่งคำขอเป็นผู้สอน"
                             )}
                         </button>
+                        <Link to="/profile" className="mt-4 text-right text-sm font-medium text-primary hover:text-primary/80 transition-colors block hover:underline">
+                            ยกเลิกและกลับไปยังโปรไฟล์
+                        </Link>
                     </form>
                 </div>
             </div>

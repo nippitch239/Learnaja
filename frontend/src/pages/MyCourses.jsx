@@ -127,7 +127,7 @@ function MyCourses() {
             <h4 className="text-lg font-bold text-slate-400">{title}</h4>
             <p className="text-sm text-slate-400/80 mt-1">คุณยังไม่มีคอร์สในรายการนี้</p>
             {title === "คอร์สที่คุณเป็นเจ้าของ" && (
-                <Link to="/courses" className="mt-6 px-6 py-2 bg-primary text-white rounded-full font-bold text-sm shadow-lg shadow-pink-100">
+                <Link to="/courses" className="mt-6 px-6 py-2 bg-primary text-white rounded-full font-bold text-sm shadow-lg shadow-pink-100 dark:shadow-none hover:bg-primary/90 transition-all flex items-center gap-2">
                     เลือกซื้อคอร์สที่สนใจ
                 </Link>
             )}
@@ -161,23 +161,6 @@ function MyCourses() {
 
     return (
         <div className=" bg-main bg-background-light dark:bg-background-dark text-slate-800 dark:text-slate-100">
-            {/* Hero Section */}
-            {/* <div className="pt-25 relative overflow-hidde dark:bg-slate-900 bg-linear-to-r from-primary/0 to-purple-300/20 bg-transparent pb-24 border-b border-slate-100 dark:border-slate-800">
-                <div className="absolute top-0 right-0 w-1/3 h-full bg-linear-to-l from-primary/5 to-transparent skew-x-12 transform translate-x-20"></div>
-                <div className="max-w-7xl mx-auto px-6 relative z-10">
-                    <div className="max-w-3xl">
-                        <h1 className="text-5xl font-black text-slate-900 dark:text-white mb-6 tracking-tight leading-tight">
-                            คอร์สของคุณ <br />
-                            <span className="text-transparent bg-clip-text bg-linear-to-r from-primary to-purple-300 py-2">
-                                และการเรียนรู้ของคุณ
-                            </span>
-                        </h1>
-                        <p className="text-lg text-slate-500 mb-0 leading-relaxed">
-                            ติดตามความคืบหน้าของคอร์สของคุณ และเริ่มเรียนรู้สิ่งใหม่ๆได้เลย
-                        </p>
-                    </div>
-                </div>
-            </div> */}
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 py-12 space-y-12 tracking-normal">
                 <section
                     className="relative overflow-hidden rounded-3xl bg-linear-to-br from-primary/10 to-accent-purple/20 dark:from-primary/5 dark:to-slate-800 p-8 md:p-16 border border-primary/10">

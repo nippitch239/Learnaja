@@ -94,9 +94,9 @@ function CourseDetail() {
   );
 
   return (
-      <div className=" bg-main bg-background-light dark:bg-background-dark text-slate-800 dark:text-slate-100">
+    <div className=" bg-main bg-background-light dark:bg-background-dark text-slate-800 dark:text-slate-100">
       {/* Hero Section */}
-      
+
       <div className="bg-linear-to-br from-primary/10 to-accent-purple/20 dark:from-primary/5 dark:to-slate-800 p-8 md:p-16 border border-primary/10k pt-24 pb-12 border-b  border-pink-100 dark:border-slate-800">
         <div className="max-w-7xl mx-auto px-6 mt-8">
           <button
@@ -361,37 +361,42 @@ function CourseDetail() {
 
           {/* Right Column: Sidebar */}
           <div className="space-y-8">
-            {course.thumbnail_url && (
-              <div className="sticky top-28">
-                <div className="bg-white dark:bg-slate-900 p-4 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-xl overflow-hidden group">
-                  <div className="relative rounded-2xl overflow-hidden aspect-video mb-4">
+
+            <div className="sticky top-28">
+              <div className="bg-white dark:bg-slate-900 p-4 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-xl overflow-hidden group">
+                <div className="relative rounded-2xl overflow-hidden aspect-video mb-4">
+                  {course.thumbnail_url ? (
                     <img
                       src={course.thumbnail_url}
                       alt={course.title}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                     />
-                    <div className="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
-                      <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center text-primary shadow-2xl">
-                        <span className="material-symbols-outlined text-4xl fill-1">play_arrow</span>
-                      </div>
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center">
+                      <span className="material-symbols-outlined text-5xl text-slate-300">school</span>
+                    </div>
+                  )}
+                  <div className="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
+                    <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center text-primary shadow-2xl">
+                      <span className="material-symbols-outlined text-4xl fill-1">play_arrow</span>
                     </div>
                   </div>
-                  <div className="p-2 space-y-4">
-                    <h4 className="font-bold text-lg">คอร์สนี้รวมอะไรบ้าง?</h4>
-                    <ul className="space-y-3">
-                      <li className="flex items-center space-x-3 text-sm text-slate-600 dark:text-slate-400">
-                        <span className="material-symbols-outlined text-green-500 text-[18px]">check_circle</span>
-                        <span>เข้าชมได้ตลอดชีพ</span>
-                      </li>
-                      <li className="flex items-center space-x-3 text-sm text-slate-600 dark:text-slate-400">
-                        <span className="material-symbols-outlined text-green-500 text-[18px]">check_circle</span>
-                        <span>เข้าถึงบนอุปกรณ์ใดก็ได้</span>
-                      </li>
-                    </ul>
-                  </div>
+                </div>
+                <div className="p-2 space-y-4">
+                  <h4 className="font-bold text-lg">คอร์สนี้รวมอะไรบ้าง?</h4>
+                  <ul className="space-y-3">
+                    <li className="flex items-center space-x-3 text-sm text-slate-600 dark:text-slate-400">
+                      <span className="material-symbols-outlined text-green-500 text-[18px]">check_circle</span>
+                      <span>เข้าชมได้ตลอดชีพ</span>
+                    </li>
+                    <li className="flex items-center space-x-3 text-sm text-slate-600 dark:text-slate-400">
+                      <span className="material-symbols-outlined text-green-500 text-[18px]">check_circle</span>
+                      <span>เข้าถึงบนอุปกรณ์ใดก็ได้</span>
+                    </li>
+                  </ul>
                 </div>
               </div>
-            )}
+            </div>
           </div>
         </div>
       </main>

@@ -141,8 +141,8 @@ function Home() {
                                                 </span>
                                             </div>
                                             <div className="flex items-center justify-between pt-4 border-t border-slate-50 dark:border-slate-700">
-                                                <span className="font-black text-slate-900 dark:text-white text-lg">{course.price === 0 ? "FREE" : `${course.price}P`}</span>
-                                                <button className="bg-primary text-white px-4 py-2 rounded-xl text-xs font-bold hover:shadow-lg hover:shadow-primary/20 transition-all">Enroll Now</button>
+                                                <span className="font-black text-slate-900 dark:text-white text-lg">{course.price === 0 ? "ฟรี" : `${course.price}P`}</span>
+                                                <button className="bg-primary text-white px-4 py-2 rounded-xl text-xs font-bold hover:shadow-lg hover:shadow-primary/20 transition-all">ดูรายละเอียด</button>
                                             </div>
                                         </div>
                                     </div>
