@@ -98,9 +98,6 @@ function Navbar() {
                                                 <span className="material-symbols-outlined text-sm mr-2 align-middle">school</span>คอร์สทั้งหมด
                                             </li>
                                         </Link>
-                                        <li className="px-4 py-2 hover:bg-primary/10 dark:hover:bg-slate-700 cursor-pointer text-primary list-none">
-                                            <span className="material-symbols-outlined text-sm mr-2 align-middle">Settings</span>การตั้งค่า
-                                        </li>
                                         {user?.roles?.includes("admin") && (
                                             <li className="px-4 py-2 hover:bg-primary/10 dark:hover:bg-slate-700 cursor-pointer text-primary list-none">
                                                 <Link onClick={() => toggleDropdown()} to="/admin">

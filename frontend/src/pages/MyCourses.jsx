@@ -122,18 +122,15 @@ function MyCourses() {
     );
 
     return (
-        <div className="min-h-screen bg-slate-50 dark:bg-slate-950 pb-10 mt-10">
+        <div className=" bg-main bg-background-light dark:bg-background-dark text-slate-800 dark:text-slate-100">
             {/* Hero Section */}
-            <div className="relative overflow-hidden bg-white dark:bg-slate-900 pt-16 pb-24 border-b border-slate-100 dark:border-slate-800">
+            {/* <div className="pt-25 relative overflow-hidde dark:bg-slate-900 bg-linear-to-r from-primary/0 to-purple-300/20 bg-transparent pb-24 border-b border-slate-100 dark:border-slate-800">
                 <div className="absolute top-0 right-0 w-1/3 h-full bg-linear-to-l from-primary/5 to-transparent skew-x-12 transform translate-x-20"></div>
                 <div className="max-w-7xl mx-auto px-6 relative z-10">
                     <div className="max-w-3xl">
-                        <span className="inline-block px-4 py-1.5 bg-primary/10 text-primary rounded-full text-xs font-bold uppercase tracking-widest mb-6">
-                            Dashboard
-                        </span>
                         <h1 className="text-5xl font-black text-slate-900 dark:text-white mb-6 tracking-tight leading-tight">
                             คอร์สของคุณ <br />
-                            <span className="text-transparent bg-clip-text bg-linear-to-r from-primary to-purple-600 py-2">
+                            <span className="text-transparent bg-clip-text bg-linear-to-r from-primary to-purple-300 py-2">
                                 และการเรียนรู้ของคุณ
                             </span>
                         </h1>
@@ -142,10 +139,26 @@ function MyCourses() {
                         </p>
                     </div>
                 </div>
-            </div>
+            </div> */}
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 py-12 space-y-12 tracking-normal">
+                    <section
+                        className="relative overflow-hidden rounded-3xl bg-linear-to-br from-primary/10 to-accent-purple/20 dark:from-primary/5 dark:to-slate-800 p-8 md:p-16 border border-primary/10">
+                        <div className="relative z-10 max-w-2xl">
+                            <h1 className="text-5xl font-black text-slate-900 dark:text-white mb-6 tracking-tight leading-tight">
+                            คอร์สของคุณ <br />
+                            <span className="text-transparent bg-clip-text bg-linear-to-r from-primary to-purple-300 py-2">
+                                และการเรียนรู้ของคุณ
+                            </span>
+                        </h1>
+                        <p className="text-lg text-slate-500 mb-0 leading-relaxed">
+                            ติดตามความคืบหน้าของคอร์สของคุณ และเริ่มเรียนรู้สิ่งใหม่ๆได้เลย
+                        </p>
+                        </div>
 
+                    </section>
+            </div>
             {/* Owned Courses Section */}
-            <div className="max-w-7xl mx-auto px-6 -mt-10">
+            <div className="max-w-7xl mx-auto px-6 lg:px-8 pb-12">
                 <div className="space-y-12">
                     <section>
                         <div className="flex items-center gap-4 mb-8">
@@ -169,7 +182,7 @@ function MyCourses() {
                     {invitedCourses.length > 0 && (
                         <section className="pt-8">
                             <div className="flex items-center gap-4 mb-8">
-                                <div className="w-1.5 h-8 bg-purple-500 rounded-full"></div>
+                                <div className="w-1.5 h-8 bg-primary rounded-full"></div>
                                 <h2 className="text-2xl font-black text-slate-800 dark:text-white uppercase tracking-tight">
                                     คอร์สที่คุณได้รับเชิญ
                                 </h2>

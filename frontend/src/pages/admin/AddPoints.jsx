@@ -83,7 +83,7 @@ function AddPoints() {
                     <button
                         onClick={handleAddPoints}
                         disabled={!selectedUser}
-                        className="bg-primary text-white px-5 py-2.5 rounded-xl text-sm font-bold hover:bg-primary/90 transition disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2"
+                        className="bg-primary text-white px-5 py-2.5 rounded-xl text-sm font-bold hover:bg-primary/90 transition disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2 cursor-pointer"
                     >
                         <span className="material-symbols-outlined text-[18px]">add_circle</span>
                         เพิ่มคะแนน

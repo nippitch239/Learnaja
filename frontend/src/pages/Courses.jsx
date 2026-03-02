@@ -72,7 +72,7 @@ function Courses() {
     }, []);
 
     return (
-        <div className=" bg-main bg-background-light dark:bg-background-dark text-slate-800 dark:text-slate-100">
+        <div className=" bg-main bg-background-light dark:bg-background-dark text-slate-800 dark:text-slate-100 min-h-screen">
         <main className=" pt-28 pb-12 max-w-7xl mx-auto px-4 lg:px-6">
             <div className="flex flex-col space-y-8">
 
