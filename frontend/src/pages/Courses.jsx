@@ -94,7 +94,7 @@ function Courses() {
                             </button>
 
                             {isCategoryDropdownOpen && (
-                                <div className="absolute top-full mt-2 left-0 z-50 bg-white dark:bg-surface-dark border border-slate-100 dark:border-slate-800 rounded-xl shadow-lg min-w-[180px]">
+                                <div className="absolute top-full mt-2 left-0 z-50 bg-white dark:bg-surface-dark border border-slate-100 dark:border-slate-800 rounded-xl shadow-lg min-w-45">
                                     {categories.map(cat => (
                                         <button
                                             key={cat.name}
