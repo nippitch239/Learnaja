@@ -716,6 +716,21 @@ function EditInstanceCurriculum() {
                                     <span>จัดการนักเรียน</span>
                                 </NavLink>
 
+                                {instance.owner_id === user.id && user.roles.includes("teacher") && (
+                                    <NavLink
+                                        to={`/mycourses/${id}/progress`}
+                                        className={({ isActive }) =>
+                                            `flex items-center space-x-3 px-4 py-3 rounded-xl font-semibold transition-colors w-full text-left ${isActive
+                                                ? "bg-primary/10 text-primary"
+                                                : "text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800"
+                                            }`
+                                        }
+                                    >
+                                        <span className="material-symbols-outlined">insights</span>
+                                        <span>ดูความคืบหน้านักเรียน</span>
+                                    </NavLink>
+                                )}
+
                                 <NavLink
                                     to={`/mycourses/${id}/view`}
                                     className={({ isActive }) =>
@@ -1166,7 +1181,7 @@ function EditInstanceCurriculum() {
                                                             {editAssignmentId === item.id ? (
                                                                 <div className="space-y-3">
                                                                     <input type="text" value={editAssignmentTitle} onChange={(e) => setEditAssignmentTitle(e.target.value)} className="w-full p-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 font-bold text-sm rounded-lg" placeholder="ชื่องาน" autoFocus />
-                                                                    <textarea value={editAssignmentDescription} onChange={(e) => setEditAssignmentDescription(e.target.value)} className="w-full p-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 text-xs rounded-lg min-h-[80px]" placeholder="คำอธิบายงาน" />
+                                                                    <textarea value={editAssignmentDescription} onChange={(e) => setEditAssignmentDescription(e.target.value)} className="w-full p-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 text-xs rounded-lg min-h-20" placeholder="คำอธิบายงาน" />
                                                                     <div className="flex gap-2 justify-end">
                                                                         <button onClick={() => setEditAssignmentId(null)} className="px-3 py-1 bg-slate-200 text-xs font-bold rounded-lg dark:text-slate-800">ยกเลิก</button>
                                                                         <button onClick={submitEditAssignment} disabled={isSaving} className="px-3 py-1 bg-blue-500 text-white text-xs font-bold rounded-lg hover:bg-blue-600">บันทึกงาน</button>
@@ -1299,7 +1314,7 @@ function EditInstanceCurriculum() {
                                                             value={contentBody}
                                                             onChange={(e) => setContentBody(e.target.value)}
                                                             placeholder="คำอธิบายงาน..."
-                                                            className="w-full p-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg outline-none text-sm min-h-[100px]"
+                                                            className="w-full p-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg outline-none text-sm min-h-25"
                                                         />
                                                     )}
 

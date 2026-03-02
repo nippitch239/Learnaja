@@ -172,7 +172,7 @@ function Profile() {
                                     <div
                                         key={course.id}
                                         onClick={() => navigate(`/mycourses/${course.id}`)}
-                                        className="cursor-pointer bg-white/50 dark:bg-slate-800/50 bg-card-light dark:bg-card-dark p-5 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all group"
+                                        className="cursor-pointer bg-white/50 dark:bg-slate-800/90 bg-card-light dark:bg-card-dark p-5 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all group "
                                     >
                                         <div className="relative">
                                             <div className="aspect-video w-full rounded-xl bg-slate-100 dark:bg-slate-800 mb-4 overflow-hidden">
@@ -182,7 +182,7 @@ function Profile() {
                                                     src={course.thumbnail_url ? (course.thumbnail_url.startsWith("http") ? course.thumbnail_url : `${API_BASE}${course.thumbnail_url}`) : "/images/user.png"}
                                                     onError={(e) => { e.target.src = "/images/user.png"; }}
                                                 />
-                                                <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                                                <div className="absolute inset-0 bg-linear-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                                                 <div className="absolute top-2 left-2">
                                                     <span className={`px-2 py-1 rounded-lg text-[10px] font-bold ${course.source === "owned"
                                                             ? "bg-primary/90 text-white"

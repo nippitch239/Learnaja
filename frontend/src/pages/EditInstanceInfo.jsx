@@ -10,6 +10,7 @@ function EditInstanceInfo() {
     const [isSaving, setIsSaving] = useState(false);
     const [error, setError] = useState(null);
     const [message, setMessage] = useState("");
+    const [deleting, setDeleting] = useState(false);
 
     const [title, setTitle] = useState("");
     const [description, setDescription] = useState("");
@@ -60,6 +61,21 @@ function EditInstanceInfo() {
             setError(err.response?.data?.message || "ไม่สามารถบันทึกข้อมูลคอร์สได้");
         } finally {
             setIsSaving(false);
+        }
+    };
+
+    const handleDeleteInstance = async () => {
+        if (!window.confirm("คุณต้องการลบคอร์สนี้ใช่หรือไม่? นักเรียนที่ถูกเชิญและความคืบหน้าที่เกี่ยวข้องจะถูกลบออกด้วย")) return;
+        try {
+            setDeleting(true);
+            await api.delete(`/instances/${id}`);
+            alert("ลบคอร์สเรียนสำเร็จแล้ว");
+            navigate("/mycourses");
+        } catch (err) {
+            console.error(err);
+            alert(err.response?.data?.message || "ไม่สามารถลบคอร์สได้");
+        } finally {
+            setDeleting(false);
         }
     };
 
@@ -125,6 +141,19 @@ function EditInstanceInfo() {
                                 >
                                     <span className="material-symbols-outlined">group</span>
                                     <span>จัดการนักเรียน</span>
+                                </NavLink>
+
+                                <NavLink
+                                    to={`/mycourses/${id}/progress`}
+                                    className={({ isActive }) =>
+                                        `flex items-center space-x-3 px-4 py-3 rounded-xl font-semibold transition-colors w-full text-left ${isActive
+                                            ? "bg-primary/10 text-primary"
+                                            : "text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800"
+                                        }`
+                                    }
+                                >
+                                    <span className="material-symbols-outlined">insights</span>
+                                    <span>ดูความคืบหน้านักเรียน</span>
                                 </NavLink>
 
                                 <NavLink
@@ -259,7 +288,16 @@ function EditInstanceInfo() {
                                     </div>
                                 )}
 
-                                <div className="flex justify-end pt-2">
+                                <div className="flex justify-between pt-2 gap-3 flex-wrap">
+                                    <button
+                                        type="button"
+                                        onClick={handleDeleteInstance}
+                                        disabled={deleting}
+                                        className="px-4 py-3 rounded-2xl bg-red-50 text-red-600 dark:bg-red-900/30 dark:text-red-300 font-bold border border-red-200 dark:border-red-800 hover:bg-red-100 dark:hover:bg-red-900/50 transition-all flex items-center gap-2 text-sm disabled:opacity-60"
+                                    >
+                                        <span className="material-symbols-outlined text-sm">delete</span>
+                                        {deleting ? "กำลังลบคอร์ส..." : "ลบคอร์สนี้"}
+                                    </button>
                                     <button
                                         type="submit"
                                         disabled={isSaving}

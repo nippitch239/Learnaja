@@ -490,7 +490,7 @@ function MyDetailCourse() {
                                         <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight leading-tight mb-4 dark:text-slate-100">
                                             {activeItem.data.title}
                                         </h2>
-                                        <div className="h-1.5 w-12 rounded-full bg-gradient-to-r from-pink-500 to-purple-500"></div>
+                                        <div className="h-1.5 w-12 rounded-full bg-linear-to-r from-pink-500 to-primary"></div>
                                     </header>
                                 </article>
 
@@ -498,7 +498,7 @@ function MyDetailCourse() {
                                 <div className="mt-12 pt-8 border-t border-slate-100 dark:border-slate-800 flex justify-end">
                                     <button
                                         onClick={handleNextItem}
-                                        className="flex items-center gap-2 px-8 py-3 bg-primary text-white rounded-xl font-bold hover:opacity-90 transition-all shadow-lg shadow-pink-100"
+                                        className="flex items-center gap-2 px-8 py-3 bg-primary text-white rounded-xl font-bold hover:opacity-90 transition-all shadow-lg shadow-pink-100 dark:shadow-slate-900"
                                     >
                                         <span>บทเรียนถัดไป</span>
                                         <span className="material-symbols-outlined">arrow_forward</span>
@@ -514,7 +514,7 @@ function MyDetailCourse() {
                                         <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight leading-tight mb-4 dark:text-slate-100">
                                             {activeItem.data.title}
                                         </h2>
-                                        <div className="h-1.5 w-12 rounded-full bg-gradient-to-r from-pink-500 to-purple-500"></div>
+                                        <div className="h-1.5 w-12 rounded-full bg-linear-to-r from-pink-500 to-primary"></div>
                                     </header>
                                     <div className="ql-editor p-0!" dangerouslySetInnerHTML={{ __html: lessonContentValue }} />
                                     <style>{`
@@ -586,7 +586,7 @@ function MyDetailCourse() {
                                 <div className="mt-12 pt-8 border-t border-slate-100 dark:border-slate-800 flex justify-end">
                                     <button
                                         onClick={handleNextItem}
-                                        className="flex items-center gap-2 px-8 py-3 bg-primary text-white rounded-xl font-bold hover:opacity-90 transition-all shadow-lg shadow-pink-100"
+                                        className="flex items-center gap-2 px-8 py-3 bg-primary text-white rounded-xl font-bold hover:opacity-90 transition-all shadow-lg shadow-pink-100 dark:shadow-slate-900"
                                     >
                                         <span>บทเรียนถัดไป</span>
                                         <span className="material-symbols-outlined">arrow_forward</span>
@@ -597,7 +597,7 @@ function MyDetailCourse() {
 
                         {activeItem?.type === 'quiz' && (
                             <div className="max-w-4xl mx-auto w-full px-8 py-10">
-                                <div className="bg-indigo-600 p-12 rounded-3xl text-white relative overflow-hidden mb-8">
+                                <div className="bg-linear-to-r from-primary to-purple-300 p-12 rounded-3xl text-white relative overflow-hidden mb-8">
                                     <div className="absolute top-0 right-0 p-8 opacity-10">
                                         <span className="material-symbols-outlined text-[120px]">quiz</span>
                                     </div>
@@ -649,15 +649,14 @@ function MyDetailCourse() {
                                                                 {q.type === 'multiple_choice' ? (
                                                                     <input
                                                                         type="checkbox"
-                                                                        className="w-5 h-5 accent-primary"
-                                                                        checked={(quizAnswers[q.id] || []).includes(choice)}
+                                                                        className="w-5 h-5 appearance-none  border-2 border-slate-300 dark:border-slate-600 checked:bg-primary/50 checked:border-primary-dark cursor-pointer"                                                                        checked={(quizAnswers[q.id] || []).includes(choice)}
                                                                         onChange={() => handleAnswerQuestion(q.id, choice, q.type)}
                                                                     />
                                                                 ) : (
                                                                     <input
                                                                         type="radio"
                                                                         name={`q-${q.id}`}
-                                                                        className="w-5 h-5 accent-primary"
+                                                                        className="w-5 h-5 accent-primary appearance-none rounded-full border-2 border-slate-300 dark:border-slate-600 checked:bg-primary/50 checked:border-primary-dark cursor-pointer"
                                                                         checked={quizAnswers[q.id] === choice}
                                                                         onChange={() => handleAnswerQuestion(q.id, choice, q.type)}
                                                                     />
@@ -721,7 +720,7 @@ function MyDetailCourse() {
                                             </button>
                                             <button
                                                 onClick={handleNextItem}
-                                                className="px-8 py-3 rounded-xl font-bold bg-primary text-white shadow-lg shadow-pink-100 hover:scale-105 transition-all cursor-pointer flex items-center gap-2"
+                                                className="px-8 py-3 rounded-xl font-bold bg-primary text-white shadow-lg shadow-pink-100 dark:shadow-slate-900 hover:scale-105 transition-all cursor-pointer flex items-center gap-2"
                                             >
                                                 <span>บทเรียนถัดไป</span>
                                                 <span className="material-symbols-outlined">arrow_forward</span>
@@ -734,7 +733,7 @@ function MyDetailCourse() {
 
                         {activeItem?.type === 'assignment' && (
                             <div className="max-w-4xl mx-auto w-full px-8 py-10">
-                                <div className="bg-blue-600 p-12 rounded-3xl text-white relative overflow-hidden mb-8">
+                                <div className="bg-linear-to-r from-primary to-purple-300 p-12 rounded-3xl text-white relative overflow-hidden mb-8">
                                     <div className="absolute top-0 right-0 p-8 opacity-10">
                                         <span className="material-symbols-outlined text-[120px]">assignment</span>
                                     </div>

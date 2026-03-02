@@ -64,8 +64,8 @@ function InstanceDetail() {
     );
 
     return (
-        <div className="min-h-screen bg-background-light dark:bg-background-dark text-slate-800 dark:text-slate-100">
-            <div className="bg-pink-100 dark:bg-background-dark pt-24 pb-12 hero-pattern dark:hero-pattern border-b border-pink-100 dark:border-slate-800">
+        <div className="bg-main min-h-screen bg-background-light dark:bg-background-dark text-slate-800 dark:text-slate-100">
+            <div className="bg-linear-to-br from-primary/10 to-accent-purple/20 dark:from-primary/5 dark:to-slate-800 p-8 md:p-16 border border-primary/10">
                 <div className="max-w-7xl mx-auto px-6 mt-8">
                     <button
                         onClick={() => navigate('/mycourses')}
@@ -83,7 +83,7 @@ function InstanceDetail() {
                                         Instance #{instance.id}
                                     </span>
                                     {instance.category && (
-                                        <span className="px-3 py-1 bg-slate-100 dark:bg-slate-800 text-slate-500 text-xs font-bold rounded-full uppercase tracking-wider">
+                                        <span className="px-3 py-1 bg-slate-100 border border-slate-200 dark:bg-slate-800 text-slate-500 text-xs font-bold rounded-full uppercase tracking-wider">
                                             {instance.category}
                                         </span>
                                     )}

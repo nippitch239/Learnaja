@@ -94,9 +94,10 @@ function CourseDetail() {
   );
 
   return (
-    <div className="min-h-screen bg-background-light dark:bg-background-dark text-slate-800 dark:text-slate-100">
+      <div className=" bg-main bg-background-light dark:bg-background-dark text-slate-800 dark:text-slate-100">
       {/* Hero Section */}
-      <div className="bg-pink-100 dark:bg-background-dark pt-24 pb-12 hero-pattern dark:hero-pattern border-b border-pink-100 dark:border-slate-800">
+      
+      <div className="bg-linear-to-br from-primary/10 to-accent-purple/20 dark:from-primary/5 dark:to-slate-800 p-8 md:p-16 border border-primary/10k pt-24 pb-12 border-b  border-pink-100 dark:border-slate-800">
         <div className="max-w-7xl mx-auto px-6 mt-8">
           <button
             onClick={() => navigate(-1)}
@@ -385,10 +386,6 @@ function CourseDetail() {
                       <li className="flex items-center space-x-3 text-sm text-slate-600 dark:text-slate-400">
                         <span className="material-symbols-outlined text-green-500 text-[18px]">check_circle</span>
                         <span>เข้าถึงบนอุปกรณ์ใดก็ได้</span>
-                      </li>
-                      <li className="flex items-center space-x-3 text-sm text-slate-600 dark:text-slate-400">
-                        <span className="material-symbols-outlined text-green-500 text-[18px]">check_circle</span>
-                        <span>มีใบรับรองหลังเรียนจบ</span>
                       </li>
                     </ul>
                   </div>

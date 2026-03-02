@@ -53,7 +53,7 @@ function Navbar() {
                 <div className="bg-primary rounded-2xl shadow-lg px-6 py-3 flex items-center justify-between">
                     <Link to="/home">
                         <div className="flex items-center space-x-2">
-                            <span className="material-symbols-outlined text-white text-3xl">book_4</span>
+                            <span><img src="/images/logo_white.png" alt="Learnaja Logo" className="h-8 w-8" /></span>
                             <span className="text-white font-bold text-2xl tracking-tight">Learnaja</span>
                         </div>
                     </Link>
@@ -98,9 +98,6 @@ function Navbar() {
                                                 <span className="material-symbols-outlined text-sm mr-2 align-middle">school</span>คอร์สทั้งหมด
                                             </li>
                                         </Link>
-                                        <li className="px-4 py-2 hover:bg-primary/10 dark:hover:bg-slate-700 cursor-pointer text-primary list-none">
-                                            <span className="material-symbols-outlined text-sm mr-2 align-middle">Settings</span>การตั้งค่า
-                                        </li>
                                         {user?.roles?.includes("admin") && (
                                             <Link onClick={(e) => { toggleDropdown(); e.stopPropagation(); }} to="/admin">
                                                 <li className="px-4 py-2 hover:bg-primary/10 dark:hover:bg-slate-700 cursor-pointer text-primary list-none">

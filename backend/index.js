@@ -211,15 +211,15 @@ router.post("/courses", verifyToken, checkRole("admin"), async (req, res) => {
     try {
         await connection.beginTransaction();
 
-        const { title, description, price, category, rating, rating_count } = req.body;
+        const { title, description, price, category, rating, rating_count, thumbnail_url } = req.body;
 
         if (!title) {
             return res.status(400).json({ message: "Title required" });
         }
 
         const [result] = await connection.query(
-            "insert into courses (title, description, price, category, rating, rating_count) values (?, ?, ?, ?, ?, ?)",
-            [title, description, price, category, rating || 0, rating_count || 0]
+            "insert into courses (title, description, price, category, rating, rating_count, thumbnail_url) values (?, ?, ?, ?, ?, ?, ?)",
+            [title, description, price, category, rating || 0, rating_count || 0, thumbnail_url || null]
         );
 
         await connection.commit();
@@ -759,6 +759,51 @@ router.post("/instances/:id/invite", verifyToken, checkRole("teacher"), async (r
         console.log(err.message)
         await connection.rollback();
         res.status(500).json({ error: err.message });
+    } finally {
+        connection.release();
+    }
+});
+
+// delete instance course (and its invited students and progress)
+router.delete("/instances/:id", verifyToken, verifyInstanceOwner, async (req, res) => {
+    const connection = await db.getConnection();
+    try {
+        await connection.beginTransaction();
+        const { id } = req.params;
+
+        // remove invited students
+        await connection.query(
+            "delete from instance_students where instance_id = ?",
+            [id]
+        );
+
+        // remove progress and quiz results
+        await connection.query(
+            "delete from course_progress where instance_id = ?",
+            [id]
+        );
+        await connection.query(
+            "delete from course_quiz_results where instance_id = ?",
+            [id]
+        );
+
+        // remove the instance itself
+        const [result] = await connection.query(
+            "delete from course_instances where id = ?",
+            [id]
+        );
+
+        await connection.commit();
+
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ message: "Instance not found" });
+        }
+
+        res.status(200).json({ message: "Instance deleted successfully" });
+    } catch (err) {
+        await connection.rollback();
+        console.error("Delete instance error:", err);
+        res.status(500).json({ error: "Failed to delete instance: " + err.message });
     } finally {
         connection.release();
     }
@@ -1342,6 +1387,142 @@ router.get("/instances/:id/progress", verifyToken, async (req, res) => {
     }
 });
 
+// Get all students' progress for an instance (owner/admin only)
+router.get("/instances/:id/students-progress", verifyToken, verifyInstanceOwner, async (req, res) => {
+    const connection = await db.getConnection();
+    try {
+        await connection.beginTransaction();
+        const { id: instanceId } = req.params;
+
+        // Get template id for this instance
+        const [instanceRows] = await connection.query(
+            "select template_id from course_instances where id = ?",
+            [instanceId]
+        );
+        if (instanceRows.length === 0) {
+            await connection.rollback();
+            return res.status(404).json({ message: "Instance not found" });
+        }
+        const templateId = instanceRows[0].template_id;
+
+        // All modules (template or customized)
+        const [modules] = await connection.query(
+            "select id from course_modules where course_id = ? or instance_id = ?",
+            [templateId, instanceId]
+        );
+        const moduleIds = modules.map(m => m.id);
+        const totalModules = modules.length;
+
+        // Map content ids by module
+        const lessonsByModule = {};
+        const quizzesByModule = {};
+        const assignmentsByModule = {};
+
+        if (moduleIds.length > 0) {
+            const inPlaceholders = moduleIds.map(() => '?').join(',');
+
+            const [lessonRows] = await connection.query(
+                `select id, module_id from course_lessons where module_id in (${inPlaceholders})`,
+                moduleIds
+            );
+            const [quizRowsAll] = await connection.query(
+                `select id, module_id from course_quizzes where module_id in (${inPlaceholders})`,
+                moduleIds
+            );
+            const [assignmentRows] = await connection.query(
+                `select id, module_id from course_assignments where module_id in (${inPlaceholders})`,
+                moduleIds
+            );
+
+            for (const r of lessonRows) {
+                if (!lessonsByModule[r.module_id]) lessonsByModule[r.module_id] = [];
+                lessonsByModule[r.module_id].push(r.id);
+            }
+            for (const r of quizRowsAll) {
+                if (!quizzesByModule[r.module_id]) quizzesByModule[r.module_id] = [];
+                quizzesByModule[r.module_id].push(r.id);
+            }
+            for (const r of assignmentRows) {
+                if (!assignmentsByModule[r.module_id]) assignmentsByModule[r.module_id] = [];
+                assignmentsByModule[r.module_id].push(r.id);
+            }
+        }
+
+        // Get invited students only (do not include teacher/owner)
+        const [invitedRows] = await connection.query(
+            `select u.id, u.username, u.name, u.email 
+             from instance_students ist 
+             join users u on ist.user_id = u.id
+             where ist.instance_id = ?`,
+            [instanceId]
+        );
+
+        const seen = new Set();
+        const students = [];
+
+        for (const row of invitedRows) {
+            if (seen.has(row.id)) continue;
+            seen.add(row.id);
+
+            const [progressRows] = await connection.query(
+                "select content_type, content_id from course_progress where user_id = ? and instance_id = ?",
+                [row.id, instanceId]
+            );
+            const [quizCount] = await connection.query(
+                "select quiz_id, passed from course_quiz_results where user_id = ? and instance_id = ?",
+                [row.id, instanceId]
+            );
+
+            const lessonsDone = new Set(
+                progressRows.filter(r => r.content_type === 'lesson').map(r => Number(r.content_id))
+            );
+            const assignmentsDone = new Set(
+                progressRows.filter(r => r.content_type === 'assignment').map(r => Number(r.content_id))
+            );
+            const quizResults = quizCount;
+
+            let completedModules = 0;
+            for (const m of modules) {
+                const lIds = lessonsByModule[m.id] || [];
+                const qIds = quizzesByModule[m.id] || [];
+                const aIds = assignmentsByModule[m.id] || [];
+
+                if (lIds.length === 0 && qIds.length === 0 && aIds.length === 0) continue;
+
+                const allLessonsDone = lIds.every(id => lessonsDone.has(Number(id)));
+                const allAssignmentsDone = aIds.every(id => assignmentsDone.has(Number(id)));
+                const allQuizzesDone = qIds.every(id =>
+                    quizResults.some(q => q.quiz_id === id && (q.passed == 1 || q.passed === true))
+                );
+
+                if (allLessonsDone && allAssignmentsDone && allQuizzesDone) {
+                    completedModules++;
+                }
+            }
+
+            const percent = totalModules > 0 ? Math.round((completedModules / totalModules) * 100) : 0;
+
+            students.push({
+                id: row.id,
+                username: row.username,
+                name: row.name,
+                email: row.email,
+                completed_modules: completedModules,
+                total_modules: totalModules,
+                progress_percent: percent
+            });
+        }
+
+        await connection.commit();
+        res.json(students);
+    } catch (err) {
+        await connection.rollback();
+        res.status(500).json({ error: err.message });
+    } finally {
+        connection.release();
+    }
+});
+
 // --- Profile Management ---
 
 // GET user profile and stats
@@ -1484,6 +1665,12 @@ router.post(
         }
     }
 );
+
+router.post("/upload-image", verifyToken, upload.single("image"), (req, res) => {
+    if (!req.file) return res.status(400).json({ message: "No file uploaded" });
+    const imagePath = `/uploads/${req.file.filename}`;
+    res.json({ message: "Upload success", imagePath });
+});
 
 // verify if user is owner of instance
 async function verifyInstanceOwner(req, res, next) {

@@ -28,6 +28,7 @@ import EditProfile from "./pages/EditProfile";
 import InstanceDetail from "./pages/InstanceDetail";
 import EditInstanceCurriculum from "./pages/EditInstanceCurriculum";
 import EditInstanceInfo from "./pages/EditInstanceInfo";
+import InstanceStudentsProgress from "./pages/InstanceStudentsProgress";
 import RegisterTeacher from "./pages/RegisterTeacher";
 
 function AppContent() {
@@ -159,6 +160,19 @@ function AppContent() {
               <RequireRole role="teacher">
                 <RequireOwner>
                   <InviteStudent />
+                </RequireOwner>
+              </RequireRole>
+            </RequireAuth>
+          }
+        />
+
+        <Route
+          path="/mycourses/:id/progress"
+          element={
+            <RequireAuth>
+              <RequireRole role="teacher">
+                <RequireOwner>
+                  <InstanceStudentsProgress />
                 </RequireOwner>
               </RequireRole>
             </RequireAuth>

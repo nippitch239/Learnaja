@@ -11,10 +11,10 @@ function Footer() {
 
   return (
       <footer className=" py-5 mx-auto px-20 dark:bg-slate-800 border-slate-100 dark:border-slate-800 flex flex-col md:flex-row justify-between items-center gap-6">
-            <div className="flex items-center gap-2 opacity-50">
-                <span
-                    className="material-symbols-outlined text-primary">Book_4</span>
-                <span className="font-bold text-lg tracking-tight dark:text-white">LearnNaja</span>
+            <div className="flex items-center gap-2">
+            <span><img src="/images/logo_p.png" alt="Learnaja Logo" className="h-8 w-8" /></span>
+
+                <span className="font-bold text-lg tracking-tight dark:text-white text-slate-600">Learnaja</span>
             </div>
             <div className=" border-slate-200 dark:border-slate-800 flex flex-col md:flex-row justify-between items-center text-sm text-slate-500 ">
               <p>© 2024 Learnaja. All rights reserved.</p>

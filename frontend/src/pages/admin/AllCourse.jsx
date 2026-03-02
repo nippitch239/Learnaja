@@ -13,7 +13,6 @@ function AllCourse() {
         dispatch(fetchCourses());
     }, [dispatch]);
 
-
     const handleDelete = async (id) => {
         try {
             if (confirm("Are you sure you want to delete this course?")) {
@@ -36,76 +35,82 @@ function AllCourse() {
     );
 
     return (
-        <div className="container mx-auto px-4">
-            <h1 className="text-xl font-bold text-primary">All Course</h1>
-
-            <div className="grid grid-cols-3 sm:grid-cols-2 lg:grid-cols-4 gap-6 m-5">
+        <div className="container mx-auto">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mt-6">
                 {courses.map(course => (
-
-                    <div key={course.id} onClick={() => { navigate(`/courses/${course.id}`) }} className="group bg-white dark:bg-slate-800 rounded-2xl overflow-hidden border border-slate-100 dark:border-slate-700 hover:shadow-xl transition-all duration-300">
-                        <div className="h-48 bg-accent-blue relative overflow-hidden">
+                    <div
+                        key={course.id}
+                        onClick={() => navigate(`/courses/${course.id}`)}
+                        className="group flex flex-col bg-white dark:bg-slate-800 rounded-2xl overflow-hidden border border-slate-100 dark:border-slate-700 hover:shadow-xl transition-all duration-300 cursor-pointer"
+                    >
+                        <div className="h-40 shrink-0 bg-accent-blue relative overflow-hidden">
                             {course.thumbnail_url ? (
                                 <img
-                                    src={course.thumbnail_url}
                                     alt={course.title}
                                     className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                                    src={course.thumbnail_url.startsWith("http") ? course.thumbnail_url : `${import.meta.env.VITE_API_URL || "http://localhost:3200"}${course.thumbnail_url}`}
+                                    onError={(e) => { e.target.src = "/images/no-image.png"; }}
+                                    loading="lazy"
                                 />
                             ) : (
-                                <div className="w-full h-full flex items-center justify-center">
-                                    <span className="material-symbols-outlined text-5xl text-slate-300">school</span>
+                                <div className="w-full h-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center text-slate-400 text-sm">
+                                    ไม่มีรูปภาพ
                                 </div>
                             )}
-                            
                         </div>
-                        <div className="p-5">
 
-                            <div className="flex justify-between items-start mb-2">
-                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest bg-slate-100 px-2 py-1 rounded">
-                                    {course.category || "General"}
-                                </span>
-                            </div>
-                            <p className="text-xl font-bold text-primary uppercase tracking-wider mb-2">
+                        {/* Content — ขยายเต็มพื้นที่ที่เหลือ */}
+                        <div className="flex flex-col flex-1 p-4 ">
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest bg-slate-100 dark:bg-slate-700 px-2 py-1 rounded w-fit mb-2">
+                                {course.category || "General"}
+                            </span>
+
+                            <p className="text-base font-bold text-primary uppercase tracking-wider mb-1 line-clamp-1">
                                 {course.title}
                             </p>
 
-                            <h3 className="font-bold text-slate-900 dark:text-white text-md mb-2 line-clamp-2">
+                            <p className="text-sm text-slate-400 dark:text-slate-300 mb-2 line-clamp-2 flex-1">
                                 {course.description}
-                            </h3>
+                            </p>
 
-                            <div className="flex items-center space-x-1 mb-4">
-                                <span className="material-symbols-outlined text-yellow-400 text-[18px] fill-[1]">star</span>
+                            <div className="flex items-center space-x-1 mb-3">
+                                <span className="material-symbols-outlined text-yellow-400 text-[18px]">star</span>
                                 <span className="text-sm font-bold dark:text-slate-300">{course.rating || 0.0}</span>
                                 <span className="text-sm text-slate-400">{course.review || "-"} รีวิว</span>
                             </div>
 
-                            <div className="flex items-center justify-between pt-4 border-t border-slate-50 dark:border-slate-700">
-                                <span className="font-bold text-slate-900 dark:text-white">{course.price}P</span>
-                                <Link
-                                    to={`/courses/${course.id}`}
-                                    onClick={(e) => e.stopPropagation()}
-                                    className="bg-primary w-max text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-primary/90 transition cursor-pointer">
-                                    Look up!
-                                </Link>
-                                <Link
-                                    to={`/courses/${course.id}/edit`}
-                                    onClick={(e) => e.stopPropagation()}
-                                    className="bg-yellow-500 w-max text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-yellow-500/90 transition cursor-pointer">
-                                    Edit
-                                </Link>
-                                <button
-                                    onClick={(e) => { e.stopPropagation(); handleDelete(course.id) }}
-                                    className="bg-red-500 w-max text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-red-500/90 transition cursor-pointer">
-                                    Delete
-                                </button>
+                            <div className="flex items-center justify-between pt-3 border-t border-slate-100 dark:border-slate-700 mt-auto">
+                                <span className="font-bold text-slate-900 dark:text-white text-sm">{course.price}P</span>
+                                <div className="flex gap-1">
+                                    <Link
+                                        to={`/courses/${course.id}`}
+                                        onClick={(e) => e.stopPropagation()}
+                                        className="bg-primary text-white px-2 py-1 rounded-lg text-[11px] font-bold hover:bg-primary/90 transition flex items-center gap-0.5"
+                                    >
+                                        <span className="material-symbols-outlined text-[12px]">search</span>
+                                        <span className="hidden sm:inline">ดูคอร์ส</span>
+                                    </Link>
+                                    <Link
+                                        to={`/courses/${course.id}/edit`}
+                                        onClick={(e) => e.stopPropagation()}
+                                        className="bg-yellow-500 text-white px-2 py-1 rounded-lg text-[11px] font-bold hover:bg-yellow-500/90 transition flex items-center gap-0.5"
+                                    >
+                                        <span className="material-symbols-outlined text-[12px]">edit</span>
+                                        <span className="hidden sm:inline">แก้ไข</span>
+                                    </Link>
+                                    <button
+                                        onClick={(e) => { e.stopPropagation(); handleDelete(course.id); }}
+                                        className="bg-red-500 text-white px-2 py-1 rounded-lg text-[11px] font-bold hover:bg-red-500/90 transition flex items-center gap-0.5"
+                                    >
+                                        <span className="material-symbols-outlined text-[12px]">delete</span>
+                                        <span className="hidden sm:inline">ลบ</span>
+                                    </button>
+                                </div>
                             </div>
-
                         </div>
                     </div>
-
-
                 ))}
             </div>
-
         </div>
     );
 }

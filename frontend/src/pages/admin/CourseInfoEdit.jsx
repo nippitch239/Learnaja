@@ -159,7 +159,7 @@ function CourseInfoEdit() {
               <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>
                   <h1 className="text-2xl font-bold">แก้ไขข้อมูลคอร์สหลัก</h1>
-                  <p className="text-slate-400 text-sm">
+                  <p className="text-slate-400 text-sm mt-2">
                     การเปลี่ยนแปลงที่นี่จะมีผลกับคอร์สหลัก และอินสแตนซ์ที่ยังไม่ได้ปรับแต่ง
                   </p>
                 </div>
@@ -298,7 +298,7 @@ function CourseInfoEdit() {
                   <button
                     type="submit"
                     disabled={isSaving}
-                    className="px-6 py-3 rounded-2xl bg-primary text-white font-bold shadow-lg shadow-primary/25 hover:brightness-105 transition-all active:scale-95 disabled:opacity-50 flex items-center gap-2"
+                    className="px-6 py-3 rounded-2xl bg-primary text-white font-bold shadow-lg shadow-primary/25  hover:brightness-105 transition-all active:scale-95 disabled:opacity-50 flex items-center gap-2"
                   >
                     {isSaving ? (
                       <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />

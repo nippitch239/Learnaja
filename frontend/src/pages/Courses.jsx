@@ -18,10 +18,9 @@ function Courses() {
         { name: "Design", icon: "palette" },
         { name: "Business", icon: "business" },
         { name: "Networking", icon: "network_check" },
-        { name: "Data Science", icon: "data_object" },
-        { name: "Health & Wellness", icon: "health_and_safety" },
-        { name: "Cybersecurity", icon: "security" },
-        { name: "Language", icon: "language" },
+        { name: "Data Science", icon: "bar_chart" },
+        { name: "CyberSecurity", icon: "security" },
+        { name: "Language", icon: "translate" }
     ];
 
     const sortOptions = [
@@ -73,7 +72,8 @@ function Courses() {
     }, []);
 
     return (
-        <main className="pt-28 pb-12 max-w-7xl mx-auto px-4 lg:px-6">
+        <div className=" bg-main bg-background-light dark:bg-background-dark text-slate-800 dark:text-slate-100 min-h-screen">
+        <main className=" pt-28 pb-12 max-w-7xl mx-auto px-4 lg:px-6">
             <div className="flex flex-col space-y-8">
 
                 {/* Toolbar */}
@@ -94,7 +94,7 @@ function Courses() {
                             </button>
 
                             {isCategoryDropdownOpen && (
-                                <div className="absolute top-full mt-2 left-0 z-50 bg-white dark:bg-surface-dark border border-slate-100 dark:border-slate-800 rounded-xl shadow-lg min-w-[180px]">
+                                <div className="absolute top-full mt-2 left-0 z-50 bg-white dark:bg-surface-dark border border-slate-100 dark:border-slate-800 rounded-xl shadow-lg min-w-45">
                                     {categories.map(cat => (
                                         <button
                                             key={cat.name}
@@ -130,7 +130,7 @@ function Courses() {
                         <select
                             value={sortBy}
                             onChange={(e) => setSortBy(e.target.value)}
-                            className="bg-transparent border-none font-bold text-slate-700 dark:text-slate-300 focus:ring-0 cursor-pointer p-0"
+                            className="bg-slate-50 dark:bg-slate-800 border-none font-bold text-slate-700 dark:text-slate-300 focus:ring-0 cursor-pointer p-0"
                         >
                             {sortOptions.map(opt => (
                                 <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -221,6 +221,7 @@ function Courses() {
                 )}
             </div>
         </main>
+        </div>
     );
 }
 
