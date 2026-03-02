@@ -28,6 +28,7 @@ import EditProfile from "./pages/EditProfile";
 import InstanceDetail from "./pages/InstanceDetail";
 import EditInstanceCurriculum from "./pages/EditInstanceCurriculum";
 import EditInstanceInfo from "./pages/EditInstanceInfo";
+import RegisterTeacher from "./pages/RegisterTeacher";
 
 function AppContent() {
 
@@ -171,6 +172,11 @@ function AppContent() {
         <Route
           path="/edit-profile"
           element={token ? <EditProfile /> : <Navigate to="/login" />}
+        />
+
+        <Route
+          path="/register-teacher"
+          element={token ? <RegisterTeacher /> : <Navigate to="/login" />}
         />
 
         {/* ทำไว้ดูดีไซน์เฉยๆ */}

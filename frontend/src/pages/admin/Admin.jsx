@@ -1,6 +1,7 @@
 import CreateCourse from "./CreateCourse";
 import AllCourse from "./AllCourse";
 import AddPoints from "./AddPoints";
+import Approve from "./Approve";
 
 function Admin() {
     return (
@@ -13,6 +14,8 @@ function Admin() {
                 <AllCourse />
                 <hr className="border-gray-300 dark:border-gray-700 my-4" />
                 <AddPoints />
+                <hr className="border-gray-300 dark:border-gray-700 my-4" />
+                <Approve />
             </div>
         </>
     );

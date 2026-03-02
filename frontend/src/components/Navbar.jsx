@@ -102,11 +102,11 @@ function Navbar() {
                                             <span className="material-symbols-outlined text-sm mr-2 align-middle">Settings</span>การตั้งค่า
                                         </li>
                                         {user?.roles?.includes("admin") && (
-                                            <li className="px-4 py-2 hover:bg-primary/10 dark:hover:bg-slate-700 cursor-pointer text-primary list-none">
-                                                <Link onClick={() => toggleDropdown()} to="/admin">
+                                            <Link onClick={(e) => { toggleDropdown(); e.stopPropagation(); }} to="/admin">
+                                                <li className="px-4 py-2 hover:bg-primary/10 dark:hover:bg-slate-700 cursor-pointer text-primary list-none">
                                                     <span className="material-symbols-outlined text-sm mr-2 align-middle">admin_panel_settings</span>Admin
-                                                </Link>
-                                            </li>
+                                                </li>
+                                            </Link>
                                         )}
                                         <li className="px-4 py-2 hover:bg-primary/10 dark:hover:bg-slate-700 cursor-pointer text-primary list-none">
                                             <button onClick={handleLogout}>

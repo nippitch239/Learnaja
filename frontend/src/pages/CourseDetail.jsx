@@ -133,13 +133,13 @@ function CourseDetail() {
                 <div className="flex gap-3 w-full">
                   <button
                     onClick={handleBuy}
-                    disabled={buying}
+                    disabled={buying || (ownedInstances.length > 0 && !user?.roles?.includes('teacher'))}
                     className="flex-1 bg-primary text-white px-8 py-4 rounded-2xl font-bold text-lg shadow-lg shadow-pink-200 dark:shadow-none hover:-translate-y-0.5 transition-all disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
                   >
                     {buying ? (
                       <><span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></span><span>กำลังซื้อ...</span></>
                     ) : (
-                      <><span className="material-symbols-outlined">shopping_cart</span><span>{ownedInstances.length > 0 ? "ซื้อเพิ่มอีกคอร์ส" : "ซื้อคอร์สนี้"}</span></>
+                      <><span className="material-symbols-outlined">{ownedInstances.length > 0 && !user?.roles?.includes('teacher') ? "check_circle" : "shopping_cart"}</span><span>{ownedInstances.length > 0 ? (user?.roles?.includes('teacher') ? "ซื้อเพิ่มอีกคอร์ส" : "ซื้อคอร์สแล้ว") : "ซื้อคอร์สนี้"}</span></>
                     )}
                   </button>
 

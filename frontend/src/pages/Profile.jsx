@@ -91,7 +91,7 @@ function Profile() {
                                                 {profile.email}
                                             </p>
                                         )} */}
-                                        <div className="mt-2">
+                                        <div className="mt-2 flex items-center gap-2">
                                             <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold ${user.roles.includes("admin")
                                                     ? "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400"
                                                     : user.roles.includes("teacher")
@@ -102,7 +102,16 @@ function Profile() {
                                                     {user.roles.includes("admin") ? "admin_panel_settings" : user.roles.includes("teacher") ? "school" : "person"}
                                                 </span>
                                                 {user.roles.includes("admin") ? "ผู้ดูแลระบบ" : user.roles.includes("teacher") ? "ผู้สอน" : "นักเรียน"}
+
                                             </span>
+                                            {!user.roles.includes("teacher") && (
+                                                <Link to="/register-teacher">
+                                                    <button className="cursor-pointer px-3 py-1 bg-primary text-white font-bold rounded-xl hover:bg-primary/10 hover:text-primary transition-all flex items-center gap-2 shadow-sm">
+                                                        <span className="material-symbols-outlined">school</span>
+                                                        สมัครเป็นผู้สอน
+                                                    </button>
+                                                </Link>
+                                            )}
                                         </div>
                                     </div>
 
@@ -132,7 +141,7 @@ function Profile() {
 
                                 <div className="shrink-0">
                                     <Link to="/edit-profile">
-                                        <button className="px-6 py-3 bg-primary/10 text-primary font-bold rounded-xl hover:bg-primary hover:text-white transition-all flex items-center gap-2 shadow-sm">
+                                        <button className="cursor-pointer px-6 py-3 bg-primary/10 text-primary font-bold rounded-xl hover:bg-primary hover:text-white transition-all flex items-center gap-2 shadow-sm">
                                             <span className="material-symbols-outlined">edit</span>
                                             แก้ไขโปรไฟล์
                                         </button>

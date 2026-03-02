@@ -1642,6 +1642,101 @@ function checkRole(requiredRole) {
     };
 }
 
+// --- Teacher Requests ---
+router.post("/teacher-requests", verifyToken, upload.single("cv_file"), async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const { school, cv_text } = req.body;
+
+        let cvFilePath = null;
+        if (req.file) {
+            cvFilePath = `/uploads/${req.file.filename}`;
+        }
+
+        const connection = await db.getConnection();
+
+        await connection.query(
+            "INSERT INTO teacher_requests (user_id, school, cv_text, cv_file) VALUES (?, ?, ?, ?)",
+            [userId, school, cv_text, cvFilePath]
+        );
+        res.status(201).json({ message: "Request submitted successfully" });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+router.get("/teacher-requests/me", verifyToken, async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const connection = await db.getConnection();
+        const [rows] = await connection.query(
+            "SELECT * FROM teacher_requests WHERE user_id = ? ORDER BY created_at DESC LIMIT 1",
+            [userId]
+        );
+        res.json(rows[0] || null);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+router.get("/teacher-requests", verifyToken, checkRole("admin"), async (req, res) => {
+    try {
+        const connection = await db.getConnection();
+        const [rows] = await connection.query(`
+            SELECT tr.*, u.name, u.email, u.image_profile 
+            FROM teacher_requests tr 
+            JOIN users u ON tr.user_id = u.id 
+            ORDER BY tr.created_at DESC
+        `);
+        res.json(rows);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+router.post("/teacher-requests/:id/approve", verifyToken, checkRole("admin"), async (req, res) => {
+    try {
+        const requestId = req.params.id;
+        const connection = await db.getConnection();
+
+        await connection.beginTransaction();
+        const [reqRows] = await connection.query("SELECT user_id FROM teacher_requests WHERE id = ?", [requestId]);
+        if (reqRows.length > 0) {
+            const userId = reqRows[0].user_id;
+
+            const [roleRows] = await connection.query("SELECT id FROM roles WHERE name = 'teacher'");
+            if (roleRows.length > 0) {
+                const roleId = roleRows[0].id;
+                const [existing] = await connection.query("SELECT * FROM user_roles WHERE user_id = ? AND role_id = ?", [userId, roleId]);
+                if (existing.length === 0) {
+                    await connection.query("INSERT INTO user_roles (user_id, role_id) VALUES (?, ?)", [userId, roleId]);
+                }
+            }
+
+            await connection.query("UPDATE teacher_requests SET status = 'approved' WHERE id = ?", [requestId]);
+        }
+        await connection.commit();
+        res.json({ message: "Approved successfully" });
+    } catch (err) {
+        // since connection was used with db.getConnection(), it might not have rollback exposed easily without try-catch variable scope
+        try {
+            await db.query("ROLLBACK");
+        } catch (e) { }
+        console.error("Approve error:", err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+router.post("/teacher-requests/:id/reject", verifyToken, checkRole("admin"), async (req, res) => {
+    try {
+        const requestId = req.params.id;
+        await db.query("UPDATE teacher_requests SET status = 'rejected' WHERE id = ?", [requestId]);
+        res.json({ message: "Rejected successfully" });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // Initial DB setup and Verification
 (async () => {
     try {
