@@ -1,7 +1,8 @@
 import { useEffect, useState, useContext } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
-import { fetchMyCourses, fetchInvitedCourses } from "../services/fetchCourse";
+import { fetchMyCourses, fetchInvitedCourses, fetchPendingInvites } from "../services/fetchCourse";
+import api from "../services/api";
 
 function MyCourses() {
     const navigate = useNavigate();
@@ -11,6 +12,8 @@ function MyCourses() {
     const { user, loading } = useContext(AuthContext);
     const [invitedCourses, setInvitedCourses] = useState([]);
     const [fetchingInvited, setFetchingInvited] = useState(true);
+    const [pendingInvites, setPendingInvites] = useState([]);
+    const [fetchingPending, setFetchingPending] = useState(true);
 
     useEffect(() => {
         if (loading) return;
@@ -25,17 +28,22 @@ function MyCourses() {
                 const invitedRes = await fetchInvitedCourses();
                 setInvitedCourses(invitedRes || []);
                 setFetchingInvited(false);
+
+                const pendingRes = await fetchPendingInvites();
+                setPendingInvites(pendingRes || []);
+                setFetchingPending(false);
             } catch (err) {
                 console.error("Failed to fetch courses", err);
                 setFetching(false);
                 setFetchingInvited(false);
+                setFetchingPending(false);
             }
         };
 
         loadAll();
     }, [user, loading, navigate]);
 
-    if (loading || fetching || fetchingInvited) {
+    if (loading || fetching || fetchingInvited || fetchingPending) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950">
                 <div className="flex flex-col items-center gap-4">
@@ -71,6 +79,11 @@ function MyCourses() {
                     <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100 group-hover:text-primary transition-colors line-clamp-1">
                         {course.title}
                     </h3>
+                    {type === 'invited' && course.owner_name && (
+                        <p className="text-[11px] font-bold text-slate-400">
+                            ผู้สอน: <span className="text-slate-600 dark:text-slate-300">{course.owner_name}</span>
+                        </p>
+                    )}
                     <p className="text-sm text-slate-500 line-clamp-2 min-h-10">
                         {course.description || ""}
                     </p>
@@ -121,6 +134,31 @@ function MyCourses() {
         </div>
     );
 
+    const handleAcceptInvite = async (instanceId) => {
+        try {
+            await api.post(`/instances/${instanceId}/accept-invite`);
+            setPendingInvites(prev => prev.filter(c => c.id !== instanceId));
+
+            const accepted = pendingInvites.find(c => c.id === instanceId);
+            if (accepted) {
+                setInvitedCourses(prev => [...prev, accepted]);
+            }
+        } catch (err) {
+            console.error(err);
+            alert(err.response?.data?.message || "ไม่สามารถยอมรับคำเชิญได้");
+        }
+    };
+
+    const handleRejectInvite = async (instanceId) => {
+        try {
+            await api.post(`/instances/${instanceId}/reject-invite`);
+            setPendingInvites(prev => prev.filter(c => c.id !== instanceId));
+        } catch (err) {
+            console.error(err);
+            alert(err.response?.data?.message || "ไม่สามารถปฏิเสธคำเชิญได้");
+        }
+    };
+
     return (
         <div className=" bg-main bg-background-light dark:bg-background-dark text-slate-800 dark:text-slate-100">
             {/* Hero Section */}
@@ -141,10 +179,10 @@ function MyCourses() {
                 </div>
             </div> */}
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 py-12 space-y-12 tracking-normal">
-                    <section
-                        className="relative overflow-hidden rounded-3xl bg-linear-to-br from-primary/10 to-accent-purple/20 dark:from-primary/5 dark:to-slate-800 p-8 md:p-16 border border-primary/10">
-                        <div className="relative z-10 max-w-2xl">
-                            <h1 className="text-5xl font-black text-slate-900 dark:text-white mb-6 tracking-tight leading-tight">
+                <section
+                    className="relative overflow-hidden rounded-3xl bg-linear-to-br from-primary/10 to-accent-purple/20 dark:from-primary/5 dark:to-slate-800 p-8 md:p-16 border border-primary/10">
+                    <div className="relative z-10 max-w-2xl">
+                        <h1 className="text-5xl font-black text-slate-900 dark:text-white mb-6 tracking-tight leading-tight">
                             คอร์สของคุณ <br />
                             <span className="text-transparent bg-clip-text bg-linear-to-r from-primary to-purple-300 py-2">
                                 และการเรียนรู้ของคุณ
@@ -153,9 +191,9 @@ function MyCourses() {
                         <p className="text-lg text-slate-500 mb-0 leading-relaxed">
                             ติดตามความคืบหน้าของคอร์สของคุณ และเริ่มเรียนรู้สิ่งใหม่ๆได้เลย
                         </p>
-                        </div>
+                    </div>
 
-                    </section>
+                </section>
             </div>
             {/* Owned Courses Section */}
             <div className="max-w-7xl mx-auto px-6 lg:px-8 pb-12">
@@ -177,6 +215,78 @@ function MyCourses() {
                             )}
                         </div>
                     </section>
+
+                    {/* Pending Invites Section */}
+                    {pendingInvites.length > 0 && (
+                        <section className="pt-8">
+                            <div className="flex items-center gap-4 mb-8">
+                                <div className="w-1.5 h-8 bg-amber-400 rounded-full"></div>
+                                <h2 className="text-2xl font-black text-slate-800 dark:text-white uppercase tracking-tight">
+                                    คำเชิญที่รอการตอบรับ
+                                </h2>
+                                <div className="flex-1 h-px bg-slate-200 dark:bg-slate-800"></div>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+                                {pendingInvites.map(course => (
+                                    <div
+                                        key={course.id}
+                                        className="group relative bg-white dark:bg-slate-900 rounded-3xl p-1 shadow-sm border border-amber-200 dark:border-amber-700/60 overflow-hidden"
+                                    >
+                                        <div className="relative p-6 space-y-4">
+                                            <div className="flex items-start justify-between">
+                                                <div className="w-14 h-14 rounded-2xl bg-amber-50 dark:bg-amber-900/30 flex items-center justify-center text-amber-600 border border-amber-100 dark:border-amber-700">
+                                                    <span className="material-symbols-outlined text-3xl">
+                                                        person_add
+                                                    </span>
+                                                </div>
+                                                <span className="px-3 py-1 bg-amber-50 dark:bg-amber-900/40 text-[10px] font-bold text-amber-700 dark:text-amber-300 rounded-full uppercase tracking-widest">
+                                                    Pending
+                                                </span>
+                                            </div>
+
+                                            <div className="space-y-2">
+                                                <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100 line-clamp-1">
+                                                    {course.title}
+                                                </h3>
+                                                {course.owner_name && (
+                                                    <p className="text-[11px] font-bold text-slate-400">
+                                                        ผู้สอน: <span className="text-slate-600 dark:text-slate-300">{course.owner_name}</span>
+                                                    </p>
+                                                )}
+                                                <p className="text-sm text-slate-500 line-clamp-2 min-h-10">
+                                                    {course.description || ""}
+                                                </p>
+                                                <div className="">
+                                                    <img
+                                                        className="w-full h-48 object-cover rounded-2xl"
+                                                        src={course.thumbnail_url.startsWith("http") ? course.thumbnail_url : `${import.meta.env.VITE_API_URL || "http://localhost:3200"}${course.thumbnail_url}`}
+                                                        alt={course.title} />
+                                                </div>
+                                            </div>
+
+                                            <div className="pt-4 flex items-center justify-between border-t border-slate-50 dark:border-slate-800">
+                                                <button
+                                                    className="px-4 py-2 rounded-xl bg-emerald-500 text-white text-xs font-bold hover:bg-emerald-600 transition flex items-center gap-1"
+                                                    onClick={() => handleAcceptInvite(course.id)}
+                                                >
+                                                    <span className="material-symbols-outlined text-sm">check</span>
+                                                    ยอมรับ
+                                                </button>
+                                                <button
+                                                    className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-xs font-bold text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-700 transition flex items-center gap-1"
+                                                    onClick={() => handleRejectInvite(course.id)}
+                                                >
+                                                    <span className="material-symbols-outlined text-sm">close</span>
+                                                    ปฏิเสธ
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </section>
+                    )}
 
                     {/* Invited Courses Section */}
                     {invitedCourses.length > 0 && (

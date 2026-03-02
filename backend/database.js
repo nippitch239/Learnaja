@@ -11,6 +11,13 @@ sqlite.pragma("journal_mode = WAL");
 // Enable foreign key enforcement
 sqlite.pragma("foreign_keys = ON");
 
+// Ensure instance_students has status column for invite workflow
+try {
+    sqlite.prepare("ALTER TABLE instance_students ADD COLUMN status TEXT DEFAULT 'accepted'").run();
+} catch (e) {
+    // ignore if column already exists
+}
+
 
 /**
  * A thin async wrapper that mimics the mysql2/promise pool API used throughout index.js.

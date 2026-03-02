@@ -209,7 +209,7 @@ function Courses() {
                                     </div>
 
                                     <div className="flex items-center justify-between">
-                                        <span className="text-2xl font-black text-primary">{course.price}P</span>
+                                        <span className="text-2xl font-black text-primary">{course.price ? `${course.price}P` : "ฟรี"}</span>
                                         <div className="bg-primary/10 text-primary group-hover:bg-primary group-hover:text-white px-4 py-2 rounded-xl transition-all text-sm font-semibold">
                                             ดูรายละเอียด
                                         </div>

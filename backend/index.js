@@ -284,9 +284,10 @@ router.get("/courses", async (req, res) => {
 router.get('/courses/owner', verifyToken, async (req, res) => {
     try {
         const [rows] = await db.query(
-            `select ci.*, coalesce(ci.thumbnail_url, c.thumbnail_url) as thumbnail_url
+            `select ci.*, coalesce(ci.thumbnail_url, c.thumbnail_url) as thumbnail_url, u.name as owner_name
              from course_instances ci
              join courses c on ci.template_id = c.id
+             join users u on ci.owner_id = u.id
              where ci.owner_id = ?`,
             [req.user.id]
         );
@@ -301,14 +302,34 @@ router.get('/courses/owner', verifyToken, async (req, res) => {
 router.get('/courses/invited', verifyToken, async (req, res) => {
     try {
         const [rows] = await db.query(
-            `select ci.*, coalesce(ci.thumbnail_url, c.thumbnail_url) as thumbnail_url 
+            `select ci.*, coalesce(ci.thumbnail_url, c.thumbnail_url) as thumbnail_url, u.name as owner_name 
             from instance_students ist
             join course_instances ci on ist.instance_id = ci.id
             join courses c on ci.template_id = c.id
-            where ist.user_id = ?`,
+            join users u on ci.owner_id = u.id
+            where ist.user_id = ? and (ist.status is null or ist.status = 'accepted')`,
             [req.user.id]
         );
 
+        res.json(rows);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// get pending invitations for current user
+router.get("/instances/invitations", verifyToken, async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const [rows] = await db.query(
+            `select ci.*, coalesce(ci.thumbnail_url, c.thumbnail_url) as thumbnail_url, u.name as owner_name 
+             from instance_students ist
+             join course_instances ci on ist.instance_id = ci.id
+             join courses c on ci.template_id = c.id
+             join users u on ci.owner_id = u.id
+             where ist.user_id = ? and ist.status = 'pending'`,
+            [userId]
+        );
         res.json(rows);
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -411,7 +432,7 @@ router.get("/instances/:id/full", verifyToken, async (req, res) => {
         const instance = instanceRows[0];
 
         const [studentRows] = await db.query(
-            "select * from instance_students where instance_id = ? and user_id = ?",
+            "select * from instance_students where instance_id = ? and user_id = ? and (status is null or status = 'accepted')",
             [id, userId]
         );
         if (instance.owner_id !== userId && studentRows.length === 0 && !req.user.roles.includes('admin')) {
@@ -739,13 +760,17 @@ router.post("/instances/:id/invite", verifyToken, checkRole("teacher"), async (r
         );
 
         if (result2.length > 0) {
-            return res.status(400).json({ message: "Error: Student already invited" });
+            // if previously rejected, allow re-invite by updating status back to pending
+            await connection.query(
+                "update instance_students set status = 'pending' where instance_id = ? and user_id = ?",
+                [instanceId, studentId]
+            );
+        } else {
+            await connection.query(
+                "insert into instance_students (instance_id, user_id, status) values (?, ?, 'pending')",
+                [instanceId, studentId]
+            );
         }
-
-        const [result] = await connection.query(
-            "insert into instance_students (instance_id, user_id) values (?, ?)",
-            [instanceId, studentId]
-        );
 
 
 
@@ -753,7 +778,7 @@ router.post("/instances/:id/invite", verifyToken, checkRole("teacher"), async (r
 
         res.status(201).json({
             message: "Student invited",
-            courseId: result.insertId
+            courseId: instanceId
         });
     } catch (err) {
         console.log(err.message)
@@ -809,6 +834,46 @@ router.delete("/instances/:id", verifyToken, verifyInstanceOwner, async (req, re
     }
 });
 
+// student accepts invite
+router.post("/instances/:id/accept-invite", verifyToken, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const userId = req.user.id;
+
+        const [rows] = await db.query(
+            "select * from instance_students where instance_id = ? and user_id = ? and status = 'pending'",
+            [id, userId]
+        );
+        if (rows.length === 0) {
+            return res.status(404).json({ message: "Invitation not found" });
+        }
+
+        await db.query(
+            "update instance_students set status = 'accepted' where instance_id = ? and user_id = ?",
+            [id, userId]
+        );
+        res.json({ message: "Invitation accepted" });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// student rejects invite
+router.post("/instances/:id/reject-invite", verifyToken, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const userId = req.user.id;
+
+        await db.query(
+            "delete from instance_students where instance_id = ? and user_id = ? and status = 'pending'",
+            [id, userId]
+        );
+        res.json({ message: "Invitation rejected" });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 router.get('/instances/:id/students', verifyToken, async (req, res) => {
     try {
         const { id } = req.params;
@@ -822,7 +887,7 @@ router.get('/instances/:id/students', verifyToken, async (req, res) => {
         const instanceId = course[0].id;
 
         const [rows] = await db.query(
-            `select u.id, u.username, u.name, u.email
+            `select u.id, u.username, u.name, u.email, ist.status
             from instance_students ist
             join users u on ist.user_id = u.id
             where ist.instance_id = ?`,
@@ -1453,7 +1518,7 @@ router.get("/instances/:id/students-progress", verifyToken, verifyInstanceOwner,
             `select u.id, u.username, u.name, u.email 
              from instance_students ist 
              join users u on ist.user_id = u.id
-             where ist.instance_id = ?`,
+             where ist.instance_id = ? and (ist.status is null or ist.status = 'accepted')`,
             [instanceId]
         );
 
@@ -1538,7 +1603,7 @@ router.get("/profile/me", verifyToken, async (req, res) => {
         const user = userRows[0];
 
         const [ownedInstances] = await db.query("select count(*) as count from course_instances where owner_id = ?", [userId]);
-        const [invitedInstances] = await db.query("select count(*) as count from instance_students where user_id = ?", [userId]);
+        const [invitedInstances] = await db.query("select count(*) as count from instance_students where user_id = ? and (status is null or status = 'accepted')", [userId]);
 
         const [progressCount] = await db.query("select count(*) as count from course_progress where user_id = ? and content_type = 'lesson'", [userId]);
 

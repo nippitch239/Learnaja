@@ -87,10 +87,8 @@ function MyDetailCourse() {
                 });
                 setTotalItemsCount(total);
 
-                // Fetch initial progress
                 try {
                     const progRes = await api.get(`/instances/${id}/progress`);
-                    // Normalize content_ids to numbers (SQLite may return strings)
                     setProgress({
                         lessons: (progRes.data.lessons || []).map(Number),
                         assignments: (progRes.data.assignments || []).map(Number),
@@ -100,7 +98,6 @@ function MyDetailCourse() {
                     console.error("Failed to fetch progress", e);
                 }
 
-                // Set initial active item using sorted items
                 const allItems = getAllSortedItems(res.data);
                 if (allItems.length > 0) {
                     setActiveItem({ type: allItems[0].type, data: allItems[0].data, moduleIndex: allItems[0].moduleIndex });

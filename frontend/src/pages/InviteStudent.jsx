@@ -197,7 +197,7 @@ function InviteStudent() {
                             <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
                                 <div>
                                     <h2 className="text-lg font-bold">นักเรียนในคอร์ส</h2>
-                                    <p className="text-slate-400 text-sm mt-0.5">{students.length} คน</p>
+                                    <p className="text-slate-400 text-sm mt-0.5">{students.length} คน (รวมที่รอการตอบรับ)</p>
                                 </div>
                             </div>
                             <table className="w-full text-left">
@@ -205,13 +205,14 @@ function InviteStudent() {
                                     <tr>
                                         <th className="px-6 py-3 text-xs font-bold text-slate-400 uppercase tracking-widest">Username</th>
                                         <th className="px-6 py-3 text-xs font-bold text-slate-400 uppercase tracking-widest">Email</th>
+                                        <th className="px-6 py-3 text-xs font-bold text-slate-400 uppercase tracking-widest">สถานะ</th>
                                         {isTeacher && <th className="px-6 py-3 text-xs font-bold text-slate-400 uppercase tracking-widest">จัดการ</th>}
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-50 dark:divide-slate-700">
                                     {students.length === 0 ? (
                                         <tr>
-                                            <td colSpan={isTeacher ? 3 : 2} className="px-6 py-12 text-center text-slate-400">
+                                            <td colSpan={isTeacher ? 4 : 3} className="px-6 py-12 text-center text-slate-400">
                                                 <span className="material-symbols-outlined text-4xl block mb-2 opacity-30">group_off</span>
                                                 ยังไม่มีนักเรียนในคอร์สนี้
                                             </td>
@@ -220,6 +221,19 @@ function InviteStudent() {
                                         <tr key={student.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
                                             <td className="px-6 py-4 font-medium text-slate-800 dark:text-slate-200">{student.username}</td>
                                             <td className="px-6 py-4 text-slate-500 dark:text-slate-400 text-sm">{student.email}</td>
+                                            <td className="px-6 py-4">
+                                                {student.status === "pending" ? (
+                                                    <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-[11px] font-bold bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300">
+                                                        <span className="material-symbols-outlined text-xs">hourglass_top</span>
+                                                        รอการตอบรับ
+                                                    </span>
+                                                ) : (
+                                                    <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300">
+                                                        <span className="material-symbols-outlined text-xs">check_circle</span>
+                                                        เข้าร่วมแล้ว
+                                                    </span>
+                                                )}
+                                            </td>
                                             {isTeacher && (
                                                 <td className="px-6 py-4">
                                                     <button

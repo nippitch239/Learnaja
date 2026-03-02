@@ -48,6 +48,15 @@ const fetchInvitedCourses = async () => {
     }
 };
 
+const fetchPendingInvites = async () => {
+    try {
+        const res = await api.get(`/instances/invitations`);
+        return res.data;
+    } catch (err) {
+        console.error(err);
+    }
+};
+
 const fetchInstance = async (id) => {
     try {
         const res = await api.get(`/instances/${id}`);
@@ -58,4 +67,4 @@ const fetchInstance = async (id) => {
     }
 }
 
-export { fetchCourse, fetchCourseFull, fetchCourses, fetchMyCourses, fetchInvitedCourses, fetchInstance };
+export { fetchCourse, fetchCourseFull, fetchCourses, fetchMyCourses, fetchInvitedCourses, fetchPendingInvites, fetchInstance };
