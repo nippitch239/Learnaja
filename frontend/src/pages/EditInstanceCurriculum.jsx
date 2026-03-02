@@ -1,5 +1,5 @@
 import { useState, useEffect, useContext, useRef, useCallback } from "react";
-import { useParams, Link, useNavigate } from "react-router-dom";
+import { useParams, Link, NavLink, useNavigate } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
 import api from "../services/api";
 import 'quill/dist/quill.snow.css';
@@ -121,7 +121,6 @@ function EditInstanceCurriculum() {
     const [error, setError] = useState(null);
     const [isSaving, setIsSaving] = useState(false);
 
-    // Form states for adding new items
     const [showAddModule, setShowAddModule] = useState(false);
     const [newModuleTitle, setNewModuleTitle] = useState("");
 
@@ -131,7 +130,6 @@ function EditInstanceCurriculum() {
     const [contentBody, setContentBody] = useState("");
     const [contentExtra, setContentExtra] = useState("");
 
-    // Editing States
     const [editModuleId, setEditModuleId] = useState(null);
     const [editModuleTitle, setEditModuleTitle] = useState("");
 
@@ -676,18 +674,61 @@ function EditInstanceCurriculum() {
                         <div className="bg-white dark:bg-surface-dark rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 p-4 sticky top-28">
                             <nav className="space-y-1">
                                 <div className="px-4 py-2 mb-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest">การจัดการ</div>
-                                <button className="flex items-center space-x-3 px-4 py-3 bg-primary/10 text-primary rounded-xl font-semibold transition-colors w-full text-left">
+
+                                <NavLink
+                                    to={`/mycourses/${id}/edit/info`}
+                                    end
+                                    className={({ isActive }) =>
+                                        `flex items-center space-x-3 px-4 py-3 rounded-xl font-semibold transition-colors w-full text-left ${isActive
+                                            ? "bg-primary/10 text-primary"
+                                            : "text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800"
+                                        }`
+                                    }
+                                >
+                                    <span className="material-symbols-outlined">edit_note</span>
+                                    <span>แก้ไขข้อมูลคอร์ส</span>
+                                </NavLink>
+
+                                <NavLink
+                                    to={`/mycourses/${id}/edit`}
+                                    end
+                                    className={({ isActive }) =>
+                                        `flex items-center space-x-3 px-4 py-3 rounded-xl font-semibold transition-colors w-full text-left ${isActive
+                                            ? "bg-primary/10 text-primary"
+                                            : "text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800"
+                                        }`
+                                    }
+                                >
                                     <span className="material-symbols-outlined">menu_book</span>
                                     <span>จัดการคอร์สเรียน</span>
-                                </button>
-                                <Link to={`/mycourses/${id}/invite`} className="flex items-center space-x-3 px-4 py-3 text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl font-medium transition-colors">
+                                </NavLink>
+
+                                <NavLink
+                                    to={`/mycourses/${id}/invite`}
+                                    className={({ isActive }) =>
+                                        `flex items-center space-x-3 px-4 py-3 rounded-xl font-semibold transition-colors w-full text-left ${isActive
+                                            ? "bg-primary/10 text-primary"
+                                            : "text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800"
+                                        }`
+                                    }
+                                >
                                     <span className="material-symbols-outlined">group</span>
                                     <span>จัดการนักเรียน</span>
-                                </Link>
-                                <Link to={`/mycourses/${id}/view`} className="flex items-center space-x-3 px-4 py-3 text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl font-medium transition-colors">
+                                </NavLink>
+
+                                <NavLink
+                                    to={`/mycourses/${id}/view`}
+                                    className={({ isActive }) =>
+                                        `flex items-center space-x-3 px-4 py-3 rounded-xl font-semibold transition-colors w-full text-left ${isActive
+                                            ? "bg-primary/10 text-primary"
+                                            : "text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800"
+                                        }`
+                                    }
+                                >
                                     <span className="material-symbols-outlined">visibility</span>
                                     <span>ดูตัวอย่างหน้าคอร์ส</span>
-                                </Link>
+                                </NavLink>
+
                             </nav>
                             <div className="mt-6">
                                 <Link to={`/mycourses/${id}/view`}>

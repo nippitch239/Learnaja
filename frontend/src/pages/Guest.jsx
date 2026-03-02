@@ -1,17 +1,11 @@
-import { useContext } from "react";
+
 import { useNavigate } from "react-router-dom";
-import { AuthContext } from "../context/AuthContext";
+
 
 
 function Guest() {
 
-    const { login } = useContext(AuthContext);
     const navigate = useNavigate();
-
-    const handleLogin = () => {
-        login();
-        navigate("/home");
-    };
 
     return (
         <>
@@ -23,15 +17,10 @@ function Guest() {
                             <span><img src="/images/logo_white.png" alt="Learnaja Logo" className="h-8 w-8" /></span>
                             <span className="text-white font-bold text-2xl tracking-tight">Learnaja</span>
                         </div>
-                        <div className="hidden md:flex flex-1 max-w-xl mx-8">
-                            <div className="relative w-full">
-                                <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-[#fb90a9]">search</span>
-                                <input className="w-full bg-white/20 border-none rounded-full py-2 pl-12 pr-4 text-white placeholder-white/70 focus:ring-2 focus:ring-white/50 transition-all" placeholder="ค้นหาคอร์สเรียน..." type="text" />
-                            </div>
-                        </div>
+                        
                         <div className="flex items-center space-x-4">
                             <button className="text-white font-semibold text-sm hover:opacity-80 transition"
-                                 onClick={handleLogin}>Log In</button>
+                                 onClick={() => navigate("/login")}>Log In</button>
                             <button onClick={() => navigate("/register")} className="bg-white text-primary px-6 py-2 rounded-full font-bold text-sm shadow-sm hover:bg-slate-50 transition-all"
                                >Sign Up</button>
                         </div>
@@ -52,7 +41,7 @@ function Guest() {
                     <div
                         className="flex flex-col sm:flex-row items-center justify-center gap-4">
                         <button
-                            className="w-full sm:w-auto px-10 py-4 bg-primary text-white font-bold font-sans rounded-2xl hover:shadow-xl hover:shadow-primary/30 transition-all text-lg tracking-wide" onClick={handleLogin}>
+                            className="w-full sm:w-auto px-10 py-4 bg-primary text-white font-bold font-sans rounded-2xl hover:shadow-xl hover:shadow-primary/30 transition-all text-lg tracking-wide" onClick={() => navigate("/login")}>
                             เริ่มเรียนรู้เลย
                         </button>
 
@@ -119,151 +108,7 @@ function Guest() {
                     </div>
                 </div>
             </section>
-            <section>
-                <div className="flex items-center justify-between mb-8">
-                    <div>
-                        <h2
-                            className="text-3xl font-bold text-slate-900 dark:text-white">
-                            คอร์สที่นิยม</h2>
-                        <p
-                            className="text-slate-500 dark:text-slate-400 text-sm mt-1">
-                            เข้าถึงคอร์สที่ได้รับความนิยมสูงสุดจากผู้เรียนของเรา</p>
-                    </div>
-                    <a
-                        className="text-primary font-bold hover:underline flex items-center group"
-                        href="#">
-                        ดูทั้งหมด <span
-                            className="material-symbols-outlined ml-1 group-hover:translate-x-1 transition-transform">chevron_right</span>
-                    </a>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                    <div
-                        className="group bg-white dark:bg-slate-800 rounded-2xl overflow-hidden border border-slate-100 dark:border-slate-700 hover:shadow-xl transition-all duration-300">
-                        <div
-                            className="h-48 bg-accent-blue relative overflow-hidden">
-                            <img alt="Web Development"
-                                className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                                src="https://lh3.googleusercontent.com/aida-public/AB6AXuAH1CR8Eq5DZ9bxjcYHrnK8UpB46himDXNwK7wU6EVTSAc8MXujUrbPhmKZvA8smmZCOpreo-VrpHOAFXQRuiffgW3lAEfghhejTxcQEp_vjuAY6PQbpk1P8XHlJLkWXBjnBT-2Oy_z43w6LQYUKPLJxpYhIqc3xWPX9i73fCeLW-Kd0VO1UHDdQJMmnpyv36cfFsuY4tEjVMg_d3PSzJVgVUYv3dmJQns6mAaQ-_8jhhPSJLuVFJe2soWd4J3twfg1NjT-ia5HZLU" />
-                        </div>
-                        <div className="p-5">
-                            <p
-                                className="text-xs font-bold text-primary uppercase tracking-wider mb-2">Development</p>
-                            <h3
-                                className="font-bold text-slate-900 dark:text-white text-lg mb-2 line-clamp-2">Mastering
-                                Full-Stack Web Dev with Tailwind</h3>
-                            <div className="flex items-center space-x-1 mb-4">
-                                <span
-                                    className="material-symbols-outlined text-yellow-400 text-[18px] fill-[1]">star</span>
-                                <span
-                                    className="text-sm font-bold dark:text-slate-300">4.9</span>
-                                <span className="text-sm text-slate-400">(1,200
-                                    รีวิว)</span>
-                            </div>
-                            <div
-                                className="flex items-center justify-between pt-4 border-t border-slate-50 dark:border-slate-700">
-                                <span
-                                    className="font-bold text-slate-900 dark:text-white">100P</span>
-                                <button
-                                    className="bg-primary text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-primary/90 transition">Enroll</button>
-                            </div>
-                        </div>
-                    </div>
-                    <div
-                        className="group bg-white dark:bg-slate-800 rounded-2xl overflow-hidden border border-slate-100 dark:border-slate-700 hover:shadow-xl transition-all duration-300">
-                        <div
-                            className="h-48 bg-accent-purple relative overflow-hidden">
-                            <img alt="UI Design"
-                                className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                                src="https://lh3.googleusercontent.com/aida-public/AB6AXuCkE4695f4jNw7wYvTslPcomIcEOPbGAwR4MY7DkKkveVasvo0DhSo648aqN76Xs1XNf5G0I-SRux4aG-_FNUTNHsQUIRdvl_a5itpxmYT0aZ8kBOn49DoVXQk4lQsX1xnK4L_DSvsq0Ng7ugqIvYbUZUS7_71vOktB7lAvg4s542MriQpRSoaaJwcI2uoHdvBlExVHr-55w2e3V9LIt82V34LOIQwkOePeC3NCQvcC2ZlzVL73K_gqbI3Qce4FwP_vBt9eh3Np6sM" />
-                        </div>
-                        <div className="p-5">
-                            <p
-                                className="text-xs font-bold text-purple-500 uppercase tracking-wider mb-2">Design</p>
-                            <h3
-                                className="font-bold text-slate-900 dark:text-white text-lg mb-2 line-clamp-2">UI
-                                Design Fundamentals &amp; Color Theory</h3>
-                            <div className="flex items-center space-x-1 mb-4">
-                                <span
-                                    className="material-symbols-outlined text-yellow-400 text-[18px] fill-[1]">star</span>
-                                <span
-                                    className="text-sm font-bold dark:text-slate-300">4.8</span>
-                                <span className="text-sm text-slate-400">(850
-                                    รีวิว)</span>
-                            </div>
-                            <div
-                                className="flex items-center justify-between pt-4 border-t border-slate-50 dark:border-slate-700">
-                                <span
-                                    className="font-bold text-slate-900 dark:text-white">100P</span>
-                                <button
-                                    className="bg-primary text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-primary/90 transition">Enroll</button>
-                            </div>
-                        </div>
-                    </div>
-                    <div
-                        className="group bg-white dark:bg-slate-800 rounded-2xl overflow-hidden border border-slate-100 dark:border-slate-700 hover:shadow-xl transition-all duration-300">
-                        <div
-                            className="h-48 bg-accent-green relative overflow-hidden">
-                            <img alt="Data Science"
-                                className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                                src="https://lh3.googleusercontent.com/aida-public/AB6AXuDWkd3DsYCwjvEe3Lz4w8MKnqeuVcBFTk3hniG-aFURj_7P6lsvuCVoP-jB4gQQ2BAO7fEXOPjKHT9zA-lPuTGaYnlPWpIfhg1lr3EfHKbd2eD-271iDrJo3Z8DS5-dB0E-lyPGCFIZ1z_GAiO7I1Hcr-AS3ICFiK_1LodSILeSyaf9wjltofvK8FsfwMIK1_zbnyFJLK9BqNMAB50lAudYEq3lZ-2z7WuK1P-4mxry5CRTNeJ6vMa6Goj__JTeeWGY0rNQMx7frwQ" />
-                        </div>
-                        <div className="p-5">
-                            <p
-                                className="text-xs font-bold text-green-500 uppercase tracking-wider mb-2">Data
-                                Science</p>
-                            <h3
-                                className="font-bold text-slate-900 dark:text-white text-lg mb-2 line-clamp-2">Python
-                                for Data Analysis &amp; Visualization</h3>
-                            <div className="flex items-center space-x-1 mb-4">
-                                <span
-                                    className="material-symbols-outlined text-yellow-400 text-[18px] fill-[1]">star</span>
-                                <span
-                                    className="text-sm font-bold dark:text-slate-300">4.7</span>
-                                <span className="text-sm text-slate-400">(2,100
-                                    รีวิว)</span>
-                            </div>
-                            <div
-                                className="flex items-center justify-between pt-4 border-t border-slate-50 dark:border-slate-700">
-                                <span
-                                    className="font-bold text-slate-900 dark:text-white">100P</span>
-                                <button
-                                    className="bg-primary text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-primary/90 transition">Enroll</button>
-                            </div>
-                        </div>
-                    </div>
-                    <div
-                        className="group bg-white dark:bg-slate-800 rounded-2xl overflow-hidden border border-slate-100 dark:border-slate-700 hover:shadow-xl transition-all duration-300">
-                        <div
-                            className="h-48 bg-primary/20 relative overflow-hidden">
-                            <img alt="Business"
-                                className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                                src="https://lh3.googleusercontent.com/aida-public/AB6AXuAn5A3OKsQ7PSRClEdmhWT_NhY2Um1OSGqlOsOTusS7Cdk2rFVfnm-fkuVSlbgs3j77ehDrSDEBiVj8Fk9F-k-xi6TyKW5tb1Bpz3-5BEbtMPqSh217rVn7mn7RjG20wTQDJTa92TWSmV9tR7Gb5U8sep7hJ5WzEXKPjX9TpDTfklrp7DOv1xCvWSMDCqfJyRSvw50sWrtDP8QvSWdtHVhiOlDxYB0zZyuqQhPWPH4jIJyz5ZvQ-KXg6sPwPdCqsLvyOf1H2NTluuU" />
-                        </div>
-                        <div className="p-5">
-                            <p
-                                className="text-xs font-bold text-blue-500 uppercase tracking-wider mb-2">Business</p>
-                            <h3
-                                className="font-bold text-slate-900 dark:text-white text-lg mb-2 line-clamp-2">Startup
-                                Growth Strategies in 2024</h3>
-                            <div className="flex items-center space-x-1 mb-4">
-                                <span
-                                    className="material-symbols-outlined text-yellow-400 text-[18px] fill-[1]">star</span>
-                                <span
-                                    className="text-sm font-bold dark:text-slate-300">4.9</span>
-                                <span className="text-sm text-slate-400">(540
-                                    รีวิว)</span>
-                            </div>
-                            <div
-                                className="flex items-center justify-between pt-4 border-t border-slate-50 dark:border-slate-700">
-                                <span
-                                    className="font-bold text-slate-900 dark:text-white">100P</span>
-                                <button
-                                    className="bg-primary text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-primary/90 transition">Enroll</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </section>
+           
         </main>
             </div>
             

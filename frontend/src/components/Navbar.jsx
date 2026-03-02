@@ -11,12 +11,21 @@ function Navbar() {
     const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:3200";
     const [profile, setProfile] = useState({ image_profile: null, points: 0 });
 
-    useEffect(() => {
+    const fetchProfile = () => {
         if (user) {
             api.get("/profile/me").then(res => {
                 setProfile(res.data);
             }).catch(err => console.error("Error fetching navbar profile:", err));
         }
+    };
+
+    useEffect(() => {
+        fetchProfile();
+
+        const handleProfileUpdate = () => fetchProfile();
+        window.addEventListener("profileUpdated", handleProfileUpdate);
+
+        return () => window.removeEventListener("profileUpdated", handleProfileUpdate);
     }, [user]);
 
     const handleLogout = () => {

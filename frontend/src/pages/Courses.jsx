@@ -19,8 +19,8 @@ function Courses() {
         { name: "Business", icon: "business" },
         { name: "Networking", icon: "network_check" },
         { name: "Data Science", icon: "bar_chart" },
-        { name: "Language", icon: "translate" },
-        { name: "Cyber Security", icon: "security" },
+        { name: "CyberSecurity", icon: "security" },
+        { name: "Language", icon: "translate" }
     ];
 
     const sortOptions = [

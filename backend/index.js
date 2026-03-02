@@ -284,7 +284,10 @@ router.get("/courses", async (req, res) => {
 router.get('/courses/owner', verifyToken, async (req, res) => {
     try {
         const [rows] = await db.query(
-            "select * from course_instances where owner_id = ?",
+            `select ci.*, coalesce(ci.thumbnail_url, c.thumbnail_url) as thumbnail_url
+             from course_instances ci
+             join courses c on ci.template_id = c.id
+             where ci.owner_id = ?`,
             [req.user.id]
         );
 
@@ -298,9 +301,10 @@ router.get('/courses/owner', verifyToken, async (req, res) => {
 router.get('/courses/invited', verifyToken, async (req, res) => {
     try {
         const [rows] = await db.query(
-            `select ci.* 
+            `select ci.*, coalesce(ci.thumbnail_url, c.thumbnail_url) as thumbnail_url 
             from instance_students ist
             join course_instances ci on ist.instance_id = ci.id
+            join courses c on ci.template_id = c.id
             where ist.user_id = ?`,
             [req.user.id]
         );
@@ -397,7 +401,7 @@ router.get("/instances/:id/full", verifyToken, async (req, res) => {
 
         // 1. Check if allowed to view (owner or student)
         const [instanceRows] = await db.query(
-            `select ci.*, c.thumbnail_url, c.category, c.price as original_price
+            `select ci.*, coalesce(ci.thumbnail_url, c.thumbnail_url) as thumbnail_url, c.category, c.price as original_price
              from course_instances ci
              join courses c on ci.template_id = c.id
              where ci.id = ?`,
@@ -547,6 +551,41 @@ router.put("/courses/:id/edit", verifyToken, checkRole("admin"), async (req, res
     } catch (err) {
         await connection.rollback();
         res.status(500).json({ error: err.message });
+    }
+});
+
+// edit instance info
+router.put("/instances/:id/edit", verifyToken, verifyInstanceOwner, async (req, res) => {
+    const connection = await db.getConnection();
+    try {
+        await connection.beginTransaction();
+        const { id } = req.params;
+        const { title, description, thumbnail_url } = req.body;
+
+        if (!title) {
+            return res.status(400).json({ message: "Title required" });
+        }
+
+        if (!description) {
+            return res.status(400).json({ message: "Description required" });
+        }
+
+        const [result] = await connection.query(
+            "update course_instances set title = ?, description = ?, thumbnail_url = ? where id = ?",
+            [title, description, thumbnail_url, id]
+        );
+
+        await connection.commit();
+
+        res.status(200).json({
+            message: "Instance updated",
+            instanceId: id
+        });
+    } catch (err) {
+        await connection.rollback();
+        res.status(500).json({ error: err.message });
+    } finally {
+        connection.release();
     }
 });
 
@@ -1031,10 +1070,24 @@ router.post("/instances/:id/modules/reorder", verifyToken, verifyInstanceOwner, 
     }
 });
 
+// Reorder Modules in Course
+router.post("/courses/:id/modules/reorder", verifyToken, checkRole("admin"), async (req, res) => {
+    try {
+        const { order } = req.body;
+        if (!Array.isArray(order)) return res.status(400).json({ message: "order must be an array" });
+        for (let i = 0; i < order.length; i++) {
+            await db.query("update course_modules set order_index = ? where id = ?", [i + 1, order[i]]);
+        }
+        res.json({ message: "Modules reordered" });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // Reorder Items within a Module
 router.post("/modules/:id/items/reorder", verifyToken, verifyModuleAccess, async (req, res) => {
     try {
-        const { order } = req.body; // array of objects { type: 'lesson'|'quiz'|'assignment', id: number }
+        const { order } = req.body;
         if (!Array.isArray(order)) return res.status(400).json({ message: "order must be an array" });
 
         for (let i = 0; i < order.length; i++) {
@@ -1160,7 +1213,6 @@ router.post("/courses/:id/rate", verifyToken, async (req, res) => {
             return res.status(403).json({ message: "Please finish the course content before rating" });
         }
 
-        // SQLite: upsert using INSERT OR REPLACE (requires UNIQUE(user_id, course_id))
         await connection.query(
             "INSERT OR REPLACE INTO course_ratings (course_id, user_id, rating, comment) VALUES (?, ?, ?, ?)",
             [courseId, userId, rating, comment || ""]
@@ -1225,7 +1277,6 @@ router.post("/instances/:id/progress", verifyToken, async (req, res) => {
         const { content_type, content_id } = req.body;
         const userId = req.user.id;
 
-        // SQLite: upsert – insert or ignore, then update timestamp
         await db.query(
             "INSERT OR IGNORE INTO course_progress (user_id, instance_id, content_type, content_id) VALUES (?, ?, ?, ?)",
             [userId, instanceId, content_type, content_id]

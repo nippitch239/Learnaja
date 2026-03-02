@@ -25,7 +25,8 @@ function CreateCourse() {
     "Business",
     "Networking",
     "Data Science",
-    "Cyber Security",
+    "Health & Wellness",
+    "Cybersecurity",
     "Language"
   ];
 
