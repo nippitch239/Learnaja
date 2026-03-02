@@ -1,5 +1,5 @@
 import { useState, useContext, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import api from '../services/api';
 
@@ -204,6 +204,9 @@ function RegisterTeacher() {
                                 "ส่งคำขอเป็นผู้สอน"
                             )}
                         </button>
+                        <Link to="/profile" className="mt-4 text-right text-sm font-medium text-primary hover:text-primary/80 transition-colors block hover:underline">
+                            ยกเลิกและกลับไปยังโปรไฟล์
+                        </Link>
                     </form>
                 </div>
             </div>
