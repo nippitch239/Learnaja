@@ -25,7 +25,8 @@ function CreateCourse() {
     "Business",
     "Networking",
     "Data Science",
-    "Health & Wellness",
+    "Cyber Security",
+    "Language"
   ];
 
   const handleSubmit = async (e) => {
@@ -119,7 +120,7 @@ function CreateCourse() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">
-              <label className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">Rating (0-5)</label>
+              <label className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">คะแนนรีวิว (0-5)</label>
               <input
                 type="number"
                 step="0.1"
@@ -132,12 +133,12 @@ function CreateCourse() {
             </div>
 
             <div className="space-y-2">
-              <label className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">Rating Count</label>
+              <label className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">จำนวนรีวิว</label>
               <input
                 type="number"
                 value={ratingCount}
                 onChange={(e) => setRatingCount(Number(e.target.value))}
-                className="w-full px-4 py-3 rounded-2xl border border-slate-200 dark:border-slate-700 bg-transparent focus:ring-2 focus:ring-primary focus:border-primary transition-all font-bold"
+                className="w-full px-4 py-3 rounded-2xl border border-slate-200 dark:border-slate-700 bg-transparent focus:ring-2 focus:ring-primary focus:border-primary transition-all font-bold dark:placeholder:text-slate-500"
               />
             </div>
           </div>
@@ -157,7 +158,7 @@ function CreateCourse() {
                 value={thumbnailUrl}
                 onChange={(e) => setThumbnailUrl(e.target.value)}
                 placeholder="https://example.com/image.jpg"
-                className="flex-1 px-4 py-3 rounded-2xl border border-slate-200 dark:border-slate-700 bg-transparent focus:ring-2 focus:ring-primary focus:border-primary transition-all font-medium"
+                className="flex-1 px-4 py-3 rounded-2xl border border-slate-200 dark:border-slate-700 bg-transparent focus:ring-2 focus:ring-primary focus:border-primary transition-all font-medium dark:placeholder:text-slate-500"
               />
             </div>
           </div>
@@ -169,7 +170,7 @@ function CreateCourse() {
               onChange={(e) => setDescription(e.target.value)}
               rows="4"
               placeholder="อธิบายเนื้อหาโดยรวมของคอร์สนี้..."
-              className="w-full px-4 py-3 rounded-2xl border border-slate-200 dark:border-slate-700 bg-transparent focus:ring-2 focus:ring-primary focus:border-primary transition-all font-medium"
+              className="w-full px-4 py-3 rounded-2xl border border-slate-200 dark:border-slate-700 bg-transparent focus:ring-2 focus:ring-primary focus:border-primary transition-all font-medium dark:placeholder:text-slate-500"
             />
           </div>
 

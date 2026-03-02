@@ -18,8 +18,9 @@ function Courses() {
         { name: "Design", icon: "palette" },
         { name: "Business", icon: "business" },
         { name: "Networking", icon: "network_check" },
-        { name: "Data Science", icon: "data_object" },
-        { name: "Health & Wellness", icon: "health_and_safety" },
+        { name: "Data Science", icon: "bar_chart" },
+        { name: "Language", icon: "translate" },
+        { name: "Cyber Security", icon: "security" },
     ];
 
     const sortOptions = [
@@ -71,7 +72,8 @@ function Courses() {
     }, []);
 
     return (
-        <main className="pt-28 pb-12 max-w-7xl mx-auto px-4 lg:px-6">
+        <div className=" bg-main bg-background-light dark:bg-background-dark text-slate-800 dark:text-slate-100">
+        <main className=" pt-28 pb-12 max-w-7xl mx-auto px-4 lg:px-6">
             <div className="flex flex-col space-y-8">
 
                 {/* Toolbar */}
@@ -128,7 +130,7 @@ function Courses() {
                         <select
                             value={sortBy}
                             onChange={(e) => setSortBy(e.target.value)}
-                            className="bg-transparent border-none font-bold text-slate-700 dark:text-slate-300 focus:ring-0 cursor-pointer p-0"
+                            className="bg-slate-50 dark:bg-slate-800 border-none font-bold text-slate-700 dark:text-slate-300 focus:ring-0 cursor-pointer p-0"
                         >
                             {sortOptions.map(opt => (
                                 <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -219,6 +221,7 @@ function Courses() {
                 )}
             </div>
         </main>
+        </div>
     );
 }
 

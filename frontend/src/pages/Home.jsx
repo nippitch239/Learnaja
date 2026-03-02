@@ -66,11 +66,11 @@ function Home() {
                         <div className="flex flex-wrap gap-6 mt-6 justify-center">
                             {[
                                 { name: "Programming", icon: "code" },
-                                { name: "Design", icon: "brush" },
+                                { name: "Design", icon: "palette" },
                                 { name: "Business", icon: "business" },
                                 { name: "Networking", icon: "network_check" },
                                 { name: "Data Science", icon: "bar_chart" },
-                                { name: "Cybersecurity", icon: "security" },
+                                { name: "Cyber Security", icon: "security" },
                                 { name: "Language", icon: "translate" }
                             ].map((cat) => (
                                 <div

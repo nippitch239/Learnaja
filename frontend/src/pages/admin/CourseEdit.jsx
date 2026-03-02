@@ -430,14 +430,15 @@ function CourseEdit() {
                                                     <option value="Business">Business</option>
                                                     <option value="Networking">Networking</option>
                                                     <option value="Data Science">Data Science</option>
-                                                    <option value="Health & Wellness">Health & Wellness</option>
+                                                    <option value="Cyber Security">Cyber Security</option>
+                                                    <option value="Language">Language</option>
                                                 </select>
                                             </div>
                                         </div>
 
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                             <div className="space-y-2">
-                                                <label className="block text-sm font-bold text-slate-700 dark:text-slate-300">Rating (0-5)</label>
+                                                <label className="block text-sm font-bold text-slate-700 dark:text-slate-300">คะแนนรีวิว (0-5)</label>
                                                 <div className="relative">
                                                     <input
                                                         className="w-full bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 rounded-xl pl-4 pr-12 py-3 focus:ring-2 focus:ring-primary focus:border-primary transition-all font-bold"
@@ -452,7 +453,7 @@ function CourseEdit() {
                                                 </div>
                                             </div>
                                             <div className="space-y-2">
-                                                <label className="block text-sm font-bold text-slate-700 dark:text-slate-300">Review Count</label>
+                                                <label className="block text-sm font-bold text-slate-700 dark:text-slate-300">จำนวนรีวิว</label>
                                                 <div className="relative">
                                                     <input
                                                         className="w-full bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 rounded-xl pl-4 pr-12 py-3 focus:ring-2 focus:ring-primary focus:border-primary transition-all font-bold"
@@ -467,7 +468,7 @@ function CourseEdit() {
                                         <div className="space-y-2">
                                             <label className="block text-sm font-bold text-slate-700 dark:text-slate-300">รายละเอียดคอร์สเรียน</label>
                                             <textarea
-                                                className="w-full bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 focus:ring-2 focus:ring-primary focus:border-primary transition-all min-h-[150px]"
+                                                className="w-full bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 focus:ring-2 focus:ring-primary focus:border-primary transition-all min-h-37.5 "
                                                 value={course.description}
                                                 onChange={(e) => setCourse({ ...course, description: e.target.value })}
                                             />
