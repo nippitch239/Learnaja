@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import CreateCourse from "./CreateCourse";
 import AllCourse from "./AllCourse";
 import AddPoints from "./AddPoints";
@@ -40,10 +41,10 @@ function Admin() {
                                     ))}
                                 </nav>
                                 <div className="mt-6">
-                                    <button className="bg-slate-900 text-white dark:bg-white dark:text-slate-900 px-4 py-2 rounded-xl font-bold hover:opacity-90 transition-opacity flex items-center space-x-2 w-full justify-center text-sm shadow-sm">
+                                    <Link to="/" className="bg-slate-900 text-white dark:bg-white dark:text-slate-900 px-4 py-2 rounded-xl font-bold hover:opacity-90 transition-opacity flex items-center space-x-2 w-full justify-center text-sm shadow-sm">
                                         <span className="material-symbols-outlined text-sm">arrow_back</span>
                                         <span>กลับไปหน้าหลัก</span>
-                                    </button>
+                                    </Link>
                                 </div>
                             </div>
                         </aside>
