@@ -17,3 +17,8 @@ Thumbs.db
 # Editor
 .vscode/
 *.log
+
+*.md
+
+*.db-wal
+*.db-shm
