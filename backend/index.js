@@ -1418,7 +1418,6 @@ router.post("/instances/:id/quiz-result", verifyToken, async (req, res) => {
             "UPDATE course_quiz_results SET score = ?, passed = ?, completed_at = CURRENT_TIMESTAMP WHERE user_id = ? AND instance_id = ? AND quiz_id = ?",
             [score, passed, userId, instanceId, quiz_id]
         );
-
         res.json({ message: "Quiz result saved" });
     } catch (err) {
         console.error("DEBUG: /instances/:id/quiz-result error ->", err);
@@ -1970,7 +1969,6 @@ router.post("/teacher-requests/:id/approve", verifyToken, checkRole("admin"), as
         await connection.commit();
         res.json({ message: "Approved successfully" });
     } catch (err) {
-        // since connection was used with db.getConnection(), it might not have rollback exposed easily without try-catch variable scope
         try {
             await db.query("ROLLBACK");
         } catch (e) { }
@@ -1984,6 +1982,62 @@ router.post("/teacher-requests/:id/reject", verifyToken, checkRole("admin"), asy
         const requestId = req.params.id;
         await db.query("UPDATE teacher_requests SET status = 'rejected' WHERE id = ?", [requestId]);
         res.json({ message: "Rejected successfully" });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// claim completion points (100 pts, one-time per user per instance)
+router.post("/instances/:id/claim-points", verifyToken, async (req, res) => {
+    const connection = await db.getConnection();
+    try {
+        const instanceId = req.params.id;
+        const userId = req.user.id;
+
+        const [existing] = await connection.query(
+            "SELECT id FROM course_instance_completions WHERE instance_id = ? AND user_id = ?",
+            [instanceId, userId]
+        );
+        if (existing.length > 0) {
+            return res.status(409).json({ message: "Points already claimed" });
+        }
+
+        await connection.beginTransaction();
+
+        await connection.query(
+            "INSERT INTO course_instance_completions (instance_id, user_id) VALUES (?, ?)",
+            [instanceId, userId]
+        );
+
+        await connection.query(
+            "UPDATE users SET points = points + 100 WHERE id = ?",
+            [userId]
+        );
+
+        await connection.commit();
+
+        const [userRows] = await db.query("SELECT points FROM users WHERE id = ?", [userId]);
+        res.json({ message: "Points claimed successfully", points: userRows[0]?.points });
+    } catch (err) {
+        await connection.rollback();
+        console.error("Claim points error:", err);
+        res.status(500).json({ error: err.message });
+    } finally {
+        connection.release();
+    }
+});
+
+// check if user has already claimed points for an instance
+router.get("/instances/:id/claim-points/status", verifyToken, async (req, res) => {
+    try {
+        const instanceId = req.params.id;
+        const userId = req.user.id;
+
+        const [rows] = await db.query(
+            "SELECT id FROM course_instance_completions WHERE instance_id = ? AND user_id = ?",
+            [instanceId, userId]
+        );
+        res.json({ claimed: rows.length > 0 });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }

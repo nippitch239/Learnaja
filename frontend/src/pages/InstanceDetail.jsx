@@ -18,10 +18,14 @@ function InstanceDetail() {
     const [ratingFetched, setRatingFetched] = useState(false);
     const [message, setMessage] = useState("");
 
+    const [hasClaimed, setHasClaimed] = useState(false);
+    const [claimingPoints, setClaimingPoints] = useState(false);
+    const [claimMessage, setClaimMessage] = useState("");
+
     const completedItems = (progress.lessons?.length || 0) + (progress.quizzes?.filter(q => q.passed)?.length || 0) + (progress.assignments?.length || 0);
     const isFinished = totalItemsCount > 0 && completedItems >= totalItemsCount;
 
-    const { user } = useContext(AuthContext);
+    const { user, login } = useContext(AuthContext);
     const navigate = useNavigate();
 
     const fetchMyRating = async (courseId) => {
@@ -57,6 +61,32 @@ function InstanceDetail() {
         }
     };
 
+    const handleClaimPoints = async () => {
+        if (hasClaimed || claimingPoints) return;
+        try {
+            setClaimingPoints(true);
+            await api.post(`/instances/${id}/claim-points`);
+            setHasClaimed(true);
+            setClaimMessage("รับ 100 Points สำเร็จ! 🎉");
+            setTimeout(() => setClaimMessage(""), 4000);
+
+            try {
+                const refreshRes = await api.post("/refresh");
+                login(refreshRes.data.token);
+            } catch (e) {
+                console.error("failed", e);
+            }
+        } catch (err) {
+            if (err.response?.status === 409) {
+                setHasClaimed(true);
+            } else {
+                alert(err.response?.data?.message || "ไม่สามารถรับ Points ได้");
+            }
+        } finally {
+            setClaimingPoints(false);
+        }
+    };
+
     useEffect(() => {
         const loadInstanceData = async () => {
             try {
@@ -79,6 +109,13 @@ function InstanceDetail() {
                     setProgress(progRes.data);
                 } catch (e) {
                     console.error("Failed to fetch progress", e);
+                }
+
+                try {
+                    const claimRes = await api.get(`/instances/${id}/claim-points/status`);
+                    setHasClaimed(claimRes.data.claimed);
+                } catch (e) {
+                    console.error("Failed to fetch claim status", e);
                 }
             } catch (err) {
                 console.error(err);
@@ -141,10 +178,10 @@ function InstanceDetail() {
                                 </p>
                             </div>
 
-                            
+
 
                             <div className="flex flex-col items-start lg:items-end gap-4 min-w-[320px]">
-                                
+
                                 <div className="flex gap-3 w-full">
                                     <Link
                                         to={`/mycourses/${id}`}
@@ -271,73 +308,104 @@ function InstanceDetail() {
                     <div className="space-y-8">
                         <div className="sticky top-28">
                             {isFinished && (
-                            <div className="w-full p-6 bg-linear-to-br from-green-500/10 to-emerald-500/10 dark:from-green-500/5 dark:to-emerald-500/5 border border-green-200 dark:border-green-900/30 rounded-3xl animate-in zoom-in-95 duration-500">
-                                <div className="flex items-center gap-4 mb-6">
-                                    <div className="w-12 h-12 rounded-xl bg-green-500 flex items-center justify-center text-white shrink-0 shadow-lg shadow-green-200 dark:shadow-none">
-                                        <span className="material-symbols-outlined text-2xl">emoji_events</span>
-                                    </div>
-                                    <div className="flex-1">
-                                        <h4 className="text-md font-black text-green-700 dark:text-green-400 leading-tight">ยินดีด้วย! คุณเรียนจบแล้ว</h4>
-                                        <p className="text-[10px] text-slate-600 dark:text-slate-400 mt-0.5">
-                                            ให้คะแนนคอร์สนี้เพื่อช่วยเราพัฒนาให้ดียิ่งขึ้น
-                                        </p>
-                                    </div>
-                                </div>
-
-                                <div className="pt-4 border-t border-green-100 dark:border-green-900/20">
-                                    <div className="flex flex-col items-center">
-                                        <div className="flex gap-1.5 mb-4">
-                                            {[1, 2, 3, 4, 5].map((star) => (
-                                                <button
-                                                    key={star}
-                                                    disabled={hasRated || submittingRating}
-                                                    onClick={() => setUserRating(star)}
-                                                    className={`material-symbols-outlined text-3xl cursor-pointer transition-all hover:scale-110 active:scale-90 ${star <= userRating ? 'text-yellow-400 fill-1' : 'text-slate-300'} ${hasRated ? 'cursor-default' : ''}`}
-                                                >
-                                                    star
-                                                </button>
-                                            ))}
+                                <div className="w-full p-6 bg-linear-to-br from-green-500/10 to-emerald-500/10 dark:from-green-500/5 dark:to-emerald-500/5 border border-green-200 dark:border-green-900/30 rounded-3xl animate-in zoom-in-95 duration-500">
+                                    <div className="flex items-center gap-4 mb-6">
+                                        <div className="w-12 h-12 rounded-xl bg-green-500 flex items-center justify-center text-white shrink-0 shadow-lg shadow-green-200 dark:shadow-none">
+                                            <span className="material-symbols-outlined text-2xl">emoji_events</span>
                                         </div>
+                                        <div className="flex-1">
+                                            <h4 className="text-md font-black text-green-700 dark:text-green-400 leading-tight">ยินดีด้วย! คุณเรียนจบแล้ว</h4>
+                                            <p className="text-[10px] text-slate-600 dark:text-slate-400 mt-0.5">
+                                                ให้คะแนนคอร์สนี้เพื่อช่วยเราพัฒนาให้ดียิ่งขึ้น
+                                            </p>
+                                        </div>
+                                    </div>
 
-                                        {!hasRated ? (
-                                            <div className="w-full space-y-3">
-                                                <textarea
-                                                    placeholder="บอกความรู้สึกสั้นๆ..."
-                                                    value={userComment}
-                                                    onChange={(e) => setUserComment(e.target.value)}
-                                                    disabled={submittingRating}
-                                                    className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-3 text-xs focus:ring-2 focus:ring-primary/20 outline-none min-h-[80px] transition-all"
-                                                ></textarea>
-                                                <button
-                                                    onClick={handleSubmitRating}
-                                                    disabled={submittingRating || userRating === 0}
-                                                    className="w-full bg-slate-900 dark:bg-white dark:text-slate-900 text-white py-2.5 rounded-xl font-bold hover:brightness-110 transition-all disabled:opacity-50 flex items-center justify-center gap-2 text-xs"
-                                                >
-                                                    {submittingRating ? (
-                                                        <div className="w-4 h-4 border-2 border-white/30 border-t-white dark:border-slate-900/30 dark:border-t-slate-900 rounded-full animate-spin"></div>
-                                                    ) : (
-                                                        <>
-                                                            <span className="material-symbols-outlined text-sm">send</span>
-                                                            ส่งความแเห็น
-                                                        </>
+                                    <div className="pt-4 border-t border-green-100 dark:border-green-900/20">
+                                        <div className="flex flex-col items-center">
+                                            <div className="flex gap-1.5 mb-4">
+                                                {[1, 2, 3, 4, 5].map((star) => (
+                                                    <button
+                                                        key={star}
+                                                        disabled={hasRated || submittingRating}
+                                                        onClick={() => setUserRating(star)}
+                                                        className={`material-symbols-outlined text-3xl cursor-pointer transition-all hover:scale-110 active:scale-90 ${star <= userRating ? 'text-yellow-400 fill-1' : 'text-slate-300'} ${hasRated ? 'cursor-default' : ''}`}
+                                                    >
+                                                        star
+                                                    </button>
+                                                ))}
+                                            </div>
+
+                                            {!hasRated ? (
+                                                <div className="w-full space-y-3">
+                                                    <textarea
+                                                        placeholder="บอกความรู้สึกสั้นๆ..."
+                                                        value={userComment}
+                                                        onChange={(e) => setUserComment(e.target.value)}
+                                                        disabled={submittingRating}
+                                                        className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-3 text-xs focus:ring-2 focus:ring-primary/20 outline-none min-h-[80px] transition-all"
+                                                    ></textarea>
+                                                    <button
+                                                        onClick={handleSubmitRating}
+                                                        disabled={submittingRating || userRating === 0}
+                                                        className="w-full bg-slate-900 dark:bg-white dark:text-slate-900 text-white py-2.5 rounded-xl font-bold hover:brightness-110 transition-all disabled:opacity-50 flex items-center justify-center gap-2 text-xs"
+                                                    >
+                                                        {submittingRating ? (
+                                                            <div className="w-4 h-4 border-2 border-white/30 border-t-white dark:border-slate-900/30 dark:border-t-slate-900 rounded-full animate-spin"></div>
+                                                        ) : (
+                                                            <>
+                                                                <span className="material-symbols-outlined text-sm">send</span>
+                                                                ส่งความแเห็น
+                                                            </>
+                                                        )}
+                                                    </button>
+                                                </div>
+                                            ) : (
+                                                <div className="text-center w-full">
+                                                    <div className="p-3 bg-white/50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-700/50 italic text-[11px] text-slate-500 mb-3">
+                                                        "{userComment || 'ไม่มีความแเห็นเพิ่มเติม'}"
+                                                    </div>
+                                                    <div className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 text-[10px] font-bold">
+                                                        <span className="material-symbols-outlined text-xs">check_circle</span>
+                                                        บันทึกการให้คะแนนแล้ว
+                                                    </div>
+
+                                                    {claimMessage && (
+                                                        <div className="mt-2 inline-flex items-center gap-1 px-3 py-1 rounded-full bg-yellow-50 dark:bg-yellow-900/20 text-yellow-600 dark:text-yellow-400 text-[10px] font-bold animate-in fade-in zoom-in-95 duration-300">
+                                                            <span className="material-symbols-outlined text-xs">star</span>
+                                                            {claimMessage}
+                                                        </div>
                                                     )}
-                                                </button>
-                                            </div>
-                                        ) : (
-                                            <div className="text-center w-full">
-                                                <div className="p-3 bg-white/50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-700/50 italic text-[11px] text-slate-500 mb-3">
-                                                    "{userComment || 'ไม่มีความแเห็นเพิ่มเติม'}"
+
+                                                    <button
+                                                        onClick={handleClaimPoints}
+                                                        disabled={hasClaimed || claimingPoints}
+                                                        className={`cursor-pointer w-full mt-2 py-2.5 rounded-xl font-bold transition-all flex items-center justify-center gap-2 text-xs ${hasClaimed
+                                                            ? 'bg-slate-200 dark:bg-slate-700 text-slate-400 dark:text-slate-500 cursor-not-allowed'
+                                                            : 'bg-linear-to-r from-yellow-400 to-orange-400 text-white hover:brightness-110 shadow-md shadow-orange-200 dark:shadow-none hover:-translate-y-0.5'
+                                                            }`}
+                                                    >
+                                                        {claimingPoints ? (
+                                                            <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                                                        ) : hasClaimed ? (
+                                                            <>
+                                                                <span className="material-symbols-outlined text-sm">check_circle</span>
+                                                                รับ Points แล้ว
+                                                            </>
+                                                        ) : (
+                                                            <>
+                                                                <span className="material-symbols-outlined text-sm">workspace_premium</span>
+                                                                เรียนจบแล้ว รับ Points เลย!
+                                                            </>
+                                                        )}
+                                                    </button>
                                                 </div>
-                                                <div className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 text-[10px] font-bold">
-                                                    <span className="material-symbols-outlined text-xs">check_circle</span>
-                                                    บันทึกการให้คะแนนแล้ว
-                                                </div>
-                                            </div>
-                                        )}
+                                            )}
+
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                        )}
+                            )}
                             <div className="bg-white dark:bg-slate-900 p-4 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-xl overflow-hidden group">
                                 <div className="relative rounded-2xl overflow-hidden aspect-video mb-4">
                                     {instance.thumbnail_url ? (
@@ -396,7 +464,7 @@ function InstanceDetail() {
                                 </div>
                             </div>
                         </div>
-                        
+
                     </div>
                 </div>
             </main>
