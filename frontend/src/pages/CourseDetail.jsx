@@ -65,6 +65,7 @@ function CourseDetail() {
       });
       setMessage(res.data.message || "ซื้อคอร์สสำเร็จ!");
       await calculateOwnership();
+      window.dispatchEvent(new Event("profileUpdated"));
       setTimeout(() => setMessage(""), 4000);
     } catch (err) {
       console.error(err);
@@ -93,9 +94,10 @@ function CourseDetail() {
   );
 
   return (
-    <div className="min-h-screen bg-background-light dark:bg-background-dark text-slate-800 dark:text-slate-100">
+    <div className=" bg-main bg-background-light dark:bg-background-dark text-slate-800 dark:text-slate-100">
       {/* Hero Section */}
-      <div className="bg-pink-50 dark:bg-slate-900/50 pt-24 pb-12 hero-pattern dark:hero-pattern border-b border-pink-100 dark:border-slate-800">
+
+      <div className="bg-linear-to-br from-primary/10 to-accent-purple/20 dark:from-primary/5 dark:to-slate-800 p-8 md:p-16 border border-primary/10k pt-24 pb-12 border-b  border-pink-100 dark:border-slate-800">
         <div className="max-w-7xl mx-auto px-6 mt-8">
           <button
             onClick={() => navigate(-1)}
@@ -132,13 +134,13 @@ function CourseDetail() {
                 <div className="flex gap-3 w-full">
                   <button
                     onClick={handleBuy}
-                    disabled={buying}
+                    disabled={buying || (ownedInstances.length > 0 && !user?.roles?.includes('teacher'))}
                     className="flex-1 bg-primary text-white px-8 py-4 rounded-2xl font-bold text-lg shadow-lg shadow-pink-200 dark:shadow-none hover:-translate-y-0.5 transition-all disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
                   >
                     {buying ? (
                       <><span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></span><span>กำลังซื้อ...</span></>
                     ) : (
-                      <><span className="material-symbols-outlined">shopping_cart</span><span>{ownedInstances.length > 0 ? "ซื้อเพิ่มอีกคอร์ส" : "ซื้อคอร์สนี้"}</span></>
+                      <><span className="material-symbols-outlined">{ownedInstances.length > 0 && !user?.roles?.includes('teacher') ? "check_circle" : "shopping_cart"}</span><span>{ownedInstances.length > 0 ? (user?.roles?.includes('teacher') ? "ซื้อเพิ่มอีกคอร์ส" : "ซื้อคอร์สแล้ว") : "ซื้อคอร์สนี้"}</span></>
                     )}
                   </button>
 
@@ -146,9 +148,11 @@ function CourseDetail() {
                     <Link
                       to={`/courses/${id}/edit`}
                       className="flex items-center justify-center bg-slate-900 dark:bg-white dark:text-slate-900 text-white p-4 rounded-2xl font-bold hover:opacity-90 transition-opacity"
+                      title="แก้ไขหลักสูตร"
                     >
                       <span className="material-symbols-outlined">edit</span>
                     </Link>
+
                   )}
                 </div>
 
@@ -178,7 +182,7 @@ function CourseDetail() {
                         {ownedInstances.map((inst, idx) => (
                           <button
                             key={inst.id}
-                            onClick={() => navigate(`/mycourses/${inst.id}`)}
+                            onClick={() => navigate(`/mycourses/${inst.id}/view`)}
                             className="w-full flex items-center justify-between px-4 py-3 hover:bg-primary/5 transition-colors text-left group"
                           >
                             <div className="flex items-center space-x-3">
@@ -189,7 +193,7 @@ function CourseDetail() {
                                 <p className="font-bold text-sm text-slate-800 dark:text-slate-100 group-hover:text-primary transition-colors">
                                   {inst.title}
                                 </p>
-                                <p className="text-xs text-slate-400">Instance #{inst.id}</p>
+                                <p className="text-xs text-slate-400">#{inst.id}</p>
                               </div>
                             </div>
                             <span className="material-symbols-outlined text-primary text-base">arrow_forward</span>
@@ -357,41 +361,42 @@ function CourseDetail() {
 
           {/* Right Column: Sidebar */}
           <div className="space-y-8">
-            {course.thumbnail_url && (
-              <div className="sticky top-28">
-                <div className="bg-white dark:bg-slate-900 p-4 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-xl overflow-hidden group">
-                  <div className="relative rounded-2xl overflow-hidden aspect-video mb-4">
+
+            <div className="sticky top-28">
+              <div className="bg-white dark:bg-slate-900 p-4 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-xl overflow-hidden group">
+                <div className="relative rounded-2xl overflow-hidden aspect-video mb-4">
+                  {course.thumbnail_url ? (
                     <img
                       src={course.thumbnail_url}
                       alt={course.title}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                     />
-                    <div className="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
-                      <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center text-primary shadow-2xl">
-                        <span className="material-symbols-outlined text-4xl fill-1">play_arrow</span>
-                      </div>
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center">
+                      <span className="material-symbols-outlined text-5xl text-slate-300">school</span>
+                    </div>
+                  )}
+                  <div className="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
+                    <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center text-primary shadow-2xl">
+                      <span className="material-symbols-outlined text-4xl fill-1">play_arrow</span>
                     </div>
                   </div>
-                  <div className="p-2 space-y-4">
-                    <h4 className="font-bold text-lg">คอร์สนี้รวมอะไรบ้าง?</h4>
-                    <ul className="space-y-3">
-                      <li className="flex items-center space-x-3 text-sm text-slate-600 dark:text-slate-400">
-                        <span className="material-symbols-outlined text-green-500 text-[18px]">check_circle</span>
-                        <span>เข้าชมได้ตลอดชีพ</span>
-                      </li>
-                      <li className="flex items-center space-x-3 text-sm text-slate-600 dark:text-slate-400">
-                        <span className="material-symbols-outlined text-green-500 text-[18px]">check_circle</span>
-                        <span>เข้าถึงบนอุปกรณ์ใดก็ได้</span>
-                      </li>
-                      <li className="flex items-center space-x-3 text-sm text-slate-600 dark:text-slate-400">
-                        <span className="material-symbols-outlined text-green-500 text-[18px]">check_circle</span>
-                        <span>มีใบรับรองหลังเรียนจบ</span>
-                      </li>
-                    </ul>
-                  </div>
+                </div>
+                <div className="p-2 space-y-4">
+                  <h4 className="font-bold text-lg">คอร์สนี้รวมอะไรบ้าง?</h4>
+                  <ul className="space-y-3">
+                    <li className="flex items-center space-x-3 text-sm text-slate-600 dark:text-slate-400">
+                      <span className="material-symbols-outlined text-green-500 text-[18px]">check_circle</span>
+                      <span>เข้าชมได้ตลอดชีพ</span>
+                    </li>
+                    <li className="flex items-center space-x-3 text-sm text-slate-600 dark:text-slate-400">
+                      <span className="material-symbols-outlined text-green-500 text-[18px]">check_circle</span>
+                      <span>เข้าถึงบนอุปกรณ์ใดก็ได้</span>
+                    </li>
+                  </ul>
                 </div>
               </div>
-            )}
+            </div>
           </div>
         </div>
       </main>

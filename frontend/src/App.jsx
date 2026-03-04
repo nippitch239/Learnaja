@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Link, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useContext } from "react";
 import AuthProvider, { AuthContext } from "./context/AuthContext";
 import Login from "./pages/Login";
@@ -9,6 +9,7 @@ import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
 import CourseDetail from "./pages/CourseDetail";
 import CourseEdit from "./pages/admin/CourseEdit";
+import CourseInfoEdit from "./pages/admin/CourseInfoEdit";
 import RequireAuth from "./Routes/RequireAuth";
 import RequireRole from "./Routes/RequireRole";
 import RequireOwner from "./Routes/RequireOwner";
@@ -23,18 +24,23 @@ import EditProfile from "./pages/EditProfile";
 // import EditStudent from "./pages/EditStudent";
 // import EditInfo from "./pages/EditInfo";
 // import EditCurriculum from "./pages/EditCurriculum";
+// import Lesson from "./pages/Lesson";
+import InstanceDetail from "./pages/InstanceDetail";
+import EditInstanceCurriculum from "./pages/EditInstanceCurriculum";
+import EditInstanceInfo from "./pages/EditInstanceInfo";
+import InstanceStudentsProgress from "./pages/InstanceStudentsProgress";
+import RegisterTeacher from "./pages/RegisterTeacher";
 
 function AppContent() {
 
   const { token, user } = useContext(AuthContext);
+
   console.log(user)
 
   return (
     <BrowserRouter>
 
-      {/* <nav> */}
       {token && <Navbar />}
-      {/* </nav> */}
 
       <Routes>
         <Route
@@ -43,18 +49,17 @@ function AppContent() {
         />
         <Route
           path="/home"
-          element={token ? <Home /> : <Navigate to="/login" />}
+          element={token ? <Home /> : <Navigate to="/" />}
         />
-
 
         <Route
           path="/login"
-          element={!token ? <Login /> : <Navigate to="/home" />}
+          element={!token ? <Login /> : <Navigate to="/" />}
         />
 
         <Route
           path="/register"
-          element={!token ? <Register /> : <Navigate to="/home" />}
+          element={!token ? <Register /> : <Navigate to="/" />}
         />
 
         <Route
@@ -81,13 +86,23 @@ function AppContent() {
           path="/courses/:id/edit"
           element={
             <RequireAuth>
-
-              <CourseEdit />
-
+              <RequireRole role="admin">
+                <CourseInfoEdit />
+              </RequireRole>
             </RequireAuth>
           }
         />
 
+        <Route
+          path="/courses/:id/edit/curriculum"
+          element={
+            <RequireAuth>
+              <RequireRole role="admin">
+                <CourseEdit />
+              </RequireRole>
+            </RequireAuth>
+          }
+        />
 
         <Route
           path="/mycourses"
@@ -100,6 +115,39 @@ function AppContent() {
             <RequireAuth>
               <RequireOwner>
                 <MyDetailCourse />
+              </RequireOwner>
+            </RequireAuth>
+          }
+        />
+
+        <Route
+          path="/mycourses/:id/view"
+          element={
+            <RequireAuth>
+              <RequireOwner>
+                <InstanceDetail />
+              </RequireOwner>
+            </RequireAuth>
+          }
+        />
+
+        <Route
+          path="/mycourses/:id/edit"
+          element={
+            <RequireAuth>
+              <RequireOwner>
+                <EditInstanceCurriculum />
+              </RequireOwner>
+            </RequireAuth>
+          }
+        />
+
+        <Route
+          path="/mycourses/:id/edit/info"
+          element={
+            <RequireAuth>
+              <RequireOwner>
+                <EditInstanceInfo />
               </RequireOwner>
             </RequireAuth>
           }
@@ -119,12 +167,30 @@ function AppContent() {
         />
 
         <Route
+          path="/mycourses/:id/progress"
+          element={
+            <RequireAuth>
+              <RequireRole role="teacher">
+                <RequireOwner>
+                  <InstanceStudentsProgress />
+                </RequireOwner>
+              </RequireRole>
+            </RequireAuth>
+          }
+        />
+
+        <Route
           path="/profile"
           element={token ? <Profile /> : <Navigate to="/login" />}
         />
         <Route
           path="/edit-profile"
           element={token ? <EditProfile /> : <Navigate to="/login" />}
+        />
+
+        <Route
+          path="/register-teacher"
+          element={token ? <RegisterTeacher /> : <Navigate to="/login" />}
         />
 
         {/* ทำไว้ดูดีไซน์เฉยๆ */}
@@ -143,12 +209,13 @@ function AppContent() {
         <Route
           path="/editCurriculum"
           element={token ? <EditCurriculum /> : <Navigate to="/login" />}
+        />
+
+        <Route
+          path="/lesson"
+          element={token ? <Lesson /> : <Navigate to="/login" />}
         /> */}
       </Routes>
-
-      
-        
- 
 
       <Footer />
 

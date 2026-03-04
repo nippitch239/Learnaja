@@ -45,11 +45,11 @@ function UserDropdown({ onSelect }) {
                     setOpen(true);
                 }}
                 placeholder="Search user"
-                className="border border-slate-200 w-full"
+                className="border border-slate-200 dark:border-slate-500 w-full rounded-2xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 dark:bg-slate-700 dark:text-white"
             />
 
             {open && filtered.length > 0 && (
-                <ul className="absolute bg-white border mt-1 w-full z-50">
+                <ul className="absolute bg-white border mt-1 w-full z-50 dark:bg-slate-800 rounded-lg shadow-lg py-2 max-h-60 overflow-y-auto border-slate-200 dark:border-slate-700">
                     {filtered.map((user) => (
                         <li
                             key={user.id}
@@ -58,7 +58,7 @@ function UserDropdown({ onSelect }) {
                                 setSearch(user.username);
                                 setOpen(false);
                             }}
-                            className="p-2 hover:bg-gray-100 cursor-pointer"
+                            className="p-2 hover:bg-gray-100 cursor-pointer dark:hover:bg-slate-700"
                         >
                             {user.username}
                         </li>

@@ -108,20 +108,20 @@ function EditProfile() {
 
     return (
         <>
-            <div className="font-sans bg-main bg-background-light dark:bg-background-dark text-slate-800 dark:text-slate-100 min-h-screen my-15">
-                <div className="pt-8 max-w-7xl mx-auto px-4 py-8 bg-pattern min-h-screen">
-                    <div className="px-6">
-                    <button
-                        onClick={() => navigate("/profile")}
-                        className="cursor-pointer flex items-center gap-2 px-4 py-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors group text-sm font-bold"
-                    >
-                        <span className="material-symbols-outlined text-slate-400 group-hover:text-slate-600">arrow_back</span>
-                        <span>กลับไปยังโปรไฟล์</span>
-                    </button>
-                </div>
+            <div className="font-sans bg-main bg-background-light dark:bg-background-dark text-slate-800 dark:text-slate-100 min-h-screen">
+                <div className="pt-24 max-w-7xl mx-auto px-4 py-8 bg-pattern min-h-screen">
+                    <div className="mb-4">
+                        <button
+                            onClick={() => navigate("/profile")}
+                            className="cursor-pointer flex items-center gap-2 px-4 py-2 dark:group-hover:text-slate-50 dark:hover:bg-primary dark:bg-primary/10 rounded-xl transition-colors group text-sm font-bold border border-slate-200 dark:border-slate-700"
+                        >
+                            <span className="material-symbols-outlined dark:group-hover:text-slate-50 text-primary">arrow_back</span>
+                            <span className="text-primary dark:group-hover:text-slate-50">กลับไปยังโปรไฟล์</span>
+                        </button>
+                    </div>
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                         <aside className="lg:col-span-1 space-y-6">
-                            <div className="bg-white/50 dark:bg-card-dark p-8 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 text-center relative overflow-hidden">
+                            <div className="bg-white/50 dark:bg-slate-800 p-8 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 text-center relative overflow-hidden">
                                 <div className="relative inline-block mb-4">
                                     <img alt="User Avatar"
                                         className="w-24 h-24 rounded-full object-cover ring-4 ring-primary/20 bg-slate-100"
@@ -145,7 +145,7 @@ function EditProfile() {
                                 <p className="text-slate-500 dark:text-slate-400 text-sm">{profile.email}</p>
                             </div>
 
-                            <div className="bg-white/50 dark:bg-card-dark p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800">
+                            <div className="bg-white/50 dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800">
                                 <div className="flex items-center justify-between mb-6">
                                     <h3 className="font-bold flex items-center gap-2 text-sm uppercase tracking-wider text-slate-400">
                                         <span className="material-symbols-outlined text-primary text-lg">stars</span>
@@ -170,12 +170,13 @@ function EditProfile() {
                         </aside>
 
                         <section className="lg:col-span-2 space-y-8">
-                            <div className="bg-white/50 dark:bg-card-dark p-8 md:p-10 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800">
+                            <div className="bg-white/50 dark:bg-slate-800 p-8 md:p-10 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800">
                                 <div className="mb-10">
                                     <h1 className="text-2xl font-bold mb-2">ตั้งค่าโปรไฟล์</h1>
                                     <p className="text-slate-500 dark:text-slate-400">อัปเดตข้อมูลส่วนตัวและรูปภาพแสดงตน</p>
                                 </div>
 
+                                {/* Update Name Form */}
                                 <form onSubmit={handleUpdateName} className="space-y-6">
                                     <div className="space-y-4">
                                         <h3 className="text-lg font-bold flex items-center gap-2">
@@ -217,11 +218,12 @@ function EditProfile() {
 
                                 <hr className="my-10 border-slate-100 dark:border-slate-800" />
 
+                                {/* Change Password Form */}
                                 <form onSubmit={handleChangePassword} className="space-y-6">
                                     <div className="space-y-4">
                                         <h3 className="text-lg font-bold flex items-center gap-2">
                                             <span className="material-symbols-outlined text-primary">lock</span>
-                                            เปลี่ยนรหัสผ่าน
+                                            ความปลอดภัยของบัญชี
                                         </h3>
                                         <div className="grid grid-cols-1 gap-6 max-w-lg">
                                             <div className="space-y-2">
@@ -261,34 +263,32 @@ function EditProfile() {
                                             </div>
                                         </div>
                                     </div>
-                                    <div className="flex justify-end">
+                                    <div className="flex flex-col md:flex-row items-center justify-between gap-4 pt-4">
                                         <button
-                                            disabled={updating}
-                                            className="cursor-pointer px-8 py-3 rounded-xl bg-slate-800 text-white font-bold hover:bg-slate-900 transition-all shadow-md disabled:opacity-50 text-sm"
-                                            type="submit"
+                                            onClick={handleDeleteAccount}
+                                            className="cursor-pointer text-sm font-bold text-slate-400 hover:text-red-500 transition-colors uppercase tracking-widest"
+                                            type="button"
                                         >
-                                            {updating ? "กำลังบันทึก..." : "เปลี่ยนรหัสผ่าน"}
+                                            ลบบัญชีผู้ใช้
                                         </button>
+                                        <div className="flex items-center gap-4 w-full md:w-auto">
+                                            <button
+                                                onClick={() => navigate("/profile")}
+                                                className="cursor-pointer w-full md:w-auto px-8 py-3 rounded-xl border border-slate-200 dark:border-slate-700 font-bold hover:bg-slate-50 dark:hover:bg-white/5 transition-colors text-sm"
+                                                type="button"
+                                            >
+                                                ยกเลิก
+                                            </button>
+                                            <button
+                                                disabled={updating}
+                                                className="cursor-pointer w-full md:w-auto px-8 py-3 rounded-xl bg-slate-800 text-white font-bold hover:bg-slate-900 transition-all shadow-md disabled:opacity-50 text-sm dark:bg-primary dark:hover:bg-primary/90 dark:shadow-primary/25"
+                                                type="submit"
+                                            >
+                                                {updating ? "กำลังบันทึก..." : "เปลี่ยนรหัสผ่าน"}
+                                            </button>
+                                        </div>
                                     </div>
                                 </form>
-
-                                <hr className="my-10 border-slate-100 dark:border-slate-800" />
-
-                                <div className="flex flex-col md:flex-row items-center justify-between gap-4 pt-4">
-                                    <button
-                                        onClick={handleDeleteAccount}
-                                        className="cursor-pointer text-sm font-bold text-slate-400 hover:text-red-500 transition-colors uppercase tracking-widest"
-                                        type="button"
-                                    >
-                                        ลบบัญชีผู้ใช้
-                                    </button>
-                                    <button
-                                        onClick={() => navigate("/profile")}
-                                        className="cursor-pointer w-full md:w-auto px-8 py-3 rounded-xl border border-slate-200 dark:border-slate-700 font-bold hover:bg-slate-50 dark:hover:bg-white/5 transition-colors text-sm"
-                                    >
-                                        ยกเลิก
-                                    </button>
-                                </div>
                             </div>
                         </section>
                     </div>

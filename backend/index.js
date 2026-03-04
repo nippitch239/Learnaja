@@ -21,7 +21,8 @@ const multer = require("multer");
 
 const { v4: uuidv4 } = require("uuid");
 
-const ALLOWED_ORIGINS = (process.env.CORS_ORIGIN || "http://localhost:5173,http://localhost")
+
+const ALLOWED_ORIGINS = (process.env.CORS_ORIGIN || "http://localhost,http://localhost:5173")
     .split(",")
     .map(o => o.trim());
 
@@ -210,15 +211,15 @@ router.post("/courses", verifyToken, checkRole("admin"), async (req, res) => {
     try {
         await connection.beginTransaction();
 
-        const { title, description, price, category, rating, rating_count } = req.body;
+        const { title, description, price, category, rating, rating_count, thumbnail_url } = req.body;
 
         if (!title) {
             return res.status(400).json({ message: "Title required" });
         }
 
         const [result] = await connection.query(
-            "insert into courses (title, description, price, category, rating, rating_count) values (?, ?, ?, ?, ?, ?)",
-            [title, description, price, category, rating || 0, rating_count || 0]
+            "insert into courses (title, description, price, category, rating, rating_count, thumbnail_url) values (?, ?, ?, ?, ?, ?, ?)",
+            [title, description, price, category, rating || 0, rating_count || 0, thumbnail_url || null]
         );
 
         await connection.commit();
@@ -255,6 +256,10 @@ router.get("/courses", async (req, res) => {
             query += " order by rating desc";
         } else if (sortBy === 'rating_asc') {
             query += " order by rating asc";
+        } else if (sortBy === 'price_desc') {
+            query += " order by price desc";
+        } else if (sortBy === 'price_asc') {
+            query += " order by price asc";
         } else if (sortBy === 'rating') { // backward compatibility
             query += " order by rating desc";
         } else {
@@ -279,7 +284,11 @@ router.get("/courses", async (req, res) => {
 router.get('/courses/owner', verifyToken, async (req, res) => {
     try {
         const [rows] = await db.query(
-            "select * from course_instances where owner_id = ?",
+            `select ci.*, coalesce(ci.thumbnail_url, c.thumbnail_url) as thumbnail_url, u.name as owner_name
+             from course_instances ci
+             join courses c on ci.template_id = c.id
+             join users u on ci.owner_id = u.id
+             where ci.owner_id = ?`,
             [req.user.id]
         );
 
@@ -293,13 +302,34 @@ router.get('/courses/owner', verifyToken, async (req, res) => {
 router.get('/courses/invited', verifyToken, async (req, res) => {
     try {
         const [rows] = await db.query(
-            `select ci.* 
+            `select ci.*, coalesce(ci.thumbnail_url, c.thumbnail_url) as thumbnail_url, u.name as owner_name 
             from instance_students ist
             join course_instances ci on ist.instance_id = ci.id
-            where ist.user_id = ?`,
+            join courses c on ci.template_id = c.id
+            join users u on ci.owner_id = u.id
+            where ist.user_id = ? and (ist.status is null or ist.status = 'accepted')`,
             [req.user.id]
         );
 
+        res.json(rows);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// get pending invitations for current user
+router.get("/instances/invitations", verifyToken, async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const [rows] = await db.query(
+            `select ci.*, coalesce(ci.thumbnail_url, c.thumbnail_url) as thumbnail_url, u.name as owner_name 
+             from instance_students ist
+             join course_instances ci on ist.instance_id = ci.id
+             join courses c on ci.template_id = c.id
+             join users u on ci.owner_id = u.id
+             where ist.user_id = ? and ist.status = 'pending'`,
+            [userId]
+        );
         res.json(rows);
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -392,7 +422,7 @@ router.get("/instances/:id/full", verifyToken, async (req, res) => {
 
         // 1. Check if allowed to view (owner or student)
         const [instanceRows] = await db.query(
-            `select ci.*, c.thumbnail_url, c.category, c.price as original_price
+            `select ci.*, coalesce(ci.thumbnail_url, c.thumbnail_url) as thumbnail_url, c.category, c.price as original_price
              from course_instances ci
              join courses c on ci.template_id = c.id
              where ci.id = ?`,
@@ -402,7 +432,7 @@ router.get("/instances/:id/full", verifyToken, async (req, res) => {
         const instance = instanceRows[0];
 
         const [studentRows] = await db.query(
-            "select * from instance_students where instance_id = ? and user_id = ?",
+            "select * from instance_students where instance_id = ? and user_id = ? and (status is null or status = 'accepted')",
             [id, userId]
         );
         if (instance.owner_id !== userId && studentRows.length === 0 && !req.user.roles.includes('admin')) {
@@ -431,20 +461,21 @@ router.get("/instances/:id/full", verifyToken, async (req, res) => {
             const [lessons] = await db.query("select * from course_lessons where module_id = ? order by order_index", [module.id]);
             module.lessons = lessons;
 
-            const [quizzes] = await db.query("select * from course_quizzes where module_id = ?", [module.id]);
+            const [quizzes] = await db.query("select * from course_quizzes where module_id = ? order by order_index", [module.id]);
             for (let quiz of quizzes) {
                 const [questions] = await db.query("select * from course_quiz_questions where quiz_id = ?", [quiz.id]);
                 quiz.questions = questions;
             }
             module.quizzes = quizzes;
 
-            const [assignments] = await db.query("select * from course_assignments where module_id = ?", [module.id]);
+            const [assignments] = await db.query("select * from course_assignments where module_id = ? order by order_index", [module.id]);
             module.assignments = assignments;
         }
 
         instance.modules = modules;
         res.json(instance);
     } catch (err) {
+        console.error("DEBUG: /instances/:id/full error ->", err);
         res.status(500).json({ error: err.message });
     }
 });
@@ -541,6 +572,41 @@ router.put("/courses/:id/edit", verifyToken, checkRole("admin"), async (req, res
     } catch (err) {
         await connection.rollback();
         res.status(500).json({ error: err.message });
+    }
+});
+
+// edit instance info
+router.put("/instances/:id/edit", verifyToken, verifyInstanceOwner, async (req, res) => {
+    const connection = await db.getConnection();
+    try {
+        await connection.beginTransaction();
+        const { id } = req.params;
+        const { title, description, thumbnail_url } = req.body;
+
+        if (!title) {
+            return res.status(400).json({ message: "Title required" });
+        }
+
+        if (!description) {
+            return res.status(400).json({ message: "Description required" });
+        }
+
+        const [result] = await connection.query(
+            "update course_instances set title = ?, description = ?, thumbnail_url = ? where id = ?",
+            [title, description, thumbnail_url, id]
+        );
+
+        await connection.commit();
+
+        res.status(200).json({
+            message: "Instance updated",
+            instanceId: id
+        });
+    } catch (err) {
+        await connection.rollback();
+        res.status(500).json({ error: err.message });
+    } finally {
+        connection.release();
     }
 });
 
@@ -694,13 +760,17 @@ router.post("/instances/:id/invite", verifyToken, checkRole("teacher"), async (r
         );
 
         if (result2.length > 0) {
-            return res.status(400).json({ message: "Error: Student already invited" });
+            // if previously rejected, allow re-invite by updating status back to pending
+            await connection.query(
+                "update instance_students set status = 'pending' where instance_id = ? and user_id = ?",
+                [instanceId, studentId]
+            );
+        } else {
+            await connection.query(
+                "insert into instance_students (instance_id, user_id, status) values (?, ?, 'pending')",
+                [instanceId, studentId]
+            );
         }
-
-        const [result] = await connection.query(
-            "insert into instance_students (instance_id, user_id) values (?, ?)",
-            [instanceId, studentId]
-        );
 
 
 
@@ -708,7 +778,7 @@ router.post("/instances/:id/invite", verifyToken, checkRole("teacher"), async (r
 
         res.status(201).json({
             message: "Student invited",
-            courseId: result.insertId
+            courseId: instanceId
         });
     } catch (err) {
         console.log(err.message)
@@ -716,6 +786,91 @@ router.post("/instances/:id/invite", verifyToken, checkRole("teacher"), async (r
         res.status(500).json({ error: err.message });
     } finally {
         connection.release();
+    }
+});
+
+// delete instance course (and its invited students and progress)
+router.delete("/instances/:id", verifyToken, verifyInstanceOwner, async (req, res) => {
+    const connection = await db.getConnection();
+    try {
+        await connection.beginTransaction();
+        const { id } = req.params;
+
+        // remove invited students
+        await connection.query(
+            "delete from instance_students where instance_id = ?",
+            [id]
+        );
+
+        // remove progress and quiz results
+        await connection.query(
+            "delete from course_progress where instance_id = ?",
+            [id]
+        );
+        await connection.query(
+            "delete from course_quiz_results where instance_id = ?",
+            [id]
+        );
+
+        // remove the instance itself
+        const [result] = await connection.query(
+            "delete from course_instances where id = ?",
+            [id]
+        );
+
+        await connection.commit();
+
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ message: "Instance not found" });
+        }
+
+        res.status(200).json({ message: "Instance deleted successfully" });
+    } catch (err) {
+        await connection.rollback();
+        console.error("Delete instance error:", err);
+        res.status(500).json({ error: "Failed to delete instance: " + err.message });
+    } finally {
+        connection.release();
+    }
+});
+
+// student accepts invite
+router.post("/instances/:id/accept-invite", verifyToken, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const userId = req.user.id;
+
+        const [rows] = await db.query(
+            "select * from instance_students where instance_id = ? and user_id = ? and status = 'pending'",
+            [id, userId]
+        );
+        if (rows.length === 0) {
+            return res.status(404).json({ message: "Invitation not found" });
+        }
+
+        await db.query(
+            "update instance_students set status = 'accepted' where instance_id = ? and user_id = ?",
+            [id, userId]
+        );
+        res.json({ message: "Invitation accepted" });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// student rejects invite
+router.post("/instances/:id/reject-invite", verifyToken, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const userId = req.user.id;
+
+        await db.query(
+            "delete from instance_students where instance_id = ? and user_id = ? and status = 'pending'",
+            [id, userId]
+        );
+        res.json({ message: "Invitation rejected" });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
     }
 });
 
@@ -732,7 +887,7 @@ router.get('/instances/:id/students', verifyToken, async (req, res) => {
         const instanceId = course[0].id;
 
         const [rows] = await db.query(
-            `select u.id, u.username, u.name, u.email
+            `select u.id, u.username, u.name, u.email, ist.status
             from instance_students ist
             join users u on ist.user_id = u.id
             where ist.instance_id = ?`,
@@ -819,11 +974,11 @@ router.post("/instances/:id/customize", verifyToken, verifyInstanceOwner, async 
                 );
             }
 
-            const [quizzes] = await connection.query("select * from course_quizzes where module_id = ?", [mod.id]);
+            const [quizzes] = await connection.query("select * from course_quizzes where module_id = ? order by order_index", [mod.id]);
             for (let quiz of quizzes) {
                 const [quizRes] = await connection.query(
-                    "insert into course_quizzes (module_id, title, passing_score) values (?, ?, ?)",
-                    [newModId, quiz.title, quiz.passing_score]
+                    "insert into course_quizzes (module_id, title, passing_score, order_index) values (?, ?, ?, ?)",
+                    [newModId, quiz.title, quiz.passing_score, quiz.order_index || 0]
                 );
                 const newQuizId = quizRes.insertId;
 
@@ -836,11 +991,11 @@ router.post("/instances/:id/customize", verifyToken, verifyInstanceOwner, async 
                 }
             }
 
-            const [assignments] = await connection.query("select * from course_assignments where module_id = ?", [mod.id]);
+            const [assignments] = await connection.query("select * from course_assignments where module_id = ? order by order_index", [mod.id]);
             for (let ass of assignments) {
                 await connection.query(
-                    "insert into course_assignments (module_id, title, description, max_score, submission_type) values (?, ?, ?, ?, ?)",
-                    [newModId, ass.title, ass.description, ass.max_score, ass.submission_type]
+                    "insert into course_assignments (module_id, title, description, max_score, submission_type, order_index) values (?, ?, ?, ?, ?, ?)",
+                    [newModId, ass.title, ass.description, ass.max_score, ass.submission_type, ass.order_index || 0]
                 );
             }
         }
@@ -906,10 +1061,10 @@ router.post("/modules/:id/lessons", verifyToken, verifyModuleAccess, async (req,
 router.post("/modules/:id/quizzes", verifyToken, verifyModuleAccess, async (req, res) => {
     try {
         const { id } = req.params;
-        const { title, passing_score } = req.body;
+        const { title, passing_score, order_index } = req.body;
         const [result] = await db.query(
-            "insert into course_quizzes (module_id, title, passing_score) values (?, ?, ?)",
-            [id, title, passing_score || 70]
+            "insert into course_quizzes (module_id, title, passing_score, order_index) values (?, ?, ?, ?)",
+            [id, title, passing_score || 70, order_index || 0]
         );
         res.status(201).json({ message: "Quiz added", quizId: result.insertId });
     } catch (err) {
@@ -936,10 +1091,10 @@ router.post("/quizzes/:id/questions", verifyToken, verifyQuizAccess, async (req,
 router.post("/modules/:id/assignments", verifyToken, verifyModuleAccess, async (req, res) => {
     try {
         const { id } = req.params;
-        const { title, description, max_score, submission_type } = req.body;
+        const { title, description, max_score, submission_type, order_index } = req.body;
         const [result] = await db.query(
-            "insert into course_assignments (module_id, title, description, max_score, submission_type) values (?, ?, ?, ?, ?)",
-            [id, title, description, max_score || 100, submission_type || 'file_upload']
+            "insert into course_assignments (module_id, title, description, max_score, submission_type, order_index) values (?, ?, ?, ?, ?, ?)",
+            [id, title, description, max_score || 100, submission_type || 'file_upload', order_index || 0]
         );
         res.status(201).json({ message: "Assignment added", assignmentId: result.insertId });
     } catch (err) {
@@ -992,6 +1147,118 @@ router.delete("/questions/:id", verifyToken, verifyQuestionAccess, async (req, r
     try {
         await db.query("delete from course_quiz_questions where id = ?", [req.params.id]);
         res.json({ message: "Question deleted" });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Edit Question
+router.put("/questions/:id", verifyToken, verifyQuestionAccess, async (req, res) => {
+    try {
+        const { question, type, choices, correct_answer, points } = req.body;
+        await db.query(
+            "update course_quiz_questions set question = ?, type = ?, choices = ?, correct_answer = ?, points = ? where id = ?",
+            [question, type || 'single_choice', JSON.stringify(choices), correct_answer, points || 10, req.params.id]
+        );
+        res.json({ message: "Question updated" });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Reorder Modules in Instance
+router.post("/instances/:id/modules/reorder", verifyToken, verifyInstanceOwner, async (req, res) => {
+    try {
+        const { order } = req.body; // array of module IDs in new order
+        if (!Array.isArray(order)) return res.status(400).json({ message: "order must be an array" });
+        for (let i = 0; i < order.length; i++) {
+            await db.query("update course_modules set order_index = ? where id = ?", [i + 1, order[i]]);
+        }
+        res.json({ message: "Modules reordered" });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Reorder Modules in Course
+router.post("/courses/:id/modules/reorder", verifyToken, checkRole("admin"), async (req, res) => {
+    try {
+        const { order } = req.body;
+        if (!Array.isArray(order)) return res.status(400).json({ message: "order must be an array" });
+        for (let i = 0; i < order.length; i++) {
+            await db.query("update course_modules set order_index = ? where id = ?", [i + 1, order[i]]);
+        }
+        res.json({ message: "Modules reordered" });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Reorder Items within a Module
+router.post("/modules/:id/items/reorder", verifyToken, verifyModuleAccess, async (req, res) => {
+    try {
+        const { order } = req.body;
+        if (!Array.isArray(order)) return res.status(400).json({ message: "order must be an array" });
+
+        for (let i = 0; i < order.length; i++) {
+            const item = order[i];
+            let table = "";
+            if (item.type === 'lesson') table = "course_lessons";
+            else if (item.type === 'quiz') table = "course_quizzes";
+            else if (item.type === 'assignment') table = "course_assignments";
+
+            if (table) {
+                await db.query(`update ${table} set order_index = ? where id = ?`, [i + 1, item.id]);
+            }
+        }
+        res.json({ message: "Items reordered" });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Edit Module
+router.put("/modules/:id", verifyToken, verifyModuleAccess, async (req, res) => {
+    try {
+        const { title } = req.body;
+        await db.query("update course_modules set title = ? where id = ?", [title, req.params.id]);
+        res.json({ message: "Module updated" });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Edit Lesson
+router.put("/lessons/:id", verifyToken, verifyLessonAccess, async (req, res) => {
+    try {
+        const { title, duration_minutes, content } = req.body;
+        await db.query(
+            "update course_lessons set title = ?, duration_minutes = ?, content = ? where id = ?",
+            [title, duration_minutes || 0, JSON.stringify(content), req.params.id]
+        );
+        res.json({ message: "Lesson updated" });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Edit Quiz
+router.put("/quizzes/:id", verifyToken, verifyQuizAccess, async (req, res) => {
+    try {
+        const { title, passing_score } = req.body;
+        await db.query("update course_quizzes set title = ?, passing_score = ? where id = ?", [title, passing_score || 0, req.params.id]);
+        res.json({ message: "Quiz updated" });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Edit Assignment
+router.put("/assignments/:id", verifyToken, verifyAssignmentAccess, async (req, res) => {
+    try {
+        const { title, description } = req.body;
+        await db.query("update course_assignments set title = ?, description = ? where id = ?", [title, description, req.params.id]);
+        res.json({ message: "Assignment updated" });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
@@ -1056,7 +1323,6 @@ router.post("/courses/:id/rate", verifyToken, async (req, res) => {
             return res.status(403).json({ message: "Please finish the course content before rating" });
         }
 
-        // SQLite: upsert using INSERT OR REPLACE (requires UNIQUE(user_id, course_id))
         await connection.query(
             "INSERT OR REPLACE INTO course_ratings (course_id, user_id, rating, comment) VALUES (?, ?, ?, ?)",
             [courseId, userId, rating, comment || ""]
@@ -1121,7 +1387,6 @@ router.post("/instances/:id/progress", verifyToken, async (req, res) => {
         const { content_type, content_id } = req.body;
         const userId = req.user.id;
 
-        // SQLite: upsert – insert or ignore, then update timestamp
         await db.query(
             "INSERT OR IGNORE INTO course_progress (user_id, instance_id, content_type, content_id) VALUES (?, ?, ?, ?)",
             [userId, instanceId, content_type, content_id]
@@ -1153,9 +1418,9 @@ router.post("/instances/:id/quiz-result", verifyToken, async (req, res) => {
             "UPDATE course_quiz_results SET score = ?, passed = ?, completed_at = CURRENT_TIMESTAMP WHERE user_id = ? AND instance_id = ? AND quiz_id = ?",
             [score, passed, userId, instanceId, quiz_id]
         );
-
         res.json({ message: "Quiz result saved" });
     } catch (err) {
+        console.error("DEBUG: /instances/:id/quiz-result error ->", err);
         res.status(500).json({ error: err.message });
     }
 });
@@ -1167,12 +1432,12 @@ router.get("/instances/:id/progress", verifyToken, async (req, res) => {
         const userId = req.user.id;
 
         const [progressRows] = await db.query(
-            "SELECT content_type, content_id FROM course_progress WHERE user_id = ? AND instance_id = ?",
+            "SELECT DISTINCT content_type, content_id FROM course_progress WHERE user_id = ? AND instance_id = ?",
             [userId, instanceId]
         );
 
         const [quizRows] = await db.query(
-            "SELECT quiz_id, score, passed FROM course_quiz_results WHERE user_id = ? AND instance_id = ?",
+            "SELECT DISTINCT quiz_id, score, passed FROM course_quiz_results WHERE user_id = ? AND instance_id = ?",
             [userId, instanceId]
         );
 
@@ -1183,6 +1448,142 @@ router.get("/instances/:id/progress", verifyToken, async (req, res) => {
         });
     } catch (err) {
         res.status(500).json({ error: err.message });
+    }
+});
+
+// Get all students' progress for an instance (owner/admin only)
+router.get("/instances/:id/students-progress", verifyToken, verifyInstanceOwner, async (req, res) => {
+    const connection = await db.getConnection();
+    try {
+        await connection.beginTransaction();
+        const { id: instanceId } = req.params;
+
+        // Get template id for this instance
+        const [instanceRows] = await connection.query(
+            "select template_id from course_instances where id = ?",
+            [instanceId]
+        );
+        if (instanceRows.length === 0) {
+            await connection.rollback();
+            return res.status(404).json({ message: "Instance not found" });
+        }
+        const templateId = instanceRows[0].template_id;
+
+        // All modules (template or customized)
+        const [modules] = await connection.query(
+            "select id from course_modules where course_id = ? or instance_id = ?",
+            [templateId, instanceId]
+        );
+        const moduleIds = modules.map(m => m.id);
+        const totalModules = modules.length;
+
+        // Map content ids by module
+        const lessonsByModule = {};
+        const quizzesByModule = {};
+        const assignmentsByModule = {};
+
+        if (moduleIds.length > 0) {
+            const inPlaceholders = moduleIds.map(() => '?').join(',');
+
+            const [lessonRows] = await connection.query(
+                `select id, module_id from course_lessons where module_id in (${inPlaceholders})`,
+                moduleIds
+            );
+            const [quizRowsAll] = await connection.query(
+                `select id, module_id from course_quizzes where module_id in (${inPlaceholders})`,
+                moduleIds
+            );
+            const [assignmentRows] = await connection.query(
+                `select id, module_id from course_assignments where module_id in (${inPlaceholders})`,
+                moduleIds
+            );
+
+            for (const r of lessonRows) {
+                if (!lessonsByModule[r.module_id]) lessonsByModule[r.module_id] = [];
+                lessonsByModule[r.module_id].push(r.id);
+            }
+            for (const r of quizRowsAll) {
+                if (!quizzesByModule[r.module_id]) quizzesByModule[r.module_id] = [];
+                quizzesByModule[r.module_id].push(r.id);
+            }
+            for (const r of assignmentRows) {
+                if (!assignmentsByModule[r.module_id]) assignmentsByModule[r.module_id] = [];
+                assignmentsByModule[r.module_id].push(r.id);
+            }
+        }
+
+        // Get invited students only (do not include teacher/owner)
+        const [invitedRows] = await connection.query(
+            `select u.id, u.username, u.name, u.email 
+             from instance_students ist 
+             join users u on ist.user_id = u.id
+             where ist.instance_id = ? and (ist.status is null or ist.status = 'accepted')`,
+            [instanceId]
+        );
+
+        const seen = new Set();
+        const students = [];
+
+        for (const row of invitedRows) {
+            if (seen.has(row.id)) continue;
+            seen.add(row.id);
+
+            const [progressRows] = await connection.query(
+                "select content_type, content_id from course_progress where user_id = ? and instance_id = ?",
+                [row.id, instanceId]
+            );
+            const [quizCount] = await connection.query(
+                "select quiz_id, passed from course_quiz_results where user_id = ? and instance_id = ?",
+                [row.id, instanceId]
+            );
+
+            const lessonsDone = new Set(
+                progressRows.filter(r => r.content_type === 'lesson').map(r => Number(r.content_id))
+            );
+            const assignmentsDone = new Set(
+                progressRows.filter(r => r.content_type === 'assignment').map(r => Number(r.content_id))
+            );
+            const quizResults = quizCount;
+
+            let completedModules = 0;
+            for (const m of modules) {
+                const lIds = lessonsByModule[m.id] || [];
+                const qIds = quizzesByModule[m.id] || [];
+                const aIds = assignmentsByModule[m.id] || [];
+
+                if (lIds.length === 0 && qIds.length === 0 && aIds.length === 0) continue;
+
+                const allLessonsDone = lIds.every(id => lessonsDone.has(Number(id)));
+                const allAssignmentsDone = aIds.every(id => assignmentsDone.has(Number(id)));
+                const allQuizzesDone = qIds.every(id =>
+                    quizResults.some(q => q.quiz_id === id && (q.passed == 1 || q.passed === true))
+                );
+
+                if (allLessonsDone && allAssignmentsDone && allQuizzesDone) {
+                    completedModules++;
+                }
+            }
+
+            const percent = totalModules > 0 ? Math.round((completedModules / totalModules) * 100) : 0;
+
+            students.push({
+                id: row.id,
+                username: row.username,
+                name: row.name,
+                email: row.email,
+                completed_modules: completedModules,
+                total_modules: totalModules,
+                progress_percent: percent
+            });
+        }
+
+        await connection.commit();
+        res.json(students);
+    } catch (err) {
+        await connection.rollback();
+        res.status(500).json({ error: err.message });
+    } finally {
+        connection.release();
     }
 });
 
@@ -1201,7 +1602,7 @@ router.get("/profile/me", verifyToken, async (req, res) => {
         const user = userRows[0];
 
         const [ownedInstances] = await db.query("select count(*) as count from course_instances where owner_id = ?", [userId]);
-        const [invitedInstances] = await db.query("select count(*) as count from instance_students where user_id = ?", [userId]);
+        const [invitedInstances] = await db.query("select count(*) as count from instance_students where user_id = ? and (status is null or status = 'accepted')", [userId]);
 
         const [progressCount] = await db.query("select count(*) as count from course_progress where user_id = ? and content_type = 'lesson'", [userId]);
 
@@ -1329,6 +1730,12 @@ router.post(
     }
 );
 
+router.post("/upload-image", verifyToken, upload.single("image"), (req, res) => {
+    if (!req.file) return res.status(400).json({ message: "No file uploaded" });
+    const imagePath = `/uploads/${req.file.filename}`;
+    res.json({ message: "Upload success", imagePath });
+});
+
 // verify if user is owner of instance
 async function verifyInstanceOwner(req, res, next) {
     try {
@@ -1450,6 +1857,33 @@ async function verifyQuestionAccess(req, res, next) {
     } catch (err) { res.status(500).json({ error: err.message }); }
 }
 
+// Video Upload Logic
+const videoStorage = multer.diskStorage({
+    destination: "uploads/",
+    filename: (req, file, cb) => {
+        const uniqueName = "vid-" + uuidv4() + path.extname(file.originalname);
+        cb(null, uniqueName);
+    },
+});
+
+const videoUpload = multer({
+    storage: videoStorage,
+    limits: { fileSize: 1024 * 1024 * 1024 }, // 1GB limit for videos
+    fileFilter: (req, file, cb) => {
+        const allowedTypes = ["video/mp4", "video/webm", "video/ogg", "video/quicktime"];
+        if (!allowedTypes.includes(file.mimetype)) {
+            return cb(new Error("Only video files (mp4, webm, ogg, mov) are allowed"));
+        }
+        cb(null, true);
+    },
+});
+
+router.post("/upload-video", verifyToken, videoUpload.single("video"), (req, res) => {
+    if (!req.file) return res.status(400).json({ message: "No file uploaded" });
+    const videoPath = `/uploads/${req.file.filename}`;
+    res.json({ message: "Video uploaded successfully", videoPath });
+});
+
 function checkRole(requiredRole) {
     return (req, res, next) => {
         if (!req.user.roles.includes(requiredRole)) {
@@ -1458,6 +1892,156 @@ function checkRole(requiredRole) {
         next();
     };
 }
+
+// --- Teacher Requests ---
+router.post("/teacher-requests", verifyToken, upload.single("cv_file"), async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const { school, cv_text } = req.body;
+
+        let cvFilePath = null;
+        if (req.file) {
+            cvFilePath = `/uploads/${req.file.filename}`;
+        }
+
+        const connection = await db.getConnection();
+
+        await connection.query(
+            "INSERT INTO teacher_requests (user_id, school, cv_text, cv_file) VALUES (?, ?, ?, ?)",
+            [userId, school, cv_text, cvFilePath]
+        );
+        res.status(201).json({ message: "Request submitted successfully" });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+router.get("/teacher-requests/me", verifyToken, async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const connection = await db.getConnection();
+        const [rows] = await connection.query(
+            "SELECT * FROM teacher_requests WHERE user_id = ? ORDER BY created_at DESC LIMIT 1",
+            [userId]
+        );
+        res.json(rows[0] || null);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+router.get("/teacher-requests", verifyToken, checkRole("admin"), async (req, res) => {
+    try {
+        const connection = await db.getConnection();
+        const [rows] = await connection.query(`
+            SELECT tr.*, u.name, u.email, u.image_profile 
+            FROM teacher_requests tr 
+            JOIN users u ON tr.user_id = u.id 
+            ORDER BY tr.created_at DESC
+        `);
+        res.json(rows);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+router.post("/teacher-requests/:id/approve", verifyToken, checkRole("admin"), async (req, res) => {
+    try {
+        const requestId = req.params.id;
+        const connection = await db.getConnection();
+
+        await connection.beginTransaction();
+        const [reqRows] = await connection.query("SELECT user_id FROM teacher_requests WHERE id = ?", [requestId]);
+        if (reqRows.length > 0) {
+            const userId = reqRows[0].user_id;
+
+            const [roleRows] = await connection.query("SELECT id FROM roles WHERE name = 'teacher'");
+            if (roleRows.length > 0) {
+                const roleId = roleRows[0].id;
+                const [existing] = await connection.query("SELECT * FROM user_roles WHERE user_id = ? AND role_id = ?", [userId, roleId]);
+                if (existing.length === 0) {
+                    await connection.query("INSERT INTO user_roles (user_id, role_id) VALUES (?, ?)", [userId, roleId]);
+                }
+            }
+
+            await connection.query("UPDATE teacher_requests SET status = 'approved' WHERE id = ?", [requestId]);
+        }
+        await connection.commit();
+        res.json({ message: "Approved successfully" });
+    } catch (err) {
+        try {
+            await db.query("ROLLBACK");
+        } catch (e) { }
+        console.error("Approve error:", err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+router.post("/teacher-requests/:id/reject", verifyToken, checkRole("admin"), async (req, res) => {
+    try {
+        const requestId = req.params.id;
+        await db.query("UPDATE teacher_requests SET status = 'rejected' WHERE id = ?", [requestId]);
+        res.json({ message: "Rejected successfully" });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// claim completion points (100 pts, one-time per user per instance)
+router.post("/instances/:id/claim-points", verifyToken, async (req, res) => {
+    const connection = await db.getConnection();
+    try {
+        const instanceId = req.params.id;
+        const userId = req.user.id;
+
+        const [existing] = await connection.query(
+            "SELECT id FROM course_instance_completions WHERE instance_id = ? AND user_id = ?",
+            [instanceId, userId]
+        );
+        if (existing.length > 0) {
+            return res.status(409).json({ message: "Points already claimed" });
+        }
+
+        await connection.beginTransaction();
+
+        await connection.query(
+            "INSERT INTO course_instance_completions (instance_id, user_id) VALUES (?, ?)",
+            [instanceId, userId]
+        );
+
+        await connection.query(
+            "UPDATE users SET points = points + 100 WHERE id = ?",
+            [userId]
+        );
+
+        await connection.commit();
+
+        const [userRows] = await db.query("SELECT points FROM users WHERE id = ?", [userId]);
+        res.json({ message: "Points claimed successfully", points: userRows[0]?.points });
+    } catch (err) {
+        await connection.rollback();
+        console.error("Claim points error:", err);
+        res.status(500).json({ error: err.message });
+    } finally {
+        connection.release();
+    }
+});
+
+// check if user has already claimed points for an instance
+router.get("/instances/:id/claim-points/status", verifyToken, async (req, res) => {
+    try {
+        const instanceId = req.params.id;
+        const userId = req.user.id;
+
+        const [rows] = await db.query(
+            "SELECT id FROM course_instance_completions WHERE instance_id = ? AND user_id = ?",
+            [instanceId, userId]
+        );
+        res.json({ claimed: rows.length > 0 });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
 
 // Initial DB setup and Verification
 (async () => {

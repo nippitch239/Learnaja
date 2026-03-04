@@ -64,34 +64,24 @@ function Home() {
                     <section id="Catagory" className="pb-24 scroll-mt-24">
                         <h2 className="text-2xl font-bold text-slate-900 dark:text-white pt-24">หมวดหมู่หลักสูตร</h2>
                         <div className="flex flex-wrap gap-6 mt-6 justify-center">
-                            <div className="flex flex-col items-center space-y-2 bg-white dark:bg-slate-800 rounded-2xl p-4 border border-slate-200 dark:border-slate-700 hover:shadow-lg transition-all w-1/2 sm:w-1/3 md:w-1/4 lg:w-1/6">
-                                <span className="material-symbols-outlined text-primary text-3xl">code</span>
-                                <span className="text-sm font-medium text-slate-900 dark:text-white">Programming</span>
-                            </div>
-                            <div className="flex flex-col items-center space-y-2 bg-white dark:bg-slate-800 rounded-2xl p-4 border border-slate-200 dark:border-slate-700 hover:shadow-lg transition-all w-1/2 sm:w-1/3 md:w-1/4 lg:w-1/6">
-                                <span className="material-symbols-outlined text-primary text-3xl">brush</span>
-                                <span className="text-sm font-medium text-slate-900 dark:text-white">Design</span>
-                            </div>
-                            <div className="flex flex-col items-center space-y-2 bg-white dark:bg-slate-800 rounded-2xl p-4 border border-slate-200 dark:border-slate-700 hover:shadow-lg transition-all w-1/2 sm:w-1/3 md:w-1/4 lg:w-1/6">
-                                <span className="material-symbols-outlined text-primary text-3xl">bar_chart</span>
-                                <span className="text-sm font-medium text-slate-900 dark:text-white">Data Science</span>
-                            </div>
-                            <div className="flex flex-col items-center space-y-2 bg-white dark:bg-slate-800 rounded-2xl p-4 border border-slate-200 dark:border-slate-700 hover:shadow-lg transition-all w-1/2 sm:w-1/3 md:w-1/4 lg:w-1/6">
-                                <span className="material-symbols-outlined text-primary text-3xl">network_check</span>
-                                <span className="text-sm font-medium text-slate-900 dark:text-white">Networking</span>
-                            </div>
-                            <div className="flex flex-col items-center space-y-2 bg-white dark:bg-slate-800 rounded-2xl p-4 border border-slate-200 dark:border-slate-700 hover:shadow-lg transition-all w-1/2 sm:w-1/3 md:w-1/4 lg:w-1/6">
-                                <span className="material-symbols-outlined text-primary text-3xl">security</span>
-                                <span className="text-sm font-medium text-slate-900 dark:text-white">Cybersecurity</span>
-                            </div>
-                            <div className="flex flex-col items-center space-y-2 bg-white dark:bg-slate-800 rounded-2xl p-4 border border-slate-200 dark:border-slate-700 hover:shadow-lg transition-all w-1/2 sm:w-1/3 md:w-1/4 lg:w-1/6">
-                                <span className="material-symbols-outlined text-primary text-3xl">translate</span>
-                                <span className="text-sm font-medium text-slate-900 dark:text-white">Language</span>
-                            </div>
-                            <div className="flex flex-col items-center space-y-2 bg-white dark:bg-slate-800 rounded-2xl p-4 border border-slate-200 dark:border-slate-700 hover:shadow-lg transition-all w-1/2 sm:w-1/3 md:w-1/4 lg:w-1/6">
-                                <span className="material-symbols-outlined text-primary text-3xl">business</span>
-                                <span className="text-sm font-medium text-slate-900 dark:text-white">Business</span>
-                            </div>
+                            {[
+                                { name: "Programming", icon: "code" },
+                                { name: "Design", icon: "palette" },
+                                { name: "Business", icon: "business" },
+                                { name: "Networking", icon: "network_check" },
+                                { name: "Data Science", icon: "bar_chart" },
+                                { name: "Cyber Security", icon: "security" },
+                                { name: "Language", icon: "translate" }
+                            ].map((cat) => (
+                                <div
+                                    key={cat.name}
+                                    onClick={() => navigate(`/courses?category=${cat.name}`)}
+                                    className="flex flex-col items-center space-y-2 bg-white dark:bg-slate-800 rounded-2xl p-4 border border-slate-200 dark:border-slate-700 hover:shadow-lg transition-all w-1/2 sm:w-1/3 md:w-1/4 lg:w-1/6 cursor-pointer group hover:border-primary/50"
+                                >
+                                    <span className="material-symbols-outlined text-primary text-3xl group-hover:scale-110 transition-transform">{cat.icon}</span>
+                                    <span className="text-sm font-medium text-slate-900 dark:text-white">{cat.name}</span>
+                                </div>
+                            ))}
                         </div>
                     </section>
                     <section>
@@ -120,12 +110,18 @@ function Home() {
                                         className="cursor-pointer group bg-white dark:bg-slate-800 rounded-2xl overflow-hidden border border-slate-100 dark:border-slate-700 hover:shadow-xl transition-all duration-300 flex flex-col"
                                     >
                                         <div className="h-48 bg-slate-100 dark:bg-slate-700 relative overflow-hidden">
-                                            <img
-                                                alt={course.title}
-                                                className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                                                src={course.thumbnail_url || "/images/user.png"}
-                                                onError={(e) => { e.target.src = "/images/user.png"; }}
-                                            />
+                                            {course.thumbnail_url ? (
+                                                <img
+                                                    alt={course.title}
+                                                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                                                    src={course.thumbnail_url.startsWith('http') ? course.thumbnail_url : `${import.meta.env.VITE_API_URL || 'http://localhost:3200'}${course.thumbnail_url}`}
+                                                    onError={(e) => { e.target.src = "/images/user.png"; }}
+                                                />
+                                            ) : (
+                                                <div className="w-full h-full flex items-center justify-center">
+                                                    <span className="material-symbols-outlined text-5xl text-slate-300">school</span>
+                                                </div>
+                                            )}
                                             {course.category && (
                                                 <span className="absolute top-4 left-4 px-2 py-1 bg-white/90 dark:bg-slate-900/90 backdrop-blur-sm text-[10px] font-bold rounded shadow-sm uppercase tracking-wider">
                                                     {course.category}
@@ -145,8 +141,8 @@ function Home() {
                                                 </span>
                                             </div>
                                             <div className="flex items-center justify-between pt-4 border-t border-slate-50 dark:border-slate-700">
-                                                <span className="font-black text-slate-900 dark:text-white text-lg">{course.price === 0 ? "FREE" : `${course.price}P`}</span>
-                                                <button className="bg-primary text-white px-4 py-2 rounded-xl text-xs font-bold hover:shadow-lg hover:shadow-primary/20 transition-all">Enroll Now</button>
+                                                <span className="font-black text-slate-900 dark:text-white text-lg">{course.price === 0 ? "ฟรี" : `${course.price}P`}</span>
+                                                <button className="bg-primary text-white px-4 py-2 rounded-xl text-xs font-bold hover:shadow-lg hover:shadow-primary/20 transition-all">ดูรายละเอียด</button>
                                             </div>
                                         </div>
                                     </div>

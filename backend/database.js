@@ -26,7 +26,12 @@ sqlite.pragma("foreign_keys = ON");
 
 function runQuery(sql, params = []) {
     // Flatten any array params (needed for IN (?) style – caller must pre-build placeholders)
-    const flatParams = params.flat !== undefined ? params.flat(Infinity) : params;
+    const flatParams = (params.flat !== undefined ? params.flat(Infinity) : params)
+        .map(p => {
+            if (typeof p === 'boolean') return p ? 1 : 0;
+            if (p === undefined) return null;
+            return p;
+        });
 
     const trimmed = sql.trim().toUpperCase();
     if (

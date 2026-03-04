@@ -22,3 +22,6 @@ Thumbs.db
 
 *.db-wal
 *.db-shm
+check_db.js
+
+*.md
