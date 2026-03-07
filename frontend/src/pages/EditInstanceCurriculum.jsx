@@ -747,7 +747,7 @@ function EditInstanceCurriculum() {
                             </nav>
                             <div className="mt-6">
                                 <Link to={`/mycourses/${id}/view`}>
-                                    <button className="bg-slate-900 text-white dark:bg-white dark:text-slate-900 px-4 py-2 rounded-xl font-bold hover:opacity-90 transition-opacity flex items-center space-x-2 w-full justify-center text-sm shadow-sm">
+                                    <button className="bg-slate-900 text-white dark:bg-white dark:text-slate-900 px-4 py-2 rounded-xl font-bold hover:opacity-90 cursor-pointer transition-opacity flex items-center space-x-2 w-full justify-center text-sm shadow-sm">
                                         <span className="material-symbols-outlined text-sm">arrow_back</span>
                                         <span>กลับไปหน้าคอร์ส</span>
                                     </button>
@@ -762,12 +762,12 @@ function EditInstanceCurriculum() {
                             <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                                 <div>
                                     <h1 className="text-2xl font-bold">แก้ไขเนื้อหาคอร์สเรียน</h1>
-                                    <p className="text-slate-400 text-sm">ปรับแต่งบทเรียนตามความต้องการของคุณ (ไม่กระทบหลักสูตรหลัก)</p>
+                                    <p className="text-slate-400 text-sm ">ปรับแต่งบทเรียนตามความต้องการของคุณ (ไม่กระทบหลักสูตรหลัก)</p>
                                 </div>
                                 {!isCustomized && (
                                     <button
                                         onClick={handleCustomize}
-                                        className="bg-primary text-white px-4 py-2 rounded-xl font-bold hover:shadow-lg transition-all flex items-center gap-2 text-sm"
+                                        className="bg-primary text-white px-4 py-2 rounded-xl cursor-pointer font-bold hover:shadow-lg transition-all flex items-center gap-2 text-sm"
                                         disabled={isSaving}
                                     >
                                         <span className="material-symbols-outlined text-lg">content_copy</span>
@@ -1387,7 +1387,7 @@ function EditInstanceCurriculum() {
                             <div className="p-6 bg-slate-50 dark:bg-slate-900/50 border-t border-slate-100 dark:border-slate-800 flex justify-end">
                                 <button
                                     onClick={() => navigate(`/mycourses/${id}/view`)}
-                                    className="bg-primary text-white px-8 py-3 rounded-xl font-bold hover:opacity-90 transition-opacity shadow-lg shadow-pink-200 dark:shadow-none"
+                                    className="bg-primary cursor-pointer text-white px-8 py-3 rounded-xl font-bold hover:opacity-90 transition-opacity shadow-lg shadow-pink-200 dark:shadow-none"
                                 >
                                     บันทึกและออก
                                 </button>

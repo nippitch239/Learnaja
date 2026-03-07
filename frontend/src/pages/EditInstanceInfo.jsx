@@ -173,7 +173,7 @@ function EditInstanceInfo() {
                             <div className="mt-6 space-y-2">
                                 <button
                                     onClick={() => navigate(`/mycourses/${id}/view`)}
-                                    className="bg-slate-900 text-white dark:bg-white dark:text-slate-900 px-4 py-2 rounded-xl font-bold hover:opacity-90 transition-opacity flex items-center space-x-2 w-full justify-center text-sm shadow-sm"
+                                    className="bg-slate-900 text-white dark:bg-white dark:text-slate-900 px-4 py-2 rounded-xl font-bold hover:opacity-90 transition-opacity flex items-center space-x-2 w-full justify-center text-sm shadow-sm cursor-pointer"
                                 >
                                     <span className="material-symbols-outlined text-sm">arrow_back</span>
                                     <span>กลับไปหน้าคอร์ส</span>

@@ -29,8 +29,8 @@ function AllCourse() {
     if (loading) return <p>Loading...</p>;
     if (!courses || courses.length === 0) return (
         <div className="container mx-auto px-4 mt-10">
-            <h1 className="text-xl font-bold text-primary">All Course</h1>
-            <p className="mt-5">No courses found.</p>
+            <h1 className="text-xl font-bold text-primary">คอร์สเรียนทั้งหมด</h1>
+            <p className="mt-5">ไม่พบคอร์สเรียน</p>
         </div>
     );
 

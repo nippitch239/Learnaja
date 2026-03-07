@@ -17,7 +17,7 @@ function Footer() {
                 <span className="font-bold text-lg tracking-tight dark:text-white text-slate-600">Learnaja</span>
             </div>
             <div className=" border-slate-200 dark:border-slate-800 flex flex-col md:flex-row justify-between items-center text-sm text-slate-500 ">
-              <p>© 2024 Learnaja. All rights reserved.</p>
+              <p>© 2026 Learnaja.</p>
 
               <button onClick={() => setDarkMode(!darkMode)}
                 className="p-2 rounded-full hover:bg-slate-200 dark:hover:bg-slate-800 ml-5">

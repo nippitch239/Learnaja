@@ -99,7 +99,7 @@ function Courses() {
                                         <button
                                             key={cat.name}
                                             onClick={() => handleCategorySelect(cat.name)}
-                                            className={`flex items-center space-x-2 w-full px-4 py-2.5 text-sm hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors cursor-pointer ${selectedCategory === cat.name ? "text-primary font-bold" : ""}`}
+                                            className={`flex items-center space-x-2 w-full px-4 py-2.5 text-sm hover:bg-slate-200 dark:hover:bg-slate-700 dark:rounded-2xl transition-colors cursor-pointer ${selectedCategory === cat.name ? "text-primary font-bold" : ""} dark:hover:text-primary`}
                                         >
                                             <span className="material-symbols-outlined text-lg">{cat.icon}</span>
                                             <span>{cat.name}</span>
@@ -178,14 +178,13 @@ function Courses() {
                                 <div className="relative h-48 overflow-hidden bg-slate-100 dark:bg-slate-800">
                                     {course.thumbnail_url ? (
                                         <img
-                                            src={course.thumbnail_url}
+                                            src={course.thumbnail_url.startsWith("http") ? course.thumbnail_url : `${import.meta.env.VITE_API_URL || "http://localhost:3200"}${course.thumbnail_url}`}
+                                            onError={(e) => { e.target.src = "/images/logo_p.png"; }}
                                             alt={course.title}
                                             className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                                         />
                                     ) : (
-                                        <div className="w-full h-full flex items-center justify-center">
-                                            <span className="material-symbols-outlined text-5xl text-slate-300">school</span>
-                                        </div>
+                                        <img src="/images/logo_p.png" alt="No thumbnail" className="w-full h-full object-cover" />
                                     )}
                                     {course.category && (
                                         <span className="absolute top-3 left-3 px-3 py-1 bg-primary/90 text-white text-xs font-bold rounded-full backdrop-blur-sm">

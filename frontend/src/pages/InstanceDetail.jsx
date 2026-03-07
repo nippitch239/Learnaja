@@ -165,7 +165,7 @@ function InstanceDetail() {
                                         #{instance.id}
                                     </span>
                                     {instance.category && (
-                                        <span className="px-3 py-1 bg-slate-100 border border-slate-200 dark:bg-slate-800 text-slate-500 text-xs font-bold rounded-full uppercase tracking-wider">
+                                        <span className="px-3 py-1 bg-slate-100 border border-slate-200 dark:bg-slate-800 text-slate-500 text-xs font-bold dark:border-slate-600 rounded-full uppercase tracking-wider">
                                             {instance.category}
                                         </span>
                                     )}
@@ -206,20 +206,7 @@ function InstanceDetail() {
 
                         {/* Quick Stats - Adapted */}
                         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6 p-6 bg-white/60 dark:bg-slate-800/60 backdrop-blur rounded-3xl border border-white dark:border-slate-700 shadow-sm">
-                            <div className="flex items-center space-x-3">
-                                <span className="material-symbols-outlined text-primary p-2 bg-white dark:bg-slate-900 rounded-xl shadow-sm">schedule</span>
-                                <div>
-                                    <p className="text-[10px] uppercase tracking-wider font-bold text-slate-400">ใช้เวลา</p>
-                                    <p className="font-bold text-sm">24.5 ชั่วโมง</p>
-                                </div>
-                            </div>
-                            <div className="flex items-center space-x-3">
-                                <span className="material-symbols-outlined text-primary p-2 bg-white dark:bg-slate-900 rounded-xl shadow-sm">bar_chart</span>
-                                <div>
-                                    <p className="text-[10px] uppercase tracking-wider font-bold text-slate-400">ระดับ</p>
-                                    <p className="font-bold text-sm">พื้นฐาน - กลาง</p>
-                                </div>
-                            </div>
+
                             <div className="flex items-center space-x-3">
                                 <span className="material-symbols-outlined text-primary p-2 bg-white dark:bg-slate-900 rounded-xl shadow-sm">language</span>
                                 <div>
@@ -355,7 +342,7 @@ function InstanceDetail() {
                                                         ) : (
                                                             <>
                                                                 <span className="material-symbols-outlined text-sm">send</span>
-                                                                ส่งความแเห็น
+                                                                ส่งความเห็น
                                                             </>
                                                         )}
                                                     </button>
@@ -363,7 +350,7 @@ function InstanceDetail() {
                                             ) : (
                                                 <div className="text-center w-full">
                                                     <div className="p-3 bg-white/50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-700/50 italic text-[11px] text-slate-500 mb-3">
-                                                        "{userComment || 'ไม่มีความแเห็นเพิ่มเติม'}"
+                                                        "{userComment || 'ไม่มีความเห็นเพิ่มเติม'}"
                                                     </div>
                                                     <div className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 text-[10px] font-bold">
                                                         <span className="material-symbols-outlined text-xs">check_circle</span>
@@ -410,7 +397,8 @@ function InstanceDetail() {
                                 <div className="relative rounded-2xl overflow-hidden aspect-video mb-4">
                                     {instance.thumbnail_url ? (
                                         <img
-                                            src={instance.thumbnail_url}
+                                            src={instance.thumbnail_url.startsWith("http") ? instance.thumbnail_url : `${import.meta.env.VITE_API_URL || "http://localhost:3200"}${instance.thumbnail_url}`}
+                                            onError={(e) => { e.target.src = "/images/no-image.png"; }}
                                             alt={instance.title}
                                             className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                                         />

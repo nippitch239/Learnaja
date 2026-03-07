@@ -209,20 +209,6 @@ function CourseDetail() {
             {/* Quick Stats */}
             <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6 p-6 bg-white/60 dark:bg-slate-800/60 backdrop-blur rounded-3xl border border-white dark:border-slate-700 shadow-sm">
               <div className="flex items-center space-x-3">
-                <span className="material-symbols-outlined text-primary p-2 bg-white dark:bg-slate-900 rounded-xl shadow-sm">schedule</span>
-                <div>
-                  <p className="text-[10px] uppercase tracking-wider font-bold text-slate-400">ใช้เวลา</p>
-                  <p className="font-bold text-sm">24.5 ชั่วโมง</p>
-                </div>
-              </div>
-              <div className="flex items-center space-x-3">
-                <span className="material-symbols-outlined text-primary p-2 bg-white dark:bg-slate-900 rounded-xl shadow-sm">bar_chart</span>
-                <div>
-                  <p className="text-[10px] uppercase tracking-wider font-bold text-slate-400">ระดับ</p>
-                  <p className="font-bold text-sm">พื้นฐาน - กลาง</p>
-                </div>
-              </div>
-              <div className="flex items-center space-x-3">
                 <span className="material-symbols-outlined text-primary p-2 bg-white dark:bg-slate-900 rounded-xl shadow-sm">language</span>
                 <div>
                   <p className="text-[10px] uppercase tracking-wider font-bold text-slate-400">ภาษา</p>
@@ -325,7 +311,6 @@ function CourseDetail() {
                         />
                         <div className="md:text-center">
                           <p className="font-bold text-slate-900 dark:text-white text-sm">{review.name || review.username}</p>
-                          <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Verified Learner</p>
                         </div>
                       </div>
 
@@ -367,7 +352,8 @@ function CourseDetail() {
                 <div className="relative rounded-2xl overflow-hidden aspect-video mb-4">
                   {course.thumbnail_url ? (
                     <img
-                      src={course.thumbnail_url}
+                      src={course.thumbnail_url.startsWith("http") ? course.thumbnail_url : `${import.meta.env.VITE_API_URL || "http://localhost:3200"}${course.thumbnail_url}`}
+                      onError={(e) => { e.target.src = "/images/no-image.png"; }}
                       alt={course.title}
                       className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                     />
