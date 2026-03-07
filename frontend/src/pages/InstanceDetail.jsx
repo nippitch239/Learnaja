@@ -151,7 +151,7 @@ function InstanceDetail() {
                 <div className="max-w-7xl mx-auto px-6 mt-8">
                     <button
                         onClick={() => navigate('/mycourses')}
-                        className="flex items-center space-x-2 text-primary font-bold transition-colors mb-6 group"
+                        className="flex items-center space-x-2 text-primary font-bold transition-colors mb-6 group cursor-pointer hover:text-primary/80"
                     >
                         <span className="material-symbols-outlined group-hover:-translate-x-1 transition-transform">arrow_back</span>
                         <span>ย้อนกลับ</span>
@@ -162,7 +162,7 @@ function InstanceDetail() {
                             <div className="max-w-3xl space-y-4">
                                 <div className="flex items-center gap-3">
                                     <span className="inline-block text-xs font-bold text-primary bg-primary/10 px-3 py-1 rounded-full uppercase tracking-wider">
-                                        Instance #{instance.id}
+                                        #{instance.id}
                                     </span>
                                     {instance.category && (
                                         <span className="px-3 py-1 bg-slate-100 border border-slate-200 dark:bg-slate-800 text-slate-500 text-xs font-bold rounded-full uppercase tracking-wider">
