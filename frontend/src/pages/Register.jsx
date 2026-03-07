@@ -71,7 +71,7 @@ function Register() {
           <input type="password" placeholder="รหัสผ่าน" value={password} onChange={(e) => setPassword(e.target.value)} className="w-109 p-2 mb-2 border-none shadow-md rounded-full bg-[#FEFEFE] px-4 mt-3 focus:ring-2 focus:ring-[#FFBCD1] focus:outline-none" />
           <input type="password" placeholder="ยืนยันรหัสผ่าน" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className="w-109 p-2 mb-2 border-none shadow-md rounded-full bg-[#FEFEFE] px-4 mt-3 focus:ring-2 focus:ring-[#FFBCD1] focus:outline-none" />
           <p>{message}</p>
-          <button className="w-50 mx-auto bg-primary text-white px-4 py-2 text-[22px] rounded-xl font-semibold hover:bg-[#ff6e97] hover:transition-all shadow-md mt-3 " type="submit">สร้างบัญชี</button>
+          <button className="w-50 mx-auto bg-primary text-white px-4 py-2 text-[22px] rounded-xl font-semibold hover:bg-[#ff6e97] hover:transition-all shadow-md mt-3 cursor-pointer" type="submit">สร้างบัญชี</button>
           <label className="text-black/40 flex text-center mt-4 mx-auto">มีบัญชีแล้ว? เข้าสู่ระบบได้ <Link to="/login" className="block text-primary hover:underline pl-1">ที่นี่</Link></label>
         </form>
       </div>
