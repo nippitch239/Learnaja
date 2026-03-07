@@ -330,7 +330,7 @@ function InstanceDetail() {
                                                         value={userComment}
                                                         onChange={(e) => setUserComment(e.target.value)}
                                                         disabled={submittingRating}
-                                                        className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-3 text-xs focus:ring-2 focus:ring-primary/20 outline-none min-h-[80px] transition-all"
+                                                        className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-3 text-xs focus:ring-2 focus:ring-primary/20 outline-none min-h-20 transition-all"
                                                     ></textarea>
                                                     <button
                                                         onClick={handleSubmitRating}
