@@ -93,12 +93,12 @@ function MyCourses() {
                                 src={course.thumbnail_url.startsWith('http') ? course.thumbnail_url : `${import.meta.env.VITE_API_URL || 'http://localhost:3200'}${course.thumbnail_url}`}
                                 alt={course.title}
                                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                                onError={(e) => { e.target.src = "/images/user.png"; }}
+                                onError={(e) => { e.target.src = "/images/no-image.png"; }}
                             />
                         </div>
                     ) : (
                         <div className="aspect-video w-full rounded-xl bg-slate-100 dark:bg-slate-800 overflow-hidden mb-2 flex items-center justify-center">
-                            <span className="material-symbols-outlined text-5xl text-slate-300">school</span>
+                            <img src="/images/no-image.png" alt="No thumbnail" className="w-full h-full object-cover" />
                         </div>
                     )}
                 </div>
@@ -241,10 +241,15 @@ function MyCourses() {
                                                     {course.description || ""}
                                                 </p>
                                                 <div className="">
-                                                    <img
-                                                        className="w-full h-48 object-cover rounded-2xl"
-                                                        src={course.thumbnail_url.startsWith("http") ? course.thumbnail_url : `${import.meta.env.VITE_API_URL || "http://localhost:3200"}${course.thumbnail_url}`}
-                                                        alt={course.title} />
+                                                    {course.thumbnail_url ? (
+                                                        <img
+                                                            className="w-full h-48 object-cover rounded-2xl"
+                                                            src={course.thumbnail_url.startsWith('http') ? course.thumbnail_url : `${import.meta.env.VITE_API_URL || 'http://localhost:3200'}${course.thumbnail_url}`}
+                                                            onError={(e) => { e.target.src = "/images/no-image.png"; }}
+                                                            alt={course.title} />
+                                                    ) : (
+                                                        <img src="/images/no-image.png" alt="No thumbnail" className="w-full h-48 object-cover rounded-2xl" />
+                                                    )}
                                                 </div>
                                             </div>
 

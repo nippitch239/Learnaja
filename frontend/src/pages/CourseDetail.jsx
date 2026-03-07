@@ -358,9 +358,7 @@ function CourseDetail() {
                       className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                     />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center">
-                      <span className="material-symbols-outlined text-5xl text-slate-300">school</span>
-                    </div>
+                    <img src="/images/no-image.png" alt="No thumbnail" className="w-full h-full object-cover" />
                   )}
                   <div className="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
                     <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center text-primary shadow-2xl">

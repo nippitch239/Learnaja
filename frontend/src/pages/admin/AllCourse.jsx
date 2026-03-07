@@ -53,9 +53,7 @@ function AllCourse() {
                                     loading="lazy"
                                 />
                             ) : (
-                                <div className="w-full h-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center text-slate-400 text-sm">
-                                    ไม่มีรูปภาพ
-                                </div>
+                                <img src="/images/no-image.png" alt="No thumbnail" className="w-full h-full object-cover" />
                             )}
                         </div>
 

@@ -179,12 +179,12 @@ function Courses() {
                                     {course.thumbnail_url ? (
                                         <img
                                             src={course.thumbnail_url.startsWith("http") ? course.thumbnail_url : `${import.meta.env.VITE_API_URL || "http://localhost:3200"}${course.thumbnail_url}`}
-                                            onError={(e) => { e.target.src = "/images/logo_p.png"; }}
+                                            onError={(e) => { e.target.src = "/images/no-image.png"; }}
                                             alt={course.title}
                                             className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                                         />
                                     ) : (
-                                        <img src="/images/logo_p.png" alt="No thumbnail" className="w-full h-full object-cover" />
+                                        <img src="/images/no-image.png" alt="No thumbnail" className="w-full h-full object-cover" />
                                     )}
                                     {course.category && (
                                         <span className="absolute top-3 left-3 px-3 py-1 bg-primary/90 text-white text-xs font-bold rounded-full backdrop-blur-sm">
