@@ -14,9 +14,24 @@ function EditInstanceInfo() {
 
     const [title, setTitle] = useState("");
     const [description, setDescription] = useState("");
+
+    const [thumbnailSourceType, setThumbnailSourceType] = useState("url");
+    const [thumbnailFile, setThumbnailFile] = useState(null);
+    const [previewUrl, setPreviewUrl] = useState("");
     const [thumbnailUrl, setThumbnailUrl] = useState("");
+
     const [category, setCategory] = useState("");
     const [price, setPrice] = useState(0);
+
+    useEffect(() => {
+        if (!thumbnailFile) {
+            setPreviewUrl("");
+            return;
+        }
+        const objectUrl = URL.createObjectURL(thumbnailFile);
+        setPreviewUrl(objectUrl);
+        return () => URL.revokeObjectURL(objectUrl);
+    }, [thumbnailFile]);
 
     useEffect(() => {
         const load = async () => {
@@ -50,10 +65,22 @@ function EditInstanceInfo() {
 
         try {
             setIsSaving(true);
+
+            let finalThumbnailUrl = thumbnailUrl;
+
+            if (thumbnailSourceType === "file" && thumbnailFile) {
+                const formData = new FormData();
+                formData.append("image", thumbnailFile);
+                const uploadRes = await api.post("/upload-image", formData, {
+                    headers: { "Content-Type": "multipart/form-data" }
+                });
+                finalThumbnailUrl = uploadRes.data.imagePath;
+            }
+
             await api.put(`/instances/${id}/edit`, {
                 title,
                 description,
-                thumbnail_url: thumbnailUrl,
+                thumbnail_url: finalThumbnailUrl,
             });
             setMessage("บันทึกข้อมูลคอร์สเรียนเรียบร้อยแล้ว");
         } catch (err) {
@@ -233,32 +260,74 @@ function EditInstanceInfo() {
                                     </div>
                                 </div>
 
-                                <div className="space-y-2">
+                                <div className="space-y-4">
                                     <label className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">
-                                        ภาพหน้าปกคอร์ส (URL)
+                                        ภาพหน้าปกคอร์ส
                                     </label>
+
+                                    <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-xl w-fit mb-3">
+                                        <button
+                                            type="button"
+                                            onClick={() => setThumbnailSourceType("url")}
+                                            className={`px-4 py-1.5 rounded-lg text-sm font-bold transition-all ${thumbnailSourceType === "url" ? "bg-white dark:bg-slate-700 shadow-sm text-primary" : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"}`}
+                                        >
+                                            ลิงก์รูปภาพ (URL)
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => setThumbnailSourceType("file")}
+                                            className={`px-4 py-1.5 rounded-lg text-sm font-bold transition-all ${thumbnailSourceType === "file" ? "bg-white dark:bg-slate-700 shadow-sm text-primary" : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"}`}
+                                        >
+                                            อัพโหลดไฟล์
+                                        </button>
+                                    </div>
+
                                     <div className="flex flex-col md:flex-row gap-4">
                                         <div className="w-full md:w-32 h-20 rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 shrink-0 bg-slate-50 dark:bg-slate-800 flex items-center justify-center">
-                                            {thumbnailUrl ? (
+                                            {thumbnailSourceType === "url" && thumbnailUrl ? (
                                                 <img
                                                     src={thumbnailUrl}
                                                     alt="Preview"
                                                     className="w-full h-full object-cover"
                                                     onError={(e) => {
-                                                        e.target.src = "/images/user.png";
+                                                        e.target.src = "/images/no-image.png";
                                                     }}
+                                                />
+                                            ) : thumbnailSourceType === "file" && previewUrl ? (
+                                                <img
+                                                    src={previewUrl}
+                                                    alt="Preview"
+                                                    className="w-full h-full object-cover"
                                                 />
                                             ) : (
                                                 <span className="material-symbols-outlined text-slate-300">image</span>
                                             )}
                                         </div>
-                                        <input
-                                            type="text"
-                                            value={thumbnailUrl}
-                                            onChange={(e) => setThumbnailUrl(e.target.value)}
-                                            placeholder="https://example.com/image.jpg"
-                                            className="flex-1 px-4 py-3 rounded-2xl border border-slate-200 dark:border-slate-700 bg-transparent focus:ring-2 focus:ring-primary focus:border-primary transition-all font-medium"
-                                        />
+
+                                        <div className="flex-1 flex items-center">
+                                            {thumbnailSourceType === "url" ? (
+                                                <input
+                                                    type="text"
+                                                    value={thumbnailUrl}
+                                                    onChange={(e) => setThumbnailUrl(e.target.value)}
+                                                    placeholder="https://example.com/image.jpg"
+                                                    className="w-full px-4 py-3 rounded-2xl border border-slate-200 dark:border-slate-700 bg-transparent focus:ring-2 focus:ring-primary focus:border-primary transition-all font-medium dark:placeholder:text-slate-500"
+                                                />
+                                            ) : (
+                                                <input
+                                                    type="file"
+                                                    accept="image/*"
+                                                    onChange={(e) => {
+                                                        if (e.target.files && e.target.files.length > 0) {
+                                                            setThumbnailFile(e.target.files[0]);
+                                                        } else {
+                                                            setThumbnailFile(null);
+                                                        }
+                                                    }}
+                                                    className="w-full text-sm text-slate-500 dark:text-slate-400 file:mr-4 file:py-3 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-bold file:bg-primary/10 file:text-primary hover:file:bg-primary/20 cursor-pointer outline-none file:cursor-pointer file:transition-colors"
+                                                />
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
 
