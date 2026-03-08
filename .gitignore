@@ -25,3 +25,5 @@ Thumbs.db
 check_db.js
 
 *.md
+
+*.sql
