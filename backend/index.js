@@ -20,6 +20,7 @@ const cookieParser = require("cookie-parser");
 const multer = require("multer");
 
 const { v4: uuidv4 } = require("uuid");
+const { connect } = require("http2");
 
 
 const ALLOWED_ORIGINS = (process.env.CORS_ORIGIN || "http://localhost,http://localhost:5173")
@@ -136,7 +137,7 @@ router.post('/register', async (req, res) => {
     const connection = await db.getConnection();
 
     try {
-        console.log(req.body)
+        // console.log(req.body)
         const { username, name, email, password } = req.body;
 
 
@@ -165,7 +166,7 @@ router.post('/register', async (req, res) => {
             `insert into users 
             (username, name, email, password, points) 
             values (?, ?, ?, ?, ?)`,
-            [username, name, email, hashedPassword, 0]
+            [username, name, email, hashedPassword, 500]
         );
 
         const userId = userResult.insertId;
@@ -192,12 +193,12 @@ router.post('/register', async (req, res) => {
 
         await connection.commit();
 
-        console.log("finish")
+        // console.log("finish")
 
         res.status(201).json({ message: "User registered successfully" });
 
     } catch (error) {
-        console.log("failed")
+        // console.log("failed")
         await connection.rollback();
         res.status(500).json({ error: error.message });
     } finally {
@@ -267,10 +268,10 @@ router.get("/courses", async (req, res) => {
         }
 
         if (limit) {
-            query += " limit ?";
-            params.push(parseInt(limit));
-        } else {
-            query += " limit 20";
+            if (limit !== "all") {
+                query += " limit ?";
+                params.push(parseInt(limit));
+            }
         }
 
         const [rows] = await db.query(query, params);
@@ -485,8 +486,8 @@ router.post("/courses/:id/buy", verifyToken, async (req, res) => {
     const connection = await db.getConnection();
     try {
 
-        console.log(req.body);
-        console.log("User id:", req.user.id);
+        // console.log(req.body);
+        // console.log("User id:", req.user.id);
 
         await connection.beginTransaction();
 
@@ -622,17 +623,8 @@ router.delete("/courses/:id", verifyToken, checkRole("admin"), async (req, res) 
 
         if (instanceIds.length > 0) {
             const inPlaceholders = instanceIds.map(() => '?').join(',');
-            const [enrolledStudents] = await connection.query(
-                `SELECT COUNT(*) as count FROM instance_students WHERE instance_id IN (${inPlaceholders})`,
-                instanceIds
-            );
-            if (enrolledStudents[0].count > 0) {
-                await connection.rollback();
-                return res.status(409).json({
-                    message: `ไม่สามารถลบคอร์สได้ เนื่องจากมีนักเรียน ${enrolledStudents[0].count} คนลงทะเบียนอยู่`,
-                    enrolled_count: enrolledStudents[0].count
-                });
-            }
+
+            await connection.query(`DELETE FROM instance_students WHERE instance_id IN (${inPlaceholders})`, instanceIds);
 
             await connection.query(`DELETE FROM course_progress WHERE instance_id IN (${inPlaceholders})`, instanceIds);
             await connection.query(`DELETE FROM course_quiz_results WHERE instance_id IN (${inPlaceholders})`, instanceIds);
@@ -1604,14 +1596,18 @@ router.get("/profile/me", verifyToken, async (req, res) => {
         const [ownedInstances] = await db.query("select count(*) as count from course_instances where owner_id = ?", [userId]);
         const [invitedInstances] = await db.query("select count(*) as count from instance_students where user_id = ? and (status is null or status = 'accepted')", [userId]);
 
-        const [progressCount] = await db.query("select count(*) as count from course_progress where user_id = ? and content_type = 'lesson'", [userId]);
+        // "Completed" instances are defined by entries in the course_instance_completions table
+        const [completedRows] = await db.query("select count(*) as count from course_instance_completions where user_id = ?", [userId]);
+
+        const totalCourses = ownedInstances[0].count + invitedInstances[0].count;
+        const totalCompleted = completedRows[0].count;
 
         res.json({
             ...user,
             stats: {
                 points: user.points || 0,
-                learning: ownedInstances[0].count + invitedInstances[0].count,
-                completed: Math.floor(progressCount[0].count / 5)
+                learning: Math.max(0, totalCourses - totalCompleted),
+                completed: totalCompleted
             }
         });
     } catch (err) {

@@ -2,6 +2,7 @@ import { useState } from "react";
 
 import api from "../services/api";
 import { Link, useNavigate } from "react-router-dom";
+import Swal from "sweetalert2";
 
 function Register() {
   const navigate = useNavigate();
@@ -28,6 +29,7 @@ function Register() {
 
     if (password !== confirmPassword) {
       setMessage("Passwords do not match");
+      Swal.fire({ icon: 'error', title: 'เกิดข้อผิดพลาด', text: 'รหัสผ่านไม่ตรงกัน' });
       return;
     }
 
@@ -42,17 +44,20 @@ function Register() {
 
       setMessage(res.data.message);
       console.log(res.data.message);
+      Swal.fire({ icon: 'success', title: 'สำเร็จ', text: res.data.message || 'ลงทะเบียนสำเร็จ', timer: 1500, showConfirmButton: false });
       setTimeout(() => {
         setMessage("");
         navigate("/login");
-      }, 3000);
+      }, 1500);
 
     } catch (err) {
       if (err.response) {
         setMessage(err.response.data.message);
+        Swal.fire({ icon: 'error', title: 'เกิดข้อผิดพลาด', text: err.response.data.message });
         console.log(err.response.data.message);
       } else {
         setMessage("Server error");
+        Swal.fire({ icon: 'error', title: 'เกิดข้อผิดพลาด', text: 'Server error' });
         console.log("Server error");
       }
     }

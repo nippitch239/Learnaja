@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate, Link, NavLink } from "react-router-dom";
 import api from "../../services/api";
 import "quill/dist/quill.snow.css";
+import Swal from "sweetalert2";
 
 function RichTextEditor({ value, onChange, placeholder = 'เขียนเนื้อหาที่นี่...' }) {
   const containerRef = useRef(null);
@@ -191,64 +192,74 @@ function CourseEdit() {
       setNewModuleTitle("");
       setShowAddModule(false);
       await loadCourseData();
+      Swal.fire({ title: "สำเร็จ", text: "เพิ่มบทเรียนสำเร็จ", icon: "success", timer: 1500, showConfirmButton: false });
     } catch (err) {
-      alert("ไม่สามารถเพิ่มบทเรียนได้");
+      Swal.fire("ข้อผิดพลาด", "ไม่สามารถเพิ่มบทเรียนได้", "error");
     } finally {
       setIsSaving(false);
     }
   };
 
   const handleDeleteModule = async (moduleId) => {
-    if (!window.confirm("คุณต้องการลบบทเรียนนี้ใช่หรือไม่?")) return;
+    const result = await Swal.fire({ title: "คุณต้องการลบบทเรียนนี้ใช่หรือไม่?", icon: "warning", showCancelButton: true, confirmButtonText: "ตกลง", cancelButtonText: "ยกเลิก" });
+    if (!result.isConfirmed) return;
     try {
       setIsSaving(true);
       await api.delete(`/modules/${moduleId}`);
       await loadCourseData();
+      Swal.fire({ title: "สำเร็จ", text: "ลบบทเรียนสำเร็จ", icon: "success", timer: 1500, showConfirmButton: false });
     } catch (err) {
-      alert("ไม่สามารถลบบทเรียนได้");
+      Swal.fire("ข้อผิดพลาด", "ไม่สามารถลบบทเรียนได้", "error");
     } finally {
       setIsSaving(false);
     }
   };
 
   const handleDeleteLesson = async (lessonId) => {
-    if (!window.confirm("คุณต้องการลบเนื้อหานี้ใช่หรือไม่?")) return;
+    const result = await Swal.fire({ title: "คุณต้องการลบเนื้อหานี้ใช่หรือไม่?", icon: "warning", showCancelButton: true, confirmButtonText: "ตกลง", cancelButtonText: "ยกเลิก" });
+    if (!result.isConfirmed) return;
     try {
       setIsSaving(true);
       await api.delete(`/lessons/${lessonId}`);
       await loadCourseData();
+      Swal.fire({ title: "สำเร็จ", text: "ลบเนื้อหาสำเร็จ", icon: "success", timer: 1500, showConfirmButton: false });
     } catch (err) {
-      alert("ไม่สามารถลบเนื้อหาได้");
+      Swal.fire("ข้อผิดพลาด", "ไม่สามารถลบเนื้อหาได้", "error");
     } finally {
       setIsSaving(false);
     }
   };
 
   const handleDeleteQuiz = async (quizId) => {
-    if (!window.confirm("คุณต้องการลบแบบทดสอบนี้ใช่หรือไม่?")) return;
+    const result = await Swal.fire({ title: "คุณต้องการลบแบบทดสอบนี้ใช่หรือไม่?", icon: "warning", showCancelButton: true, confirmButtonText: "ตกลง", cancelButtonText: "ยกเลิก" });
+    if (!result.isConfirmed) return;
     try {
       setIsSaving(true);
       await api.delete(`/quizzes/${quizId}`);
       await loadCourseData();
+      Swal.fire({ title: "สำเร็จ", text: "ลบแบบทดสอบสำเร็จ", icon: "success", timer: 1500, showConfirmButton: false });
     } catch (err) {
-      alert("ไม่สามารถลบแบบทดสอบได้");
+      Swal.fire("ข้อผิดพลาด", "ไม่สามารถลบแบบทดสอบได้", "error");
     } finally {
       setIsSaving(false);
     }
   };
 
   const handleDeleteAssignment = async (assignmentId) => {
-    if (!window.confirm("คุณต้องการลบงานนี้ใช่หรือไม่?")) return;
+    const result = await Swal.fire({ title: "คุณต้องการลบงานนี้ใช่หรือไม่?", icon: "warning", showCancelButton: true, confirmButtonText: "ตกลง", cancelButtonText: "ยกเลิก" });
+    if (!result.isConfirmed) return;
     try {
       setIsSaving(true);
       await api.delete(`/assignments/${assignmentId}`);
       await loadCourseData();
+      Swal.fire({ title: "สำเร็จ", text: "ลบงานสำเร็จ", icon: "success", timer: 1500, showConfirmButton: false });
     } catch (err) {
-      alert("ไม่สามารถลบงานได้");
+      Swal.fire("ข้อผิดพลาด", "ไม่สามารถลบงานได้", "error");
     } finally {
       setIsSaving(false);
     }
   };
+
 
   const submitEditModule = async () => {
     if (!editModuleTitle.trim()) return;
@@ -257,8 +268,9 @@ function CourseEdit() {
       await api.put(`/modules/${editModuleId}`, { title: editModuleTitle });
       setEditModuleId(null);
       await loadCourseData();
+      Swal.fire({ title: "สำเร็จ", text: "แก้ไขบทเรียนสำเร็จ", icon: "success", timer: 1500, showConfirmButton: false });
     } catch (err) {
-      alert("ไม่สามารถแก้ไขบทเรียนได้");
+      Swal.fire("ข้อผิดพลาด", "ไม่สามารถแก้ไขบทเรียนได้", "error");
     } finally {
       setIsSaving(false);
     }
@@ -299,7 +311,7 @@ function CourseEdit() {
       console.error(err);
       const msg = err.response?.data?.message || "ไม่สามารถแก้ไขเนื้อหาได้";
       setError(msg);
-      alert(msg);
+      Swal.fire("ข้อผิดพลาด", msg, "error");
     } finally {
       setIsSaving(false);
     }
@@ -315,15 +327,16 @@ function CourseEdit() {
       });
       setEditQuizId(null);
       await loadCourseData();
+      Swal.fire({ title: "สำเร็จ", text: "แก้ไขแบบทดสอบสำเร็จ", icon: "success", timer: 1500, showConfirmButton: false });
     } catch (err) {
-      alert("ไม่สามารถแก้ไขแบบทดสอบได้");
+      Swal.fire("ข้อผิดพลาด", "ไม่สามารถแก้ไขแบบทดสอบได้", "error");
     } finally {
       setIsSaving(false);
     }
   };
 
   const handleAddQuestion = async (quizId) => {
-    if (!questionText.trim()) return alert("กรุณากรอกคำถาม");
+    if (!questionText.trim()) return Swal.fire("แจ้งเตือน", "กรุณากรอกคำถาม", "warning");
 
     try {
       setIsSaving(true);
@@ -338,14 +351,14 @@ function CourseEdit() {
         payload.correct_answer = questionCorrect;
       } else {
         const filteredChoices = questionChoices.filter(c => c.trim() !== "");
-        if (filteredChoices.length < 2) return alert("กรุณากรอกตัวเลือกอย่างน้อย 2 ข้อ");
+        if (filteredChoices.length < 2) return Swal.fire("แจ้งเตือน", "กรุณากรอกตัวเลือกอย่างน้อย 2 ข้อ", "warning");
         payload.choices = filteredChoices;
 
         if (questionType === 'multiple_choice') {
-          if (!questionCorrect) return alert("กรุณาเลือกคำตอบที่ถูกต้อง");
+          if (!questionCorrect) return Swal.fire("แจ้งเตือน", "กรุณาเลือกคำตอบที่ถูกต้อง", "warning");
           payload.correct_answer = questionCorrect;
         } else {
-          if (!questionCorrect) return alert("กรุณาเลือกคำตอบที่ถูกต้อง");
+          if (!questionCorrect) return Swal.fire("แจ้งเตือน", "กรุณาเลือกคำตอบที่ถูกต้อง", "warning");
           payload.correct_answer = payload.choices[parseInt(questionCorrect)];
         }
       }
@@ -364,21 +377,24 @@ function CourseEdit() {
       setQuestionChoices(['', '', '', '']);
       setQuestionCorrect("0");
       await loadCourseData();
+      Swal.fire({ title: "สำเร็จ", text: "เพิ่มคำถามสำเร็จ", icon: "success", timer: 1500, showConfirmButton: false });
     } catch (err) {
-      alert(err.response?.data?.message || "เกิดข้อผิดพลาดในการเพิ่มคำถาม");
+      Swal.fire("ข้อผิดพลาด", err.response?.data?.message || "เกิดข้อผิดพลาดในการเพิ่มคำถาม", "error");
     } finally {
       setIsSaving(false);
     }
   };
 
   const handleDeleteQuestion = async (questionId) => {
-    if (!window.confirm("คุณต้องการลบคำถามนี้ใช่หรือไม่?")) return;
+    const result = await Swal.fire({ title: "คุณต้องการลบคำถามนี้ใช่หรือไม่?", icon: "warning", showCancelButton: true, confirmButtonText: "ตกลง", cancelButtonText: "ยกเลิก" });
+    if (!result.isConfirmed) return;
     try {
       setIsSaving(true);
       await api.delete(`/questions/${questionId}`);
       await loadCourseData();
+      Swal.fire({ title: "สำเร็จ", text: "ลบคำถามสำเร็จ", icon: "success", timer: 1500, showConfirmButton: false });
     } catch (err) {
-      alert("ไม่สามารถลบคำถามได้");
+      Swal.fire("ข้อผิดพลาด", "ไม่สามารถลบคำถามได้", "error");
     } finally {
       setIsSaving(false);
     }
@@ -412,7 +428,7 @@ function CourseEdit() {
   };
 
   const submitEditQuestion = async () => {
-    if (!editQuestionText.trim()) return alert("กรุณากรอกคำถาม");
+    if (!editQuestionText.trim()) return Swal.fire("แจ้งเตือน", "กรุณากรอกคำถาม", "warning");
     try {
       setIsSaving(true);
       let payload = {
@@ -426,14 +442,14 @@ function CourseEdit() {
         payload.correct_answer = editQuestionCorrect;
       } else {
         const filteredChoices = editQuestionChoices.filter(c => c.trim() !== '');
-        if (filteredChoices.length < 2) return alert("กรุณากรอกตัวเลือกอย่างน้อย 2 ข้อ");
+        if (filteredChoices.length < 2) return Swal.fire("แจ้งเตือน", "กรุณากรอกตัวเลือกอย่างน้อย 2 ข้อ", "warning");
         payload.choices = filteredChoices;
         if (editQuestionType === 'multiple_choice') {
-          if (!editQuestionCorrect) return alert("กรุณาเลือกคำตอบที่ถูกต้อง");
+          if (!editQuestionCorrect) return Swal.fire("แจ้งเตือน", "กรุณาเลือกคำตอบที่ถูกต้อง", "warning");
           const correctIndices = editQuestionCorrect.split(',').filter(i => i !== '');
           payload.correct_answer = correctIndices.map(i => filteredChoices[parseInt(i)]).join(',');
         } else {
-          if (editQuestionCorrect === '') return alert("กรุณาเลือกคำตอบที่ถูกต้อง");
+          if (editQuestionCorrect === '') return Swal.fire("แจ้งเตือน", "กรุณาเลือกคำตอบที่ถูกต้อง", "warning");
           payload.correct_answer = filteredChoices[parseInt(editQuestionCorrect)];
         }
       }
@@ -441,8 +457,9 @@ function CourseEdit() {
       await api.put(`/questions/${editQuestionId}`, payload);
       setEditQuestionId(null);
       await loadCourseData();
+      Swal.fire({ title: "สำเร็จ", text: "แก้ไขคำถามสำเร็จ", icon: "success", timer: 1500, showConfirmButton: false });
     } catch (err) {
-      alert(err.response?.data?.message || "ไม่สามารถแก้ไขคำถามได้");
+      Swal.fire("ข้อผิดพลาด", err.response?.data?.message || "ไม่สามารถแก้ไขคำถามได้", "error");
     } finally {
       setIsSaving(false);
     }
@@ -458,8 +475,9 @@ function CourseEdit() {
       });
       setEditAssignmentId(null);
       await loadCourseData();
+      Swal.fire({ title: "สำเร็จ", text: "แก้ไขงานสำเร็จ", icon: "success", timer: 1500, showConfirmButton: false });
     } catch (err) {
-      alert("ไม่สามารถแก้ไขงานได้");
+      Swal.fire("ข้อผิดพลาด", "ไม่สามารถแก้ไขงานได้", "error");
     } finally {
       setIsSaving(false);
     }
@@ -483,7 +501,7 @@ function CourseEdit() {
       const order = newModules.map((m) => m.id);
       await api.post(`/courses/${id}/modules/reorder`, { order });
     } catch (err) {
-      alert("ไม่สามารถเปลี่ยนลำดับบทเรียนได้");
+      Swal.fire("ข้อผิดพลาด", "ไม่สามารถเปลี่ยนลำดับบทเรียนได้", "error");
       await loadCourseData();
     } finally {
       setIsSaving(false);
@@ -520,7 +538,7 @@ function CourseEdit() {
       await api.post(`/modules/${moduleId}/items/reorder`, { order });
       await loadCourseData();
     } catch (err) {
-      alert("ไม่สามารถเปลี่ยนลำดับได้");
+      Swal.fire("ข้อผิดพลาด", "ไม่สามารถเปลี่ยนลำดับได้", "error");
     } finally {
       setIsSaving(false);
     }
@@ -536,7 +554,7 @@ function CourseEdit() {
   };
 
   const handleAddContent = async (moduleId) => {
-    if (!contentTitle.trim()) return alert("กรุณากรอกชื่อเรื่อง");
+    if (!contentTitle.trim()) return Swal.fire("แจ้งเตือน", "กรุณากรอกชื่อเรื่อง", "warning");
 
     try {
       setIsSaving(true);
@@ -589,11 +607,12 @@ function CourseEdit() {
       setActiveModuleDialog(null);
       setError(null);
       await loadCourseData();
+      Swal.fire({ title: "สำเร็จ", text: "เพิ่มเนื้อหาสำเร็จ", icon: "success", timer: 1500, showConfirmButton: false });
     } catch (err) {
       console.error(err);
       const msg = err.response?.data?.message || "เกิดข้อผิดพลาดในการเพิ่มเนื้อหา";
       setError(msg);
-      alert(msg);
+      Swal.fire("ข้อผิดพลาด", msg, "error");
     } finally {
       setIsSaving(false);
     }
@@ -830,8 +849,8 @@ function CourseEdit() {
                                         <button
                                           onClick={() => setEditVideoSourceType("url")}
                                           className={`px-3 py-1 text-[10px] font-bold rounded-full transition-all ${editVideoSourceType === "url"
-                                              ? "bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900"
-                                              : "bg-slate-200 text-slate-500"
+                                            ? "bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900"
+                                            : "bg-slate-200 text-slate-500"
                                             }`}
                                         >
                                           ใช้ URL
@@ -839,8 +858,8 @@ function CourseEdit() {
                                         <button
                                           onClick={() => setEditVideoSourceType("file")}
                                           className={`px-3 py-1 text-[10px] font-bold rounded-full transition-all ${editVideoSourceType === "file"
-                                              ? "bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900"
-                                              : "bg-slate-200 text-slate-500"
+                                            ? "bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900"
+                                            : "bg-slate-200 text-slate-500"
                                             }`}
                                         >
                                           อัปโหลดไฟล์
@@ -1275,8 +1294,8 @@ function CourseEdit() {
                               <button
                                 onClick={() => setContentType("video")}
                                 className={`px-3 py-1 rounded-full ${contentType === "video"
-                                    ? "bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900"
-                                    : "bg-slate-200 dark:bg-slate-800 text-slate-600"
+                                  ? "bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900"
+                                  : "bg-slate-200 dark:bg-slate-800 text-slate-600"
                                   }`}
                               >
                                 วิดีโอ
@@ -1284,8 +1303,8 @@ function CourseEdit() {
                               <button
                                 onClick={() => setContentType("text")}
                                 className={`px-3 py-1 rounded-full ${contentType === "text"
-                                    ? "bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900"
-                                    : "bg-slate-200 dark:bg-slate-800 text-slate-600"
+                                  ? "bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900"
+                                  : "bg-slate-200 dark:bg-slate-800 text-slate-600"
                                   }`}
                               >
                                 ข้อความ
@@ -1293,8 +1312,8 @@ function CourseEdit() {
                               <button
                                 onClick={() => setContentType("quiz")}
                                 className={`px-3 py-1 rounded-full ${contentType === "quiz"
-                                    ? "bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900"
-                                    : "bg-slate-200 dark:bg-slate-800 text-slate-600"
+                                  ? "bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900"
+                                  : "bg-slate-200 dark:bg-slate-800 text-slate-600"
                                   }`}
                               >
                                 แบบทดสอบ
@@ -1302,8 +1321,8 @@ function CourseEdit() {
                               <button
                                 onClick={() => setContentType("assignment")}
                                 className={`px-3 py-1 rounded-full ${contentType === "assignment"
-                                    ? "bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900"
-                                    : "bg-slate-200 dark:bg-slate-800 text-slate-600"
+                                  ? "bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900"
+                                  : "bg-slate-200 dark:bg-slate-800 text-slate-600"
                                   }`}
                               >
                                 งาน
@@ -1324,8 +1343,8 @@ function CourseEdit() {
                                   <button
                                     onClick={() => setVideoSourceType("url")}
                                     className={`px-3 py-1 text-[10px] font-bold rounded-full transition-all ${videoSourceType === "url"
-                                        ? "bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900"
-                                        : "bg-slate-200 text-slate-500"
+                                      ? "bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900"
+                                      : "bg-slate-200 text-slate-500"
                                       }`}
                                   >
                                     ใช้ URL
@@ -1333,8 +1352,8 @@ function CourseEdit() {
                                   <button
                                     onClick={() => setVideoSourceType("file")}
                                     className={`px-3 py-1 text-[10px] font-bold rounded-full transition-all ${videoSourceType === "file"
-                                        ? "bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900"
-                                        : "bg-slate-200 text-slate-500"
+                                      ? "bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900"
+                                      : "bg-slate-200 text-slate-500"
                                       }`}
                                   >
                                     อัปโหลดไฟล์

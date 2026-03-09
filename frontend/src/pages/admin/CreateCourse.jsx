@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../../services/api";
+import Swal from "sweetalert2";
 
 import { useDispatch } from "react-redux";
 import { fetchCourses } from "../../store/courseSlice";
@@ -35,7 +36,7 @@ function CreateCourse() {
   const categories = [
     "Programming",
     "Design",
-    "Business",
+    "Math",
     "Networking",
     "Data Science",
     "Health & Wellness",
@@ -49,6 +50,7 @@ function CreateCourse() {
     setMessage("");
 
     if (!title) {
+      Swal.fire({ icon: 'error', title: 'เกิดข้อผิดพลาด', text: 'กรุณากรอกชื่อคอร์ส' });
       return setError("กรุณากรอกชื่อคอร์ส");
     }
 
@@ -78,6 +80,7 @@ function CreateCourse() {
 
       console.log(res.data);
       setMessage("สร้างคอร์สสำเร็จแล้ว!");
+      Swal.fire({ icon: 'success', title: 'สำเร็จ', text: 'สร้างคอร์สสำเร็จแล้ว!', timer: 1500, showConfirmButton: false });
 
       dispatch(fetchCourses());
 
@@ -87,7 +90,9 @@ function CreateCourse() {
 
     } catch (err) {
       console.error(err);
-      setError(err.response?.data?.message || "เกิดข้อผิดพลาดในการสร้างคอร์ส");
+      const errMessage = err.response?.data?.message || "เกิดข้อผิดพลาดในการสร้างคอร์ส";
+      setError(errMessage);
+      Swal.fire({ icon: 'error', title: 'เกิดข้อผิดพลาด', text: errMessage });
     } finally {
       setLoading(false);
     }

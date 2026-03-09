@@ -3,6 +3,7 @@ import { useParams, Link, useNavigate } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
 import api from "../services/api";
 import { fetchCourseFull, fetchMyCourses } from "../services/fetchCourse";
+import Swal from "sweetalert2";
 
 function CourseDetail() {
   const { id } = useParams();
@@ -58,6 +59,19 @@ function CourseDetail() {
 
   const handleBuy = async () => {
     if (!user) return navigate('/login');
+
+    const confirm = await Swal.fire({
+      title: 'ยืนยันการซื้อคอร์ส?',
+      text: "คุณต้องการใช้คะแนนซื้อคอร์สนี้ใช่หรือไม่?",
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonText: 'ซื้อคอร์สเลย',
+      cancelButtonText: 'ยกเลิก',
+      confirmButtonColor: '#ff2d62',
+    });
+
+    if (!confirm.isConfirmed) return;
+
     try {
       setBuying(true);
       const res = await api.post(`/courses/${id}/buy`, {
@@ -67,10 +81,21 @@ function CourseDetail() {
       await calculateOwnership();
       window.dispatchEvent(new Event("profileUpdated"));
       setTimeout(() => setMessage(""), 4000);
+      Swal.fire({
+        icon: 'success',
+        title: 'ยินดีด้วย!',
+        text: res.data.message || "ซื้อคอร์สสำเร็จ!",
+      });
     } catch (err) {
       console.error(err);
-      setMessage(err.response?.data?.message || "เกิดข้อผิดพลาดในการซื้อ");
+      const errMsg = err.response?.data?.message || "เกิดข้อผิดพลาดในการซื้อ";
+      setMessage(errMsg);
       setTimeout(() => setMessage(""), 4000);
+      Swal.fire({
+        icon: 'error',
+        title: 'เกิดข้อผิดพลาด',
+        text: errMsg,
+      });
     } finally {
       setBuying(false);
     }

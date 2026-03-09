@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, NavLink, useNavigate, useParams } from "react-router-dom";
 import api from "../../services/api";
+import Swal from "sweetalert2";
 
 function CourseInfoEdit() {
   const { id } = useParams();
@@ -62,7 +63,7 @@ function CourseInfoEdit() {
   const categories = [
     "Programming",
     "Design",
-    "Business",
+    "Math",
     "Networking",
     "Data Science",
     "Health & Wellness",
@@ -75,7 +76,14 @@ function CourseInfoEdit() {
     setError(null);
     setMessage("");
 
-    if (!title.trim()) return setError("กรุณากรอกชื่อคอร์ส");
+    if (!title.trim()) {
+      Swal.fire({
+        icon: 'error',
+        title: 'เกิดข้อผิดพลาด',
+        text: 'กรุณากรอกชื่อคอร์ส'
+      });
+      return setError("กรุณากรอกชื่อคอร์ส");
+    }
 
     try {
       setIsSaving(true);
@@ -101,9 +109,20 @@ function CourseInfoEdit() {
         rating_count: Number(ratingCount) || 0,
       });
       setMessage("บันทึกข้อมูลคอร์สเรียบร้อยแล้ว");
+      Swal.fire({
+        icon: 'success',
+        title: 'สำเร็จ',
+        text: 'บันทึกข้อมูลคอร์สเรียบร้อยแล้ว'
+      });
     } catch (err) {
       console.error(err);
-      setError(err.response?.data?.message || "ไม่สามารถบันทึกข้อมูลคอร์สได้");
+      const errMessage = err.response?.data?.message || "ไม่สามารถบันทึกข้อมูลคอร์สได้";
+      setError(errMessage);
+      Swal.fire({
+        icon: 'error',
+        title: 'เกิดข้อผิดพลาด',
+        text: errMessage
+      });
     } finally {
       setIsSaving(false);
     }

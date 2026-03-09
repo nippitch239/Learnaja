@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import api from "../../services/api";
+import Swal from "sweetalert2";
 
 function Approve() {
     const [requests, setRequests] = useState([]);
@@ -24,17 +25,35 @@ function Approve() {
     }, []);
 
     const handleAction = async (id, action) => {
-        if (!window.confirm(`คุณแน่ใจหรือไม่ที่จะ ${action === 'approve' ? 'อนุมัติ' : 'ปฏิเสธ'} คำขอนี้?`)) return;
+        const result = await Swal.fire({
+            title: `คุณแน่ใจหรือไม่ที่จะ ${action === 'approve' ? 'อนุมัติ' : 'ปฏิเสธ'} คำขอนี้?`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#4f46e5',
+            cancelButtonColor: '#ef4444',
+            confirmButtonText: 'ตกลง',
+            cancelButtonText: 'ยกเลิก'
+        });
+
+        if (!result.isConfirmed) return;
 
         try {
             await api.post(`/teacher-requests/${id}/${action}`);
-            setMessage(`ทำรายการสำเร็จ (${action})`);
-            setTimeout(() => setMessage(""), 3000);
+            Swal.fire({
+                title: 'สำเร็จ!',
+                text: `ทำรายการสำเร็จ (${action})`,
+                icon: 'success',
+                timer: 1500,
+                showConfirmButton: false
+            });
             fetchRequests(); // Refresh list
         } catch (err) {
             console.error(err);
-            setMessage("เกิดข้อผิดพลาดในการทำรายการ");
-            setTimeout(() => setMessage(""), 3000);
+            Swal.fire({
+                title: 'เกิดข้อผิดพลาด!',
+                text: 'เกิดข้อผิดพลาดในการทำรายการ',
+                icon: 'error'
+            });
         }
     };
 

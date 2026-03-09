@@ -16,7 +16,7 @@ function Courses() {
         { name: "ทั้งหมด", icon: "grid_view" },
         { name: "Programming", icon: "code" },
         { name: "Design", icon: "palette" },
-        { name: "Business", icon: "business" },
+        { name: "Math", icon: "business" },
         { name: "Networking", icon: "network_check" },
         { name: "Data Science", icon: "bar_chart" },
         { name: "CyberSecurity", icon: "security" },

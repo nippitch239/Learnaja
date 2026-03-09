@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, NavLink, useNavigate, useParams } from "react-router-dom";
 import api from "../services/api";
+import Swal from "sweetalert2";
 
 function EditInstanceInfo() {
     const { id } = useParams();
@@ -61,7 +62,14 @@ function EditInstanceInfo() {
         setError(null);
         setMessage("");
 
-        if (!title.trim()) return setError("กรุณากรอกชื่อคอร์ส");
+        if (!title.trim()) {
+            Swal.fire({
+                icon: 'error',
+                title: 'เกิดข้อผิดพลาด',
+                text: 'กรุณากรอกชื่อคอร์ส'
+            });
+            return setError("กรุณากรอกชื่อคอร์ส");
+        }
 
         try {
             setIsSaving(true);
@@ -83,24 +91,55 @@ function EditInstanceInfo() {
                 thumbnail_url: finalThumbnailUrl,
             });
             setMessage("บันทึกข้อมูลคอร์สเรียนเรียบร้อยแล้ว");
+            Swal.fire({
+                icon: 'success',
+                title: 'สำเร็จ',
+                text: 'บันทึกข้อมูลคอร์สเรียนเรียบร้อยแล้ว'
+            });
         } catch (err) {
             console.error(err);
-            setError(err.response?.data?.message || "ไม่สามารถบันทึกข้อมูลคอร์สได้");
+            const errMessage = err.response?.data?.message || "ไม่สามารถบันทึกข้อมูลคอร์สได้";
+            setError(errMessage);
+            Swal.fire({
+                icon: 'error',
+                title: 'เกิดข้อผิดพลาด',
+                text: errMessage
+            });
         } finally {
             setIsSaving(false);
         }
     };
 
     const handleDeleteInstance = async () => {
-        if (!window.confirm("คุณต้องการลบคอร์สนี้ใช่หรือไม่? นักเรียนที่ถูกเชิญและความคืบหน้าที่เกี่ยวข้องจะถูกลบออกด้วย")) return;
+        const result = await Swal.fire({
+            title: 'คุณต้องการลบคอร์สนี้ใช่หรือไม่?',
+            text: "นักเรียนที่ถูกเชิญและความคืบหน้าที่เกี่ยวข้องจะถูกลบออกด้วย",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'ใช่, ลบเลย',
+            cancelButtonText: 'ยกเลิก'
+        });
+
+        if (!result.isConfirmed) return;
+
         try {
             setDeleting(true);
             await api.delete(`/instances/${id}`);
-            alert("ลบคอร์สเรียนสำเร็จแล้ว");
+            await Swal.fire({
+                icon: 'success',
+                title: 'สำเร็จ',
+                text: 'ลบคอร์สเรียนสำเร็จแล้ว'
+            });
             navigate("/mycourses");
         } catch (err) {
             console.error(err);
-            alert(err.response?.data?.message || "ไม่สามารถลบคอร์สได้");
+            Swal.fire({
+                icon: 'error',
+                title: 'เกิดข้อผิดพลาด',
+                text: err.response?.data?.message || "ไม่สามารถลบคอร์สได้"
+            });
         } finally {
             setDeleting(false);
         }

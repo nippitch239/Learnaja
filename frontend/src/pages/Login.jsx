@@ -2,7 +2,7 @@ import { useState, useContext } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
 import api from "../services/api";
-
+import Swal from "sweetalert2";
 
 function Login() {
     const { login } = useContext(AuthContext);
@@ -18,9 +18,10 @@ function Login() {
             });
 
             login(res.data.token);
+            Swal.fire({ icon: 'success', title: 'เข้าสู่ระบบสำเร็จ', timer: 1500, showConfirmButton: false });
             navigate("/home");
         } catch (err) {
-            alert("Try Again Later.");
+            Swal.fire({ icon: 'error', title: 'เข้าสู่ระบบไม่สำเร็จ', text: err.response?.data?.message || 'กรุณาลองใหม่อีกครั้ง' });
             console.log(err);
         }
     };

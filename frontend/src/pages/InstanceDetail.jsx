@@ -2,6 +2,7 @@ import { useEffect, useState, useContext } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
 import api from "../services/api";
+import Swal from "sweetalert2";
 
 function InstanceDetail() {
     const { id } = useParams();
@@ -43,7 +44,10 @@ function InstanceDetail() {
     };
 
     const handleSubmitRating = async () => {
-        if (userRating === 0) return alert("กรุณาเลือกคะแนน (ดาว)");
+        if (userRating === 0) {
+            Swal.fire({ icon: 'warning', title: 'แจ้งเตือน', text: 'กรุณาเลือกคะแนน (ดาว)' });
+            return;
+        }
         try {
             setSubmittingRating(true);
             await api.post(`/courses/${instance.template_id}/rate`, {
@@ -53,9 +57,10 @@ function InstanceDetail() {
             setHasRated(true);
             setMessage("ขอบคุณสำหรับการให้คะแนนคอร์สเรียน!");
             setTimeout(() => setMessage(""), 3000);
+            Swal.fire({ icon: 'success', title: 'สำเร็จ', text: 'ขอบคุณสำหรับการให้คะแนนคอร์สเรียน!' });
         } catch (err) {
             console.error(err);
-            alert(err.response?.data?.message || "Failed to submit rating");
+            Swal.fire({ icon: 'error', title: 'เกิดข้อผิดพลาด', text: err.response?.data?.message || "Failed to submit rating" });
         } finally {
             setSubmittingRating(false);
         }
@@ -70,6 +75,12 @@ function InstanceDetail() {
             setClaimMessage("รับ 100 Points สำเร็จ! 🎉");
             setTimeout(() => setClaimMessage(""), 4000);
 
+            Swal.fire({
+                icon: 'success',
+                title: 'ยินดีด้วย!',
+                text: 'คุณได้รับ 100 Points สำเร็จ! 🎉'
+            });
+
             try {
                 const refreshRes = await api.post("/refresh");
                 login(refreshRes.data.token);
@@ -80,7 +91,11 @@ function InstanceDetail() {
             if (err.response?.status === 409) {
                 setHasClaimed(true);
             } else {
-                alert(err.response?.data?.message || "ไม่สามารถรับ Points ได้");
+                Swal.fire({
+                    icon: 'error',
+                    title: 'เกิดข้อผิดพลาด',
+                    text: err.response?.data?.message || "ไม่สามารถรับ Points ได้"
+                });
             }
         } finally {
             setClaimingPoints(false);
