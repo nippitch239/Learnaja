@@ -445,18 +445,16 @@ router.get("/instances/:id/full", verifyToken, async (req, res) => {
             [id]
         );
 
-        let [templateModules] = await db.query(
-            "select * from course_modules where course_id = ? order by order_index",
-            [instance.template_id]
-        );
-
-        const overriddenTemplateIds = instanceModules
-            .filter(m => m.template_module_id !== null)
-            .map(m => m.template_module_id);
-
-        const newTemplateModules = templateModules.filter(m => !overriddenTemplateIds.includes(m.id));
-
-        let modules = [...instanceModules, ...newTemplateModules].sort((a, b) => a.order_index - b.order_index);
+        let modules = [];
+        if (instance.is_customized) {
+            modules = instanceModules.sort((a, b) => a.order_index - b.order_index);
+        } else {
+            let [templateModules] = await db.query(
+                "select * from course_modules where course_id = ? order by order_index",
+                [instance.template_id]
+            );
+            modules = templateModules.sort((a, b) => a.order_index - b.order_index);
+        }
 
         for (let module of modules) {
             const [lessons] = await db.query("select * from course_lessons where module_id = ? order by order_index", [module.id]);
@@ -943,8 +941,7 @@ router.post("/instances/:id/customize", verifyToken, verifyInstanceOwner, async 
         const instance = instances[0];
         const templateId = instance.template_id;
 
-        const [existing] = await connection.query("select id from course_modules where instance_id = ?", [instanceId]);
-        if (existing.length > 0) {
+        if (instance.is_customized) {
             await connection.rollback();
             return res.status(400).json({ message: "Instance already customized" });
         }
@@ -992,10 +989,13 @@ router.post("/instances/:id/customize", verifyToken, verifyInstanceOwner, async 
             }
         }
 
+        await connection.query("update course_instances set is_customized = 1 where id = ?", [instanceId]);
+
         await connection.commit();
         res.json({ message: "Instance customized successfully" });
     } catch (err) {
         await connection.rollback();
+        console.error("CUSTOMIZE ERROR:", err.message);
         res.status(500).json({ error: err.message });
     } finally {
         connection.release();
@@ -1096,41 +1096,102 @@ router.post("/modules/:id/assignments", verifyToken, verifyModuleAccess, async (
 
 // Delete Module
 router.delete("/modules/:id", verifyToken, verifyModuleAccess, async (req, res) => {
+    const connection = await db.getConnection();
     try {
-        await db.query("delete from course_modules where id = ?", [req.params.id]);
+        await connection.beginTransaction();
+        const moduleId = req.params.id;
+
+        const [quizzes] = await connection.query("select id from course_quizzes where module_id = ?", [moduleId]);
+        if (quizzes.length > 0) {
+            const quizIds = quizzes.map(q => q.id);
+            const inPlaceholders = quizIds.map(() => '?').join(',');
+            await connection.query(`delete from course_quiz_questions where quiz_id in (${inPlaceholders})`, quizIds);
+            await connection.query(`delete from course_quiz_results where quiz_id in (${inPlaceholders})`, quizIds);
+            await connection.query("delete from course_quizzes where module_id = ?", [moduleId]);
+        }
+
+        const [lessons] = await connection.query("select id from course_lessons where module_id = ?", [moduleId]);
+        if (lessons.length > 0) {
+            const lessonIds = lessons.map(l => l.id);
+            const inPlaceholders = lessonIds.map(() => '?').join(',');
+            await connection.query(`delete from course_progress where content_type = 'lesson' and content_id in (${inPlaceholders})`, lessonIds);
+        }
+
+        const [assignments] = await connection.query("select id from course_assignments where module_id = ?", [moduleId]);
+        if (assignments.length > 0) {
+            const assignmentIds = assignments.map(a => a.id);
+            const inPlaceholders = assignmentIds.map(() => '?').join(',');
+            await connection.query(`delete from course_progress where content_type = 'assignment' and content_id in (${inPlaceholders})`, assignmentIds);
+        }
+
+        await connection.query("delete from course_lessons where module_id = ?", [moduleId]);
+        await connection.query("delete from course_assignments where module_id = ?", [moduleId]);
+        await connection.query("delete from course_modules where id = ?", [moduleId]);
+
+        await connection.commit();
         res.json({ message: "Module deleted" });
     } catch (err) {
+        await connection.rollback();
         res.status(500).json({ error: err.message });
+    } finally {
+        connection.release();
     }
 });
 
 // Delete Lesson
 router.delete("/lessons/:id", verifyToken, verifyLessonAccess, async (req, res) => {
+    const connection = await db.getConnection();
     try {
-        await db.query("delete from course_lessons where id = ?", [req.params.id]);
+        await connection.beginTransaction();
+        const lessonId = req.params.id;
+        await connection.query("delete from course_progress where content_type = 'lesson' and content_id = ?", [lessonId]);
+        await connection.query("delete from course_lessons where id = ?", [lessonId]);
+        await connection.commit();
         res.json({ message: "Lesson deleted" });
     } catch (err) {
+        await connection.rollback();
         res.status(500).json({ error: err.message });
+    } finally {
+        connection.release();
     }
 });
 
 // Delete Quiz
 router.delete("/quizzes/:id", verifyToken, verifyQuizAccess, async (req, res) => {
+    const connection = await db.getConnection();
     try {
-        await db.query("delete from course_quizzes where id = ?", [req.params.id]);
+        await connection.beginTransaction();
+        const quizId = req.params.id;
+
+        await connection.query("delete from course_quiz_questions where quiz_id = ?", [quizId]);
+        await connection.query("delete from course_quiz_results where quiz_id = ?", [quizId]);
+        await connection.query("delete from course_quizzes where id = ?", [quizId]);
+
+        await connection.commit();
         res.json({ message: "Quiz deleted" });
     } catch (err) {
+        await connection.rollback();
         res.status(500).json({ error: err.message });
+    } finally {
+        connection.release();
     }
 });
 
 // Delete Assignment
 router.delete("/assignments/:id", verifyToken, verifyAssignmentAccess, async (req, res) => {
+    const connection = await db.getConnection();
     try {
-        await db.query("delete from course_assignments where id = ?", [req.params.id]);
+        await connection.beginTransaction();
+        const assignmentId = req.params.id;
+        await connection.query("delete from course_progress where content_type = 'assignment' and content_id = ?", [assignmentId]);
+        await connection.query("delete from course_assignments where id = ?", [assignmentId]);
+        await connection.commit();
         res.json({ message: "Assignment deleted" });
     } catch (err) {
+        await connection.rollback();
         res.status(500).json({ error: err.message });
+    } finally {
+        connection.release();
     }
 });
 

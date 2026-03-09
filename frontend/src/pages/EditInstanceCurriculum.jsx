@@ -2,6 +2,7 @@ import { useState, useEffect, useContext, useRef, useCallback } from "react";
 import { useParams, Link, NavLink, useNavigate } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
 import api from "../services/api";
+import Swal from "sweetalert2";
 import 'quill/dist/quill.snow.css';
 
 
@@ -187,14 +188,22 @@ function EditInstanceCurriculum() {
     };
 
     const handleCustomize = async () => {
-        if (!window.confirm("คุณต้องการปรับแต่งคอร์สนี้ใช่หรือไม่? ระบบจะคัดลอกบทเรียนทั้งหมดเพื่อความสะดวกในการแก้ไข โดยไม่กระทบกับหลักสูตรหลัก")) return;
+        const result = await Swal.fire({
+            title: "เริ่มปรับแต่งหลักสูตร?",
+            text: "คุณต้องการปรับแต่งคอร์สนี้ใช่หรือไม่? ระบบจะคัดลอกบทเรียนทั้งหมดเพื่อความสะดวกในการแก้ไข โดยไม่กระทบกับหลักสูตรหลัก",
+            icon: "info",
+            showCancelButton: true,
+            confirmButtonText: "ปรับแต่งเลย",
+            cancelButtonText: "ยกเลิก"
+        });
+        if (!result.isConfirmed) return;
         try {
             setIsSaving(true);
             await api.post(`/instances/${id}/customize`);
             await loadInstanceData();
-            alert("ปรับแต่งคอร์สเรียบร้อยแล้ว! คุณสามารถแก้ไขบทเรียนได้ทันที");
+            Swal.fire({ title: "สำเร็จ", text: "ปรับแต่งคอร์สเรียบร้อยแล้ว! คุณสามารถแก้ไขบทเรียนได้ทันที", icon: "success", timer: 1500, showConfirmButton: false });
         } catch (err) {
-            alert(err.response?.data?.message || "เกิดข้อผิดพลาดในการปรับแต่ง");
+            Swal.fire("ข้อผิดพลาด", err.response?.data?.message || "เกิดข้อผิดพลาดในการปรับแต่ง", "error");
         } finally {
             setIsSaving(false);
         }
@@ -219,52 +228,60 @@ function EditInstanceCurriculum() {
     };
 
     const handleDeleteModule = async (moduleId) => {
-        if (!window.confirm("คุณต้องการลบบทเรียนนี้ใช่หรือไม่?")) return;
+        const result = await Swal.fire({ title: "คุณต้องการลบบทเรียนนี้ใช่หรือไม่?", icon: "warning", showCancelButton: true, confirmButtonText: "ตกลง", cancelButtonText: "ยกเลิก" });
+        if (!result.isConfirmed) return;
         try {
             setIsSaving(true);
             await api.delete(`/modules/${moduleId}`);
             await loadInstanceData();
+            Swal.fire({ title: "สำเร็จ", text: "ลบสำเร็จ", icon: "success", timer: 1500, showConfirmButton: false });
         } catch (err) {
-            alert("ไม่สามารถลบได้ เนื่องจากบทเรียนนี้อาจเป็นส่วนหนึ่งของเทมเพลตหลัก คุณจำเป็นต้อง 'เริ่มปรับแต่ง' ก่อนหากต้องการลบ");
+            Swal.fire("ข้อผิดพลาด", "ไม่สามารถลบได้ เนื่องจากบทเรียนนี้อาจเป็นส่วนหนึ่งของเทมเพลตหลัก คุณจำเป็นต้อง 'เริ่มปรับแต่ง' ก่อนหากต้องการลบ", "error");
         } finally {
             setIsSaving(false);
         }
     };
 
     const handleDeleteLesson = async (lessonId) => {
-        if (!window.confirm("คุณต้องการลบเนื้อหานี้ใช่หรือไม่?")) return;
+        const result = await Swal.fire({ title: "คุณต้องการลบเนื้อหานี้ใช่หรือไม่?", icon: "warning", showCancelButton: true, confirmButtonText: "ตกลง", cancelButtonText: "ยกเลิก" });
+        if (!result.isConfirmed) return;
         try {
             setIsSaving(true);
             await api.delete(`/lessons/${lessonId}`);
             await loadInstanceData();
+            Swal.fire({ title: "สำเร็จ", text: "ลบสำเร็จ", icon: "success", timer: 1500, showConfirmButton: false });
         } catch (err) {
-            alert("ไม่สามารถลบเนื้อหาได้");
+            Swal.fire("ข้อผิดพลาด", "ไม่สามารถลบเนื้อหาได้", "error");
         } finally {
             setIsSaving(false);
         }
     };
 
     const handleDeleteQuiz = async (quizId) => {
-        if (!window.confirm("คุณต้องการลบแบบทดสอบนี้ใช่หรือไม่?")) return;
+        const result = await Swal.fire({ title: "คุณต้องการลบแบบทดสอบนี้ใช่หรือไม่?", icon: "warning", showCancelButton: true, confirmButtonText: "ตกลง", cancelButtonText: "ยกเลิก" });
+        if (!result.isConfirmed) return;
         try {
             setIsSaving(true);
             await api.delete(`/quizzes/${quizId}`);
             await loadInstanceData();
+            Swal.fire({ title: "สำเร็จ", text: "ลบสำเร็จ", icon: "success", timer: 1500, showConfirmButton: false });
         } catch (err) {
-            alert("ไม่สามารถลบแบบทดสอบได้");
+            Swal.fire("ข้อผิดพลาด", "ไม่สามารถลบแบบทดสอบได้", "error");
         } finally {
             setIsSaving(false);
         }
     };
 
     const handleDeleteAssignment = async (assignmentId) => {
-        if (!window.confirm("คุณต้องการลบงานนี้ใช่หรือไม่?")) return;
+        const result = await Swal.fire({ title: "คุณต้องการลบงานนี้ใช่หรือไม่?", icon: "warning", showCancelButton: true, confirmButtonText: "ตกลง", cancelButtonText: "ยกเลิก" });
+        if (!result.isConfirmed) return;
         try {
             setIsSaving(true);
             await api.delete(`/assignments/${assignmentId}`);
             await loadInstanceData();
+            Swal.fire({ title: "สำเร็จ", text: "ลบสำเร็จ", icon: "success", timer: 1500, showConfirmButton: false });
         } catch (err) {
-            alert("ไม่สามารถลบงานได้");
+            Swal.fire("ข้อผิดพลาด", "ไม่สามารถลบงานได้", "error");
         } finally {
             setIsSaving(false);
         }
@@ -536,13 +553,15 @@ function EditInstanceCurriculum() {
     };
 
     const handleDeleteQuestion = async (questionId) => {
-        if (!window.confirm("คุณต้องการลบคำถามนี้ใช่หรือไม่?")) return;
+        const result = await Swal.fire({ title: "คุณต้องการลบคำถามนี้ใช่หรือไม่?", icon: "warning", showCancelButton: true, confirmButtonText: "ตกลง", cancelButtonText: "ยกเลิก" });
+        if (!result.isConfirmed) return;
         try {
             setIsSaving(true);
             await api.delete(`/questions/${questionId}`);
             await loadInstanceData();
+            Swal.fire({ title: "สำเร็จ", text: "ลบคำถามสำเร็จ", icon: "success", timer: 1500, showConfirmButton: false });
         } catch (err) {
-            alert("ไม่สามารถลบคำถามได้");
+            Swal.fire("ข้อผิดพลาด", "ไม่สามารถลบคำถามได้", "error");
         } finally {
             setIsSaving(false);
         }
@@ -662,7 +681,7 @@ function EditInstanceCurriculum() {
         </div>
     );
 
-    const isCustomized = instance.modules?.some(m => m.instance_id === parseInt(id));
+    const isCustomized = instance.is_customized === 1;
 
     return (
         <div className="bg-main bg-background-light dark:bg-background-dark text-slate-800 dark:text-slate-200 transition-colors duration-300 min-h-screen">
@@ -776,7 +795,18 @@ function EditInstanceCurriculum() {
                                 )}
                             </div>
 
-                            <div className="p-6 space-y-8">
+                            <div className="p-6 space-y-8 relative">
+                                {/* Lock overlay when not customized */}
+                                {!isCustomized && (
+                                    <div className="absolute inset-0 z-10 rounded-b-2xl flex flex-col items-center justify-center gap-3"
+                                        style={{ background: 'rgba(255,255,255,0.7)', cursor: 'not-allowed', backdropFilter: 'blur(2px)' }}>
+                                        <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg px-8 py-6 flex flex-col items-center gap-3 border border-slate-100 dark:border-slate-700 pointer-events-none">
+                                            <span className="material-symbols-outlined text-5xl text-slate-300">lock</span>
+                                            <p className="font-bold text-slate-600 dark:text-slate-300 text-center">กรุณากด "เริ่มปรับแต่งจากหลักสูตรหลัก" ก่อน</p>
+                                            <p className="text-xs text-slate-400 text-center">เพื่อเริ่มแก้ไขเนื้อหาคอร์สนี้</p>
+                                        </div>
+                                    </div>
+                                )}
                                 {instance.modules?.map((module, mIdx) => (
                                     <div
                                         className={`space-y-4 transition-all duration-200 ${dragOverIdx === mIdx && dragIdx !== mIdx
