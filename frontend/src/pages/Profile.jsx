@@ -104,7 +104,7 @@ function Profile() {
                                                 {user.roles.includes("admin") ? "ผู้ดูแลระบบ" : user.roles.includes("teacher") ? "ผู้สอน" : "นักเรียน"}
 
                                             </span>
-                                            {!user.roles.includes("teacher") && (
+                                            {!user.roles.includes("teacher") && !user.roles.includes("admin") && (
                                                 <Link to="/register-teacher">
                                                     <button className="cursor-pointer px-3 py-1 bg-primary text-white font-bold rounded-xl hover:bg-primary/10 hover:text-primary transition-all flex items-center gap-2 shadow-sm">
                                                         <span className="material-symbols-outlined">school</span>
