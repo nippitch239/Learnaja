@@ -74,3 +74,30 @@ Learnaja/
 
 ---
 
+--- 
+## 👲 Account ที่เตรียมไว้
+
+### Role User
+| Username | Password |
+|----------|----------|
+| student1 | 1234 |
+| student2 | 1234 |
+
+### Role Teacher
+| Username | Password |
+|----------|----------|
+| teacher1 | 1234 |
+
+### Role Admin
+| Username | Password |
+|----------|----------|
+| admin | admin |
+
+---
+
+## รายงานโปรเจกต์
+
+- https://kmitlthailand-my.sharepoint.com/:w:/g/personal/67070091_kmitl_ac_th/IQDFiHwILo-1RpBeGx17TPRsAad5bDiJEIQF-mUarQrJKrY?e=k0ufOk
+
+## Presentation
+- https://www.canva.com/design/DAHC_qIEp0g/XLoiHcYlct71x47ZyxjCjQ/edit?utm_content=DAHC_qIEp0g&utm_campaign=designshare&utm_medium=link2&utm_source=sharebutton
