@@ -23,7 +23,7 @@
 
 ให้พิมพ์ `run` ใน command prompt (CMD) **เท่านั้น**
 
-หรือสามารถรันโปรแกรมผ่าน ```D:\Learnaja\run.bat```
+หรือสามารถรันโปรแกรมผ่าน ```.\Learnaja\run.bat```
 
 ระบบจะเปิด 2 หน้าต่าง CMD อัตโนมัติ:
 - **Frontend** → ติดตั้ง dependencies และรัน Vite dev server
