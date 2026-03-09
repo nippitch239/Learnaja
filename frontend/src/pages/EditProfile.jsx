@@ -45,6 +45,7 @@ function EditProfile() {
             Swal.fire({ title: "สำเร็จ", text: "อัปเดตชื่อสำเร็จ", icon: "success", timer: 1500, showConfirmButton: false });
             const res = await api.get("/profile/me");
             setProfile(res.data);
+            setUser((prev) => ({ ...prev, name: res.data.name }));
         } catch (err) {
             Swal.fire("ข้อผิดพลาด", err.response?.data?.message || "Error updating profile", "error");
         } finally {
@@ -155,6 +156,9 @@ function EditProfile() {
                                     />
                                 </div>
                                 <h2 className="text-xl font-bold">{profile.username}</h2>
+                                {profile.name && (
+                                    <p className="text-sm font-medium text-slate-700 dark:text-slate-300 mt-0.5">{profile.name}</p>
+                                )}
                                 <p className="text-slate-500 dark:text-slate-400 text-sm">{profile.email}</p>
                             </div>
 
