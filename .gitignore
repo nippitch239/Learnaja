@@ -2,7 +2,6 @@
 node_modules/
 
 # Environment variables (secrets — never commit these)
-.env
 
 # Uploaded user files
 uploads/
@@ -18,12 +17,6 @@ Thumbs.db
 .vscode/
 *.log
 
-*.md
 
 *.db-wal
 *.db-shm
-check_db.js
-
-*.md
-
-*.sql
