@@ -171,6 +171,9 @@ function CourseEdit() {
     try {
       setLoading(true);
       const res = await api.get(`/courses/${id}/full`);
+      if (res.data.modules) {
+        res.data.modules.sort((a, b) => (a.order_index || 0) - (b.order_index || 0));
+      }
       setCourse(res.data);
       setError(null);
     } catch (err) {
@@ -187,7 +190,7 @@ function CourseEdit() {
       setIsSaving(true);
       await api.post(`/courses/${id}/modules`, {
         title: newModuleTitle,
-        order_index: (course?.modules?.length || 0) + 1,
+        order_index: course?.modules?.length > 0 ? Math.max(...course.modules.map(m => m.order_index || 0)) + 1 : 1,
       });
       setNewModuleTitle("");
       setShowAddModule(false);

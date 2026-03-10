@@ -5,6 +5,7 @@ import api from "../services/api";
 import 'quill/dist/quill.snow.css';
 import Plyr from 'plyr';
 import 'plyr/dist/plyr.css';
+import Swal from 'sweetalert2';
 
 function MyDetailCourse() {
     const { id } = useParams();
@@ -29,7 +30,7 @@ function MyDetailCourse() {
     const [quizScore, setQuizScore] = useState({ earned: 0, total: 0 });
 
     // Progress
-    const [progress, setProgress] = useState({ lessons: [], assignments: [], quizzes: [] });
+    const [progress, setProgress] = useState({ lessons: [], quizzes: [] });
     const [totalItemsCount, setTotalItemsCount] = useState(0);
 
     const getAllSortedItems = (courseData) => {
@@ -38,7 +39,6 @@ function MyDetailCourse() {
         courseData.modules?.forEach((module, mIdx) => {
             const moduleItems = [
                 ...(module.lessons || []).map(l => ({ type: 'lesson', data: l, moduleIndex: mIdx, order: l.order_index || 0 })),
-                ...(module.assignments || []).map(a => ({ type: 'assignment', data: a, moduleIndex: mIdx, order: a.order_index || 0 })),
                 ...(module.quizzes || []).map(q => ({ type: 'quiz', data: q, moduleIndex: mIdx, order: q.order_index || 0 }))
             ];
             moduleItems.sort((a, b) => a.order - b.order);
@@ -63,7 +63,34 @@ function MyDetailCourse() {
             handleItemClick(nextItem.type, nextItem.data, nextItem.moduleIndex);
             if (nextItem.moduleIndex !== activeItem.moduleIndex) setOpenModule(nextItem.moduleIndex);
         } else {
-            alert("คุณเรียนจบเนื้อหาทั้งหมดแล้ว! ยินดีด้วย!");
+            const modules = course?.modules || [];
+            const totalModules = modules.length;
+            const finishedModulesCount = modules.filter(module => {
+                const lessons = module.lessons || [];
+                const quizzes = module.quizzes || [];
+                if (lessons.length === 0 && quizzes.length === 0) return false;
+                const lessonsDone = lessons.every(l => progress.lessons.includes(Number(l.id)));
+                const quizzesDone = quizzes.every(q =>
+                    progress.quizzes.some(pq => pq.quiz_id === q.id && (pq.passed == 1 || pq.passed === true))
+                );
+                return lessonsDone && quizzesDone;
+            }).length;
+
+            if (totalModules > 0 && finishedModulesCount === totalModules) {
+                Swal.fire({
+                    title: "ยินดีด้วย!",
+                    text: "คุณเรียนจบเนื้อหาทั้งหมดแล้ว!",
+                    icon: "success",
+                    confirmButtonText: "รับทราบ"
+                });
+            } else {
+                Swal.fire({
+                    title: "แจ้งเตือน",
+                    text: "คุณมาถึงเนื้อหาสุดท้ายแล้ว! แต่ยังมีบางเนื้อหาที่คุณยังเรียนไม่ครบ กรุณากลับไปตรวจสอบ",
+                    icon: "info",
+                    confirmButtonText: "ปิด"
+                });
+            }
         }
     };
 
@@ -76,6 +103,9 @@ function MyDetailCourse() {
         const fetchCourseData = async () => {
             try {
                 const res = await api.get(`/instances/${id}/full`);
+                if (res.data.modules) {
+                    res.data.modules.sort((a, b) => (a.order_index || 0) - (b.order_index || 0));
+                }
                 setCourse(res.data);
 
                 // Calculate total items
@@ -83,7 +113,6 @@ function MyDetailCourse() {
                 res.data.modules?.forEach(m => {
                     total += (m.lessons?.length || 0);
                     total += (m.quizzes?.length || 0);
-                    total += (m.assignments?.length || 0);
                 });
                 setTotalItemsCount(total);
 
@@ -91,7 +120,6 @@ function MyDetailCourse() {
                     const progRes = await api.get(`/instances/${id}/progress`);
                     setProgress({
                         lessons: (progRes.data.lessons || []).map(Number),
-                        assignments: (progRes.data.assignments || []).map(Number),
                         quizzes: progRes.data.quizzes || []
                     });
                 } catch (e) {
@@ -144,7 +172,7 @@ function MyDetailCourse() {
 
     const handleStartQuiz = () => {
         if (!activeItem?.data?.questions || activeItem.data.questions.length === 0) {
-            alert("No questions available for this quiz yet.");
+            Swal.fire("แจ้งเตือน", "ไม่มีคำถามในแบบทดสอบนี้", "warning");
             return;
         }
         setQuizStarted(true);
@@ -285,14 +313,12 @@ function MyDetailCourse() {
     const finishedModulesCount = modules.filter(module => {
         const lessons = module.lessons || [];
         const quizzes = module.quizzes || [];
-        const assignments = module.assignments || [];
-        if (lessons.length === 0 && quizzes.length === 0 && assignments.length === 0) return false;
+        if (lessons.length === 0 && quizzes.length === 0) return false;
         const lessonsDone = lessons.every(l => progress.lessons.includes(Number(l.id)));
-        const assignmentsDone = assignments.every(a => progress.assignments.includes(Number(a.id)));
         const quizzesDone = quizzes.every(q =>
             progress.quizzes.some(pq => pq.quiz_id === q.id && (pq.passed == 1 || pq.passed === true))
         );
-        return lessonsDone && assignmentsDone && quizzesDone;
+        return lessonsDone && quizzesDone;
     }).length;
     const progressPercentage = totalModules > 0 ? Math.round((finishedModulesCount / totalModules) * 100) : 0;
 
@@ -332,7 +358,6 @@ function MyDetailCourse() {
                                     {(() => {
                                         const items = [
                                             ...(module.lessons || []).map(l => ({ ...l, itemType: 'lesson' })),
-                                            ...(module.assignments || []).map(a => ({ ...a, itemType: 'assignment' })),
                                             ...(module.quizzes || []).map(q => ({ ...q, itemType: 'quiz' }))
                                         ].sort((a, b) => (a.order_index || 0) - (b.order_index || 0));
 
@@ -349,18 +374,6 @@ function MyDetailCourse() {
                                                             {isCompleted ? 'check_circle' : (item.type === 'video' ? 'play_circle' : 'article')}
                                                         </span>
                                                         <span className="truncate">{iIdx + 1}. {item.title}</span>
-                                                    </div>
-                                                );
-                                            } else if (item.itemType === 'assignment') {
-                                                const isCompleted = progress.assignments.includes(item.id);
-                                                return (
-                                                    <div key={`a-${item.id}`}
-                                                        className={`flex items-center gap-2 px-2.5 py-2 rounded-lg text-xs cursor-pointer transition-colors ${isActive ? 'bg-primary/20 border border-primary/50 text-slate-800 font-semibold dark:text-slate-200' : 'text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700/50'}`}
-                                                        onClick={() => handleItemClick('assignment', item, mIdx)}>
-                                                        <span className={`material-symbols-outlined text-sm ${isActive ? 'text-primary-dark' : 'text-slate-300'} ${isCompleted ? 'text-green-500!' : ''}`}>
-                                                            {isCompleted ? 'check_circle' : 'assignment'}
-                                                        </span>
-                                                        <span className="truncate">{iIdx + 1}. งาน: {item.title}</span>
                                                     </div>
                                                 );
                                             } else {
@@ -408,7 +421,7 @@ function MyDetailCourse() {
                                             <span>Module {activeItem.moduleIndex + 1}</span>
                                             <span className="material-symbols-outlined text-xs">chevron_right</span>
                                             <span className="text-primary-dark dark:text-primary-light">
-                                                {activeItem.type === 'lesson' ? 'Lesson' : activeItem.type === 'quiz' ? 'Quiz' : 'Assignment'}
+                                                {activeItem.type === 'lesson' ? 'Lesson' : 'Quiz'}
                                             </span>
                                         </nav>
                                         <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight dark:text-slate-100">{activeItem.data.title}</h1>
@@ -725,39 +738,6 @@ function MyDetailCourse() {
                                         </div>
                                     </div>
                                 )}
-                            </div>
-                        )}
-
-                        {activeItem?.type === 'assignment' && (
-                            <div className="max-w-4xl mx-auto w-full px-8 py-10">
-                                <div className="bg-linear-to-r from-primary to-purple-300 p-12 rounded-3xl text-white relative overflow-hidden mb-8">
-                                    <div className="absolute top-0 right-0 p-8 opacity-10">
-                                        <span className="material-symbols-outlined text-[120px]">assignment</span>
-                                    </div>
-                                    <div className="relative z-10 space-y-4">
-                                        <span className="px-3 py-1 bg-white/20 rounded-lg text-[10px] font-bold uppercase tracking-widest">Assignment</span>
-                                        <h2 className="text-4xl font-black uppercase tracking-tight">{activeItem.data.title}</h2>
-                                    </div>
-                                </div>
-                                <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-10 rounded-3xl shadow-sm">
-                                    <h4 className="flex items-center gap-2 font-black text-slate-800 dark:text-white border-l-4 border-blue-500 pl-4 mb-6 uppercase text-sm tracking-wider">คำอธิบายงาน</h4>
-                                    <p className="text-slate-600 dark:text-slate-400 leading-relaxed font-medium mb-10 whitespace-pre-line">
-                                        {activeItem.data.description || "ส่งงานของคุณได้ที่นี่ (รายละเอียดเบื้องต้น)"}
-                                    </p>
-                                    <div className="p-8 bg-slate-50 dark:bg-slate-800/50 rounded-3xl border-2 border-dashed border-slate-200 dark:border-slate-700 text-center space-y-4">
-                                        <span className="material-symbols-outlined text-4xl text-slate-300">upload_file</span>
-                                        <p className="text-sm font-bold text-slate-400">อัปโหลดไฟล์งานของคุณ</p>
-                                    </div>
-                                    <div className="mt-10 flex justify-end">
-                                        <button
-                                            onClick={handleNextItem}
-                                            className="px-8 py-3 rounded-xl font-bold bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 hover:opacity-90 transition-all flex items-center gap-2"
-                                        >
-                                            <span>ถัดไป</span>
-                                            <span className="material-symbols-outlined">arrow_forward</span>
-                                        </button>
-                                    </div>
-                                </div>
                             </div>
                         )}
 

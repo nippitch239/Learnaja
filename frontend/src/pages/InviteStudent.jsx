@@ -5,11 +5,11 @@ import { AuthContext } from "../context/AuthContext";
 import { NavLink } from "react-router-dom";
 import AsyncSelect from "react-select/async";
 import api from "../services/api";
+import Swal from "sweetalert2";
 
 function InviteStudent() {
     const [instance, setInstance] = useState(null);
     const [loading, setLoading] = useState(true);
-    const [message, setMessage] = useState("");
     const [students, setStudents] = useState([]);
     const navigate = useNavigate();
     const { id } = useParams();
@@ -42,17 +42,18 @@ function InviteStudent() {
     };
 
     const handleInvite = async () => {
-        if (selectedOptions.length === 0) { setMessage("Please select at least one student"); return; }
+        if (selectedOptions.length === 0) {
+            Swal.fire({ title: "แจ้งเตือน", text: "กรุณาเลือกนักเรียนอย่างน้อย 1 คน", icon: "warning", confirmButtonColor: "#6366f1" });
+            return;
+        }
         try {
             setLoading(true);
             await Promise.all(selectedOptions.map(opt => api.post(`/instances/${id}/invite`, { studentId: opt.value })));
-            setMessage("เชิญนักเรียนสำเร็จ!");
+            Swal.fire({ title: "สำเร็จ!", text: "เชิญนักเรียนสำเร็จ", icon: "success", timer: 1500, showConfirmButton: false });
             setSelectedOptions([]);
             loadStudents();
-            setTimeout(() => setMessage(""), 3000);
         } catch (err) {
-            setMessage(err.response?.data?.message || "Error inviting some students");
-            setTimeout(() => setMessage(""), 3000);
+            Swal.fire({ title: "ข้อผิดพลาด", text: err.response?.data?.message || "เกิดข้อผิดพลาดในการเชิญนักเรียน", icon: "error", confirmButtonColor: "#6366f1" });
         } finally {
             setLoading(false);
         }
@@ -68,16 +69,24 @@ function InviteStudent() {
     useEffect(() => { loadStudents(); }, [id]);
 
     const handleDeleteInvite = async (studentId) => {
-        if (!confirm("Are you sure you want to remove this student?")) return;
+        const result = await Swal.fire({
+            title: "คุณแน่ใจหรือไม่?",
+            text: "ต้องการนำนักเรียนคนนี้ออกจากคอร์สใช่หรือไม่?",
+            icon: "warning",
+            showCancelButton: true,
+            confirmButtonColor: "#ef4444",
+            cancelButtonColor: "#64748b",
+            confirmButtonText: "นำออก",
+            cancelButtonText: "ยกเลิก"
+        });
+        if (!result.isConfirmed) return;
         try {
             setLoading(true);
             await api.delete(`/instances/${id}/invite`, { data: { studentId } });
-            setMessage("นำนักเรียนออกสำเร็จ!");
+            Swal.fire({ title: "สำเร็จ!", text: "นำนักเรียนออกสำเร็จ", icon: "success", timer: 1500, showConfirmButton: false });
             loadStudents();
-            setTimeout(() => setMessage(""), 3000);
         } catch (err) {
-            setMessage(err.response?.data?.message || "Error removing student");
-            setTimeout(() => setMessage(""), 3000);
+            Swal.fire({ title: "ข้อผิดพลาด", text: err.response?.data?.message || "เกิดข้อผิดพลาดในการนำนักเรียนออก", icon: "error", confirmButtonColor: "#6366f1" });
         } finally {
             setLoading(false);
         }
@@ -94,7 +103,6 @@ function InviteStudent() {
     if (!instance) return <p className="m-6 text-xl text-red-500">Course Instance not found</p>;
 
     const isTeacher = user?.roles?.includes('teacher');
-    const isError = message.toLowerCase().includes("error") || message.includes("Please");
 
     return (
         <div className="bg-main bg-background-light dark:bg-background-dark text-slate-800 dark:text-slate-200 transition-colors duration-300 min-h-screen">
@@ -146,16 +154,6 @@ function InviteStudent() {
                             </div>
 
                             <div className="p-6 space-y-6">
-                                {/* Message */}
-                                {message && (
-                                    <div className={`p-4 rounded-2xl text-sm font-bold flex items-center gap-2 ${isError
-                                        ? "bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-900/30 text-red-600 dark:text-red-400"
-                                        : "bg-green-50 dark:bg-green-900/20 border border-green-100 dark:border-green-900/30 text-green-600 dark:text-green-400"}`}>
-                                        <span className="material-symbols-outlined text-sm">{isError ? "error" : "check_circle"}</span>
-                                        {message}
-                                    </div>
-                                )}
-
                                 {/* Invite Section */}
                                 {isTeacher && (
                                     <div className="space-y-2">

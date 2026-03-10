@@ -178,6 +178,9 @@ function EditInstanceCurriculum() {
         try {
             setLoading(true);
             const res = await api.get(`/instances/${id}/full`);
+            if (res.data.modules) {
+                res.data.modules.sort((a, b) => (a.order_index || 0) - (b.order_index || 0));
+            }
             setInstance(res.data);
         } catch (err) {
             console.error(err);
@@ -215,7 +218,7 @@ function EditInstanceCurriculum() {
             setIsSaving(true);
             await api.post(`/instances/${id}/modules`, {
                 title: newModuleTitle,
-                order_index: (instance.modules?.length || 0) + 1
+                order_index: instance.modules?.length > 0 ? Math.max(...instance.modules.map(m => m.order_index || 0)) + 1 : 1
             });
             setNewModuleTitle("");
             setShowAddModule(false);
@@ -1268,10 +1271,10 @@ function EditInstanceCurriculum() {
                                                             onClick={() => setContentType('quiz')}
                                                             className={`px-3 py-1 rounded-full text-xs font-bold ${contentType === 'quiz' ? 'bg-primary text-white' : 'bg-slate-200 dark:bg-slate-800 text-slate-500'}`}
                                                         >ควิซ (แบบทดสอบ)</button>
-                                                        <button
+                                                        {/* <button
                                                             onClick={() => setContentType('assignment')}
                                                             className={`px-3 py-1 rounded-full text-xs font-bold ${contentType === 'assignment' ? 'bg-primary text-white' : 'bg-slate-200 dark:bg-slate-800 text-slate-500'}`}
-                                                        >การบ้าน / งาน</button>
+                                                        >การบ้าน / งาน</button> */}
                                                     </div>
 
                                                     <input
