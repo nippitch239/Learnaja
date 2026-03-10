@@ -20,6 +20,7 @@ const cookieParser = require("cookie-parser");
 const multer = require("multer");
 
 const { v4: uuidv4 } = require("uuid");
+const { connect } = require("http2");
 
 
 const ALLOWED_ORIGINS = (process.env.CORS_ORIGIN || "http://localhost,http://localhost:5173")
@@ -136,7 +137,7 @@ router.post('/register', async (req, res) => {
     const connection = await db.getConnection();
 
     try {
-        console.log(req.body)
+        // console.log(req.body)
         const { username, name, email, password } = req.body;
 
 
@@ -165,7 +166,7 @@ router.post('/register', async (req, res) => {
             `insert into users 
             (username, name, email, password, points) 
             values (?, ?, ?, ?, ?)`,
-            [username, name, email, hashedPassword, 0]
+            [username, name, email, hashedPassword, 500]
         );
 
         const userId = userResult.insertId;
@@ -192,12 +193,12 @@ router.post('/register', async (req, res) => {
 
         await connection.commit();
 
-        console.log("finish")
+        // console.log("finish")
 
         res.status(201).json({ message: "User registered successfully" });
 
     } catch (error) {
-        console.log("failed")
+        // console.log("failed")
         await connection.rollback();
         res.status(500).json({ error: error.message });
     } finally {
@@ -267,10 +268,10 @@ router.get("/courses", async (req, res) => {
         }
 
         if (limit) {
-            query += " limit ?";
-            params.push(parseInt(limit));
-        } else {
-            query += " limit 20";
+            if (limit !== "all") {
+                query += " limit ?";
+                params.push(parseInt(limit));
+            }
         }
 
         const [rows] = await db.query(query, params);
@@ -444,18 +445,16 @@ router.get("/instances/:id/full", verifyToken, async (req, res) => {
             [id]
         );
 
-        let [templateModules] = await db.query(
-            "select * from course_modules where course_id = ? order by order_index",
-            [instance.template_id]
-        );
-
-        const overriddenTemplateIds = instanceModules
-            .filter(m => m.template_module_id !== null)
-            .map(m => m.template_module_id);
-
-        const newTemplateModules = templateModules.filter(m => !overriddenTemplateIds.includes(m.id));
-
-        let modules = [...instanceModules, ...newTemplateModules].sort((a, b) => a.order_index - b.order_index);
+        let modules = [];
+        if (instance.is_customized) {
+            modules = instanceModules.sort((a, b) => a.order_index - b.order_index);
+        } else {
+            let [templateModules] = await db.query(
+                "select * from course_modules where course_id = ? order by order_index",
+                [instance.template_id]
+            );
+            modules = templateModules.sort((a, b) => a.order_index - b.order_index);
+        }
 
         for (let module of modules) {
             const [lessons] = await db.query("select * from course_lessons where module_id = ? order by order_index", [module.id]);
@@ -485,8 +484,8 @@ router.post("/courses/:id/buy", verifyToken, async (req, res) => {
     const connection = await db.getConnection();
     try {
 
-        console.log(req.body);
-        console.log("User id:", req.user.id);
+        // console.log(req.body);
+        // console.log("User id:", req.user.id);
 
         await connection.beginTransaction();
 
@@ -622,17 +621,8 @@ router.delete("/courses/:id", verifyToken, checkRole("admin"), async (req, res) 
 
         if (instanceIds.length > 0) {
             const inPlaceholders = instanceIds.map(() => '?').join(',');
-            const [enrolledStudents] = await connection.query(
-                `SELECT COUNT(*) as count FROM instance_students WHERE instance_id IN (${inPlaceholders})`,
-                instanceIds
-            );
-            if (enrolledStudents[0].count > 0) {
-                await connection.rollback();
-                return res.status(409).json({
-                    message: `ไม่สามารถลบคอร์สได้ เนื่องจากมีนักเรียน ${enrolledStudents[0].count} คนลงทะเบียนอยู่`,
-                    enrolled_count: enrolledStudents[0].count
-                });
-            }
+
+            await connection.query(`DELETE FROM instance_students WHERE instance_id IN (${inPlaceholders})`, instanceIds);
 
             await connection.query(`DELETE FROM course_progress WHERE instance_id IN (${inPlaceholders})`, instanceIds);
             await connection.query(`DELETE FROM course_quiz_results WHERE instance_id IN (${inPlaceholders})`, instanceIds);
@@ -951,8 +941,7 @@ router.post("/instances/:id/customize", verifyToken, verifyInstanceOwner, async 
         const instance = instances[0];
         const templateId = instance.template_id;
 
-        const [existing] = await connection.query("select id from course_modules where instance_id = ?", [instanceId]);
-        if (existing.length > 0) {
+        if (instance.is_customized) {
             await connection.rollback();
             return res.status(400).json({ message: "Instance already customized" });
         }
@@ -1000,10 +989,13 @@ router.post("/instances/:id/customize", verifyToken, verifyInstanceOwner, async 
             }
         }
 
+        await connection.query("update course_instances set is_customized = 1 where id = ?", [instanceId]);
+
         await connection.commit();
         res.json({ message: "Instance customized successfully" });
     } catch (err) {
         await connection.rollback();
+        console.error("CUSTOMIZE ERROR:", err.message);
         res.status(500).json({ error: err.message });
     } finally {
         connection.release();
@@ -1104,41 +1096,102 @@ router.post("/modules/:id/assignments", verifyToken, verifyModuleAccess, async (
 
 // Delete Module
 router.delete("/modules/:id", verifyToken, verifyModuleAccess, async (req, res) => {
+    const connection = await db.getConnection();
     try {
-        await db.query("delete from course_modules where id = ?", [req.params.id]);
+        await connection.beginTransaction();
+        const moduleId = req.params.id;
+
+        const [quizzes] = await connection.query("select id from course_quizzes where module_id = ?", [moduleId]);
+        if (quizzes.length > 0) {
+            const quizIds = quizzes.map(q => q.id);
+            const inPlaceholders = quizIds.map(() => '?').join(',');
+            await connection.query(`delete from course_quiz_questions where quiz_id in (${inPlaceholders})`, quizIds);
+            await connection.query(`delete from course_quiz_results where quiz_id in (${inPlaceholders})`, quizIds);
+            await connection.query("delete from course_quizzes where module_id = ?", [moduleId]);
+        }
+
+        const [lessons] = await connection.query("select id from course_lessons where module_id = ?", [moduleId]);
+        if (lessons.length > 0) {
+            const lessonIds = lessons.map(l => l.id);
+            const inPlaceholders = lessonIds.map(() => '?').join(',');
+            await connection.query(`delete from course_progress where content_type = 'lesson' and content_id in (${inPlaceholders})`, lessonIds);
+        }
+
+        const [assignments] = await connection.query("select id from course_assignments where module_id = ?", [moduleId]);
+        if (assignments.length > 0) {
+            const assignmentIds = assignments.map(a => a.id);
+            const inPlaceholders = assignmentIds.map(() => '?').join(',');
+            await connection.query(`delete from course_progress where content_type = 'assignment' and content_id in (${inPlaceholders})`, assignmentIds);
+        }
+
+        await connection.query("delete from course_lessons where module_id = ?", [moduleId]);
+        await connection.query("delete from course_assignments where module_id = ?", [moduleId]);
+        await connection.query("delete from course_modules where id = ?", [moduleId]);
+
+        await connection.commit();
         res.json({ message: "Module deleted" });
     } catch (err) {
+        await connection.rollback();
         res.status(500).json({ error: err.message });
+    } finally {
+        connection.release();
     }
 });
 
 // Delete Lesson
 router.delete("/lessons/:id", verifyToken, verifyLessonAccess, async (req, res) => {
+    const connection = await db.getConnection();
     try {
-        await db.query("delete from course_lessons where id = ?", [req.params.id]);
+        await connection.beginTransaction();
+        const lessonId = req.params.id;
+        await connection.query("delete from course_progress where content_type = 'lesson' and content_id = ?", [lessonId]);
+        await connection.query("delete from course_lessons where id = ?", [lessonId]);
+        await connection.commit();
         res.json({ message: "Lesson deleted" });
     } catch (err) {
+        await connection.rollback();
         res.status(500).json({ error: err.message });
+    } finally {
+        connection.release();
     }
 });
 
 // Delete Quiz
 router.delete("/quizzes/:id", verifyToken, verifyQuizAccess, async (req, res) => {
+    const connection = await db.getConnection();
     try {
-        await db.query("delete from course_quizzes where id = ?", [req.params.id]);
+        await connection.beginTransaction();
+        const quizId = req.params.id;
+
+        await connection.query("delete from course_quiz_questions where quiz_id = ?", [quizId]);
+        await connection.query("delete from course_quiz_results where quiz_id = ?", [quizId]);
+        await connection.query("delete from course_quizzes where id = ?", [quizId]);
+
+        await connection.commit();
         res.json({ message: "Quiz deleted" });
     } catch (err) {
+        await connection.rollback();
         res.status(500).json({ error: err.message });
+    } finally {
+        connection.release();
     }
 });
 
 // Delete Assignment
 router.delete("/assignments/:id", verifyToken, verifyAssignmentAccess, async (req, res) => {
+    const connection = await db.getConnection();
     try {
-        await db.query("delete from course_assignments where id = ?", [req.params.id]);
+        await connection.beginTransaction();
+        const assignmentId = req.params.id;
+        await connection.query("delete from course_progress where content_type = 'assignment' and content_id = ?", [assignmentId]);
+        await connection.query("delete from course_assignments where id = ?", [assignmentId]);
+        await connection.commit();
         res.json({ message: "Assignment deleted" });
     } catch (err) {
+        await connection.rollback();
         res.status(500).json({ error: err.message });
+    } finally {
+        connection.release();
     }
 });
 
@@ -1604,14 +1657,18 @@ router.get("/profile/me", verifyToken, async (req, res) => {
         const [ownedInstances] = await db.query("select count(*) as count from course_instances where owner_id = ?", [userId]);
         const [invitedInstances] = await db.query("select count(*) as count from instance_students where user_id = ? and (status is null or status = 'accepted')", [userId]);
 
-        const [progressCount] = await db.query("select count(*) as count from course_progress where user_id = ? and content_type = 'lesson'", [userId]);
+        // "Completed" instances are defined by entries in the course_instance_completions table
+        const [completedRows] = await db.query("select count(*) as count from course_instance_completions where user_id = ?", [userId]);
+
+        const totalCourses = ownedInstances[0].count + invitedInstances[0].count;
+        const totalCompleted = completedRows[0].count;
 
         res.json({
             ...user,
             stats: {
                 points: user.points || 0,
-                learning: ownedInstances[0].count + invitedInstances[0].count,
-                completed: Math.floor(progressCount[0].count / 5)
+                learning: Math.max(0, totalCourses - totalCompleted),
+                completed: totalCompleted
             }
         });
     } catch (err) {

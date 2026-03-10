@@ -2,6 +2,7 @@ import { useState } from "react";
 
 import api from "../services/api";
 import { Link, useNavigate } from "react-router-dom";
+import Swal from "sweetalert2";
 
 function Register() {
   const navigate = useNavigate();
@@ -28,6 +29,7 @@ function Register() {
 
     if (password !== confirmPassword) {
       setMessage("Passwords do not match");
+      Swal.fire({ icon: 'error', title: 'เกิดข้อผิดพลาด', text: 'รหัสผ่านไม่ตรงกัน' });
       return;
     }
 
@@ -42,17 +44,20 @@ function Register() {
 
       setMessage(res.data.message);
       console.log(res.data.message);
+      Swal.fire({ icon: 'success', title: 'สำเร็จ', text: res.data.message || 'ลงทะเบียนสำเร็จ', timer: 1500, showConfirmButton: false });
       setTimeout(() => {
         setMessage("");
         navigate("/login");
-      }, 3000);
+      }, 1500);
 
     } catch (err) {
       if (err.response) {
         setMessage(err.response.data.message);
+        Swal.fire({ icon: 'error', title: 'เกิดข้อผิดพลาด', text: err.response.data.message });
         console.log(err.response.data.message);
       } else {
         setMessage("Server error");
+        Swal.fire({ icon: 'error', title: 'เกิดข้อผิดพลาด', text: 'Server error' });
         console.log("Server error");
       }
     }
@@ -67,11 +72,11 @@ function Register() {
           <input type="text" placeholder="ชื่อผู้ใช้" value={username} onChange={(e) => setUsername(e.target.value)} className="w-109 p-2 mb-2 border-none shadow-md rounded-full bg-[#FEFEFE] px-4 mt-3 focus:ring-2 focus:ring-[#FFBCD1] focus:outline-none" />
           <input type="text" placeholder="ชื่อจริง" value={firstname} onChange={(e) => setFirstname(e.target.value)} className="w-109 p-2 mb-2 border-none shadow-md rounded-full bg-[#FEFEFE] px-4 mt-3 focus:ring-2 focus:ring-[#FFBCD1] focus:outline-none" />
           <input type="text" placeholder="นามสกุล" value={lastname} onChange={(e) => setLastname(e.target.value)} className="w-109 p-2 mb-2 border-none shadow-md rounded-full bg-[#FEFEFE] px-4 mt-3 focus:ring-2 focus:ring-[#FFBCD1] focus:outline-none" />
-          <input type="email" placeholder="อีเมล์" value={email} onChange={(e) => setEmail(e.target.value)} className="w-109 p-2 mb-2 border-none shadow-md rounded-full bg-[#FEFEFE] px-4 mt-3 focus:ring-2 focus:ring-[#FFBCD1] focus:outline-none" />
+          <input type="email" placeholder="อีเมล" value={email} onChange={(e) => setEmail(e.target.value)} className="w-109 p-2 mb-2 border-none shadow-md rounded-full bg-[#FEFEFE] px-4 mt-3 focus:ring-2 focus:ring-[#FFBCD1] focus:outline-none" />
           <input type="password" placeholder="รหัสผ่าน" value={password} onChange={(e) => setPassword(e.target.value)} className="w-109 p-2 mb-2 border-none shadow-md rounded-full bg-[#FEFEFE] px-4 mt-3 focus:ring-2 focus:ring-[#FFBCD1] focus:outline-none" />
           <input type="password" placeholder="ยืนยันรหัสผ่าน" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className="w-109 p-2 mb-2 border-none shadow-md rounded-full bg-[#FEFEFE] px-4 mt-3 focus:ring-2 focus:ring-[#FFBCD1] focus:outline-none" />
           <p>{message}</p>
-          <button className="w-50 mx-auto bg-primary text-white px-4 py-2 text-[22px] rounded-xl font-semibold hover:bg-[#ff6e97] hover:transition-all shadow-md mt-3 " type="submit">สร้างบัญชี</button>
+          <button className="w-50 mx-auto bg-primary text-white px-4 py-2 text-[22px] rounded-xl font-semibold hover:bg-[#ff6e97] hover:transition-all shadow-md mt-3 cursor-pointer" type="submit">สร้างบัญชี</button>
           <label className="text-black/40 flex text-center mt-4 mx-auto">มีบัญชีแล้ว? เข้าสู่ระบบได้ <Link to="/login" className="block text-primary hover:underline pl-1">ที่นี่</Link></label>
         </form>
       </div>

@@ -126,7 +126,7 @@ function InviteStudent() {
                             <div className="mt-6">
                                 <button
                                     onClick={() => navigate(`/mycourses/${id}/view`)}
-                                    className="bg-slate-900 text-white dark:bg-white dark:text-slate-900 px-4 py-2 rounded-xl font-bold hover:opacity-90 transition-opacity flex items-center space-x-2 w-full justify-center text-sm shadow-sm"
+                                    className="bg-slate-900 text-white dark:bg-white dark:text-slate-900 cursor-pointer px-4 py-2 rounded-xl font-bold hover:opacity-90 transition-opacity flex items-center space-x-2 w-full justify-center text-sm shadow-sm"
                                 >
                                     <span className="material-symbols-outlined text-sm">arrow_back</span>
                                     <span>กลับไปหน้าคอร์ส</span>
@@ -168,14 +168,14 @@ function InviteStudent() {
                                             loadOptions={loadUsersOptions}
                                             value={selectedOptions}
                                             onChange={setSelectedOptions}
-                                            placeholder="ค้นหา username หรือ email..."
-                                            className="mb-3"
+                                            placeholder="ค้นหาชื่อผู้ใช้หรืออีเมล..."
+                                            className="mb-3 text-black rounded-full focus:ring-2 focus:ring-primary focus:outline-none"
                                         />
                                         <div className="flex justify-end pt-2">
                                             <button
                                                 onClick={handleInvite}
                                                 disabled={loading}
-                                                className="px-6 py-3 rounded-2xl bg-primary text-white font-bold shadow-lg shadow-primary/25 hover:brightness-105 transition-all active:scale-95 disabled:opacity-50 flex items-center gap-2"
+                                                className="px-6 py-3 rounded-2xl bg-primary text-white font-bold shadow-lg shadow-primary/25 hover:brightness-105 transition-all active:scale-95 disabled:opacity-50 flex items-center gap-2 cursor-pointer"
                                             >
                                                 {loading ? (
                                                     <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />

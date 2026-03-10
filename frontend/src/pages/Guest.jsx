@@ -20,9 +20,9 @@ function Guest() {
                         
                         <div className="flex items-center space-x-4">
                             <button className="text-white font-semibold text-sm hover:opacity-80 transition"
-                                 onClick={() => navigate("/login")}>Log In</button>
+                                 onClick={() => navigate("/login")}>เข้าสู่ระบบ</button>
                             <button onClick={() => navigate("/register")} className="bg-white text-primary px-6 py-2 rounded-full font-bold text-sm shadow-sm hover:bg-slate-50 transition-all"
-                               >Sign Up</button>
+                               >สมัครสมาชิก</button>
                         </div>
                     </div>
                 </nav>

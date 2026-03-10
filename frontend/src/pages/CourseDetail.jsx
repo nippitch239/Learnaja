@@ -3,6 +3,7 @@ import { useParams, Link, useNavigate } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
 import api from "../services/api";
 import { fetchCourseFull, fetchMyCourses } from "../services/fetchCourse";
+import Swal from "sweetalert2";
 
 function CourseDetail() {
   const { id } = useParams();
@@ -58,6 +59,19 @@ function CourseDetail() {
 
   const handleBuy = async () => {
     if (!user) return navigate('/login');
+
+    const confirm = await Swal.fire({
+      title: 'ยืนยันการซื้อคอร์ส?',
+      text: "คุณต้องการใช้คะแนนซื้อคอร์สนี้ใช่หรือไม่?",
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonText: 'ซื้อคอร์สเลย',
+      cancelButtonText: 'ยกเลิก',
+      confirmButtonColor: '#ff2d62',
+    });
+
+    if (!confirm.isConfirmed) return;
+
     try {
       setBuying(true);
       const res = await api.post(`/courses/${id}/buy`, {
@@ -67,10 +81,21 @@ function CourseDetail() {
       await calculateOwnership();
       window.dispatchEvent(new Event("profileUpdated"));
       setTimeout(() => setMessage(""), 4000);
+      Swal.fire({
+        icon: 'success',
+        title: 'ยินดีด้วย!',
+        text: res.data.message || "ซื้อคอร์สสำเร็จ!",
+      });
     } catch (err) {
       console.error(err);
-      setMessage(err.response?.data?.message || "เกิดข้อผิดพลาดในการซื้อ");
+      const errMsg = err.response?.data?.message || "เกิดข้อผิดพลาดในการซื้อ";
+      setMessage(errMsg);
       setTimeout(() => setMessage(""), 4000);
+      Swal.fire({
+        icon: 'error',
+        title: 'เกิดข้อผิดพลาด',
+        text: errMsg,
+      });
     } finally {
       setBuying(false);
     }
@@ -209,20 +234,6 @@ function CourseDetail() {
             {/* Quick Stats */}
             <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6 p-6 bg-white/60 dark:bg-slate-800/60 backdrop-blur rounded-3xl border border-white dark:border-slate-700 shadow-sm">
               <div className="flex items-center space-x-3">
-                <span className="material-symbols-outlined text-primary p-2 bg-white dark:bg-slate-900 rounded-xl shadow-sm">schedule</span>
-                <div>
-                  <p className="text-[10px] uppercase tracking-wider font-bold text-slate-400">ใช้เวลา</p>
-                  <p className="font-bold text-sm">24.5 ชั่วโมง</p>
-                </div>
-              </div>
-              <div className="flex items-center space-x-3">
-                <span className="material-symbols-outlined text-primary p-2 bg-white dark:bg-slate-900 rounded-xl shadow-sm">bar_chart</span>
-                <div>
-                  <p className="text-[10px] uppercase tracking-wider font-bold text-slate-400">ระดับ</p>
-                  <p className="font-bold text-sm">พื้นฐาน - กลาง</p>
-                </div>
-              </div>
-              <div className="flex items-center space-x-3">
                 <span className="material-symbols-outlined text-primary p-2 bg-white dark:bg-slate-900 rounded-xl shadow-sm">language</span>
                 <div>
                   <p className="text-[10px] uppercase tracking-wider font-bold text-slate-400">ภาษา</p>
@@ -325,7 +336,6 @@ function CourseDetail() {
                         />
                         <div className="md:text-center">
                           <p className="font-bold text-slate-900 dark:text-white text-sm">{review.name || review.username}</p>
-                          <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Verified Learner</p>
                         </div>
                       </div>
 
@@ -367,14 +377,13 @@ function CourseDetail() {
                 <div className="relative rounded-2xl overflow-hidden aspect-video mb-4">
                   {course.thumbnail_url ? (
                     <img
-                      src={course.thumbnail_url}
+                      src={course.thumbnail_url.startsWith("http") ? course.thumbnail_url : `${import.meta.env.VITE_API_URL || "http://localhost:3200"}${course.thumbnail_url}`}
+                      onError={(e) => { e.target.src = "/images/no-image.png"; }}
                       alt={course.title}
                       className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                     />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center">
-                      <span className="material-symbols-outlined text-5xl text-slate-300">school</span>
-                    </div>
+                    <img src="/images/no-image.png" alt="No thumbnail" className="w-full h-full object-cover" />
                   )}
                   <div className="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
                     <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center text-primary shadow-2xl">

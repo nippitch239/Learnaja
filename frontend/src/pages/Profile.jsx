@@ -65,7 +65,7 @@ function Profile() {
                         <div className="bg-card-light dark:bg-card-dark p-8 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm bg-linear-to-br from-primary/10 to-accent-purple/20 dark:from-primary/5 dark:to-slate-800 overflow-hidden">
                             <div className="flex flex-col md:flex-row items-center md:items-start gap-8">
                                 <div className="relative shrink-0">
-                                    <div className="w-28 h-28 rounded-2xl overflow-hidden border-4 border-white/50 dark:border-slate-700 shadow-lg">
+                                    <div className="w-28 h-28 rounded-full overflow-hidden border-4 border-white/50 dark:border-slate-700 shadow-lg">
                                         <img
                                             alt="Profile"
                                             className="w-full h-full object-cover"
@@ -104,7 +104,7 @@ function Profile() {
                                                 {user.roles.includes("admin") ? "ผู้ดูแลระบบ" : user.roles.includes("teacher") ? "ผู้สอน" : "นักเรียน"}
 
                                             </span>
-                                            {!user.roles.includes("teacher") && (
+                                            {!user.roles.includes("teacher") && !user.roles.includes("admin") && (
                                                 <Link to="/register-teacher">
                                                     <button className="cursor-pointer px-3 py-1 bg-primary text-white font-bold rounded-xl hover:bg-primary/10 hover:text-primary transition-all flex items-center gap-2 shadow-sm">
                                                         <span className="material-symbols-outlined">school</span>

@@ -2,7 +2,7 @@ import { useState, useContext } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
 import api from "../services/api";
-
+import Swal from "sweetalert2";
 
 function Login() {
     const { login } = useContext(AuthContext);
@@ -18,9 +18,10 @@ function Login() {
             });
 
             login(res.data.token);
+            Swal.fire({ icon: 'success', title: 'เข้าสู่ระบบสำเร็จ', timer: 1500, showConfirmButton: false });
             navigate("/home");
         } catch (err) {
-            alert("Try Again Later.");
+            Swal.fire({ icon: 'error', title: 'เข้าสู่ระบบไม่สำเร็จ', text: err.response?.data?.message || 'กรุณาลองใหม่อีกครั้ง' });
             console.log(err);
         }
     };
@@ -33,7 +34,7 @@ function Login() {
                     <div className="flex flex-col" onSubmit={handleLogin}>
                         <input type="text" placeholder="ชื่อผู้ใช้ หรือ อีเมล" onChange={e => setUser(e.target.value)} className="w-109 p-2 mb-2 border-none shadow-md rounded-full bg-[#FEFEFE] px-4 mt-3 focus:ring-2 focus:ring-[#FFBCD1] focus:outline-none" />
                         <input type="password" placeholder="รหัสผ่าน" onChange={e => setPassword(e.target.value)} className="w-109 p-2 mb-2 border-none shadow-md rounded-full bg-[#FEFEFE] px-4 mt-3 focus:ring-2 focus:ring-[#FFBCD1] focus:outline-none" />
-                        <button className="w-50 mx-auto bg-primary text-white px-4 py-2 text-[22px] rounded-xl font-semibold hover:bg-[#FF9DB8] shadow-md mt-5" onClick={handleLogin}>เข้าสู่ระบบ</button>
+                        <button className="w-50 mx-auto bg-primary text-white px-4 py-2 text-[22px] rounded-xl font-semibold hover:bg-[#FF9DB8] shadow-md mt-5 cursor-pointer" onClick={handleLogin}>เข้าสู่ระบบ</button>
                         <label htmlFor="" className="text-black/40 flex text-center mt-5 mx-auto">ยังไม่มีบัญชี? ลงทะเบียนผู้ใช้ใหม่ <Link to="/register" className="block text-primary hover:underline pl-1">ที่นี่</Link></label>
                     </div>
                 </div>

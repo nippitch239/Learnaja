@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import ScrollToTop from "./components/ScrollToTop";
 import { useContext } from "react";
 import AuthProvider, { AuthContext } from "./context/AuthContext";
 import Login from "./pages/Login";
@@ -39,6 +40,8 @@ function AppContent() {
 
   return (
     <BrowserRouter>
+
+      <ScrollToTop />
 
       {token && <Navbar />}
 

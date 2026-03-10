@@ -2,6 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { useEffect, useState, useContext, useRef } from "react";
 import { AuthContext } from "../context/AuthContext";
 import api from "../services/api";
+import Swal from "sweetalert2";
 
 function EditProfile() {
     const { user, loading: authLoading, setUser } = useContext(AuthContext);
@@ -41,11 +42,12 @@ function EditProfile() {
         try {
             setUpdating(true);
             await api.put("/profile/update", { name });
-            alert("อัปเดตชื่อสำเร็จ");
+            Swal.fire({ title: "สำเร็จ", text: "อัปเดตชื่อสำเร็จ", icon: "success", timer: 1500, showConfirmButton: false });
             const res = await api.get("/profile/me");
             setProfile(res.data);
+            setUser((prev) => ({ ...prev, name: res.data.name }));
         } catch (err) {
-            alert(err.response?.data?.message || "Error updating profile");
+            Swal.fire("ข้อผิดพลาด", err.response?.data?.message || "Error updating profile", "error");
         } finally {
             setUpdating(false);
         }
@@ -54,17 +56,17 @@ function EditProfile() {
     const handleChangePassword = async (e) => {
         e.preventDefault();
         if (newPassword !== confirmPassword) {
-            return alert("รหัสผ่านใหม่ไม่ตรงกัน");
+            return Swal.fire("แจ้งเตือน", "รหัสผ่านใหม่ไม่ตรงกัน", "warning");
         }
         try {
             setUpdating(true);
             await api.put("/profile/password", { currentPassword, newPassword });
-            alert("เปลี่ยนรหัสผ่านสำเร็จ");
+            Swal.fire({ title: "สำเร็จ", text: "เปลี่ยนรหัสผ่านสำเร็จ", icon: "success", timer: 1500, showConfirmButton: false });
             setCurrentPassword("");
             setNewPassword("");
             setConfirmPassword("");
         } catch (err) {
-            alert(err.response?.data?.message || "Error changing password");
+            Swal.fire("ข้อผิดพลาด", err.response?.data?.message || "Error changing password", "error");
         } finally {
             setUpdating(false);
         }
@@ -82,25 +84,37 @@ function EditProfile() {
             const res = await api.post("/profileImage", formData, {
                 headers: { "Content-Type": "multipart/form-data" }
             });
-            alert("อัปโหลดรูปภาพสำเร็จ");
+            await Swal.fire({ title: "สำเร็จ", text: "อัปโหลดรูปภาพสำเร็จ", icon: "success", timer: 1500, showConfirmButton: false });
             setProfile({ ...profile, image_profile: res.data.imagePath });
             window.location.reload();
         } catch (err) {
-            alert(err.response?.data?.message || "Error uploading image");
+            Swal.fire("ข้อผิดพลาด", err.response?.data?.message || "Error uploading image", "error");
         } finally {
             setUpdating(false);
         }
     };
 
     const handleDeleteAccount = async () => {
-        if (!confirm("คุณแน่ใจหรือไม่ว่าต้องการลบบัญชี? การกระทำนี้ไม่สามารถย้อนกลับได้")) return;
+        const result = await Swal.fire({
+            title: "คุณแน่ใจหรือไม่?",
+            text: "คุณแน่ใจหรือไม่ว่าต้องการลบบัญชี? การกระทำนี้ไม่สามารถย้อนกลับได้",
+            icon: "warning",
+            showCancelButton: true,
+            confirmButtonColor: "#ef4444",
+            cancelButtonColor: "#64748b",
+            confirmButtonText: "ลบบัญชี",
+            cancelButtonText: "ยกเลิก"
+        });
+
+        if (!result.isConfirmed) return;
+
         try {
             await api.delete("/profile/account");
-            alert("ลบบัญชีสำเร็จ");
+            await Swal.fire({ title: "สำเร็จ", text: "ลบบัญชีสำเร็จ", icon: "success", timer: 1500, showConfirmButton: false });
             localStorage.removeItem("token");
             window.location.href = "/login";
         } catch (err) {
-            alert("Error deleting account");
+            Swal.fire("ข้อผิดพลาด", "Error deleting account", "error");
         }
     };
 
@@ -142,6 +156,9 @@ function EditProfile() {
                                     />
                                 </div>
                                 <h2 className="text-xl font-bold">{profile.username}</h2>
+                                {profile.name && (
+                                    <p className="text-sm font-medium text-slate-700 dark:text-slate-300 mt-0.5">{profile.name}</p>
+                                )}
                                 <p className="text-slate-500 dark:text-slate-400 text-sm">{profile.email}</p>
                             </div>
 

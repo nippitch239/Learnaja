@@ -2,6 +2,7 @@ import { useEffect, useState, useContext } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
 import api from "../services/api";
+import Swal from "sweetalert2";
 
 function InstanceDetail() {
     const { id } = useParams();
@@ -43,7 +44,10 @@ function InstanceDetail() {
     };
 
     const handleSubmitRating = async () => {
-        if (userRating === 0) return alert("กรุณาเลือกคะแนน (ดาว)");
+        if (userRating === 0) {
+            Swal.fire({ icon: 'warning', title: 'แจ้งเตือน', text: 'กรุณาเลือกคะแนน (ดาว)' });
+            return;
+        }
         try {
             setSubmittingRating(true);
             await api.post(`/courses/${instance.template_id}/rate`, {
@@ -53,9 +57,10 @@ function InstanceDetail() {
             setHasRated(true);
             setMessage("ขอบคุณสำหรับการให้คะแนนคอร์สเรียน!");
             setTimeout(() => setMessage(""), 3000);
+            Swal.fire({ icon: 'success', title: 'สำเร็จ', text: 'ขอบคุณสำหรับการให้คะแนนคอร์สเรียน!' });
         } catch (err) {
             console.error(err);
-            alert(err.response?.data?.message || "Failed to submit rating");
+            Swal.fire({ icon: 'error', title: 'เกิดข้อผิดพลาด', text: err.response?.data?.message || "Failed to submit rating" });
         } finally {
             setSubmittingRating(false);
         }
@@ -70,6 +75,12 @@ function InstanceDetail() {
             setClaimMessage("รับ 100 Points สำเร็จ! 🎉");
             setTimeout(() => setClaimMessage(""), 4000);
 
+            Swal.fire({
+                icon: 'success',
+                title: 'ยินดีด้วย!',
+                text: 'คุณได้รับ 100 Points สำเร็จ! 🎉'
+            });
+
             try {
                 const refreshRes = await api.post("/refresh");
                 login(refreshRes.data.token);
@@ -80,7 +91,11 @@ function InstanceDetail() {
             if (err.response?.status === 409) {
                 setHasClaimed(true);
             } else {
-                alert(err.response?.data?.message || "ไม่สามารถรับ Points ได้");
+                Swal.fire({
+                    icon: 'error',
+                    title: 'เกิดข้อผิดพลาด',
+                    text: err.response?.data?.message || "ไม่สามารถรับ Points ได้"
+                });
             }
         } finally {
             setClaimingPoints(false);
@@ -151,7 +166,7 @@ function InstanceDetail() {
                 <div className="max-w-7xl mx-auto px-6 mt-8">
                     <button
                         onClick={() => navigate('/mycourses')}
-                        className="flex items-center space-x-2 text-primary font-bold transition-colors mb-6 group"
+                        className="flex items-center space-x-2 text-primary font-bold transition-colors mb-6 group cursor-pointer hover:text-primary/80"
                     >
                         <span className="material-symbols-outlined group-hover:-translate-x-1 transition-transform">arrow_back</span>
                         <span>ย้อนกลับ</span>
@@ -162,10 +177,10 @@ function InstanceDetail() {
                             <div className="max-w-3xl space-y-4">
                                 <div className="flex items-center gap-3">
                                     <span className="inline-block text-xs font-bold text-primary bg-primary/10 px-3 py-1 rounded-full uppercase tracking-wider">
-                                        Instance #{instance.id}
+                                        #{instance.id}
                                     </span>
                                     {instance.category && (
-                                        <span className="px-3 py-1 bg-slate-100 border border-slate-200 dark:bg-slate-800 text-slate-500 text-xs font-bold rounded-full uppercase tracking-wider">
+                                        <span className="px-3 py-1 bg-slate-100 border border-slate-200 dark:bg-slate-800 text-slate-500 text-xs font-bold dark:border-slate-600 rounded-full uppercase tracking-wider">
                                             {instance.category}
                                         </span>
                                     )}
@@ -206,20 +221,7 @@ function InstanceDetail() {
 
                         {/* Quick Stats - Adapted */}
                         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6 p-6 bg-white/60 dark:bg-slate-800/60 backdrop-blur rounded-3xl border border-white dark:border-slate-700 shadow-sm">
-                            <div className="flex items-center space-x-3">
-                                <span className="material-symbols-outlined text-primary p-2 bg-white dark:bg-slate-900 rounded-xl shadow-sm">schedule</span>
-                                <div>
-                                    <p className="text-[10px] uppercase tracking-wider font-bold text-slate-400">ใช้เวลา</p>
-                                    <p className="font-bold text-sm">24.5 ชั่วโมง</p>
-                                </div>
-                            </div>
-                            <div className="flex items-center space-x-3">
-                                <span className="material-symbols-outlined text-primary p-2 bg-white dark:bg-slate-900 rounded-xl shadow-sm">bar_chart</span>
-                                <div>
-                                    <p className="text-[10px] uppercase tracking-wider font-bold text-slate-400">ระดับ</p>
-                                    <p className="font-bold text-sm">พื้นฐาน - กลาง</p>
-                                </div>
-                            </div>
+
                             <div className="flex items-center space-x-3">
                                 <span className="material-symbols-outlined text-primary p-2 bg-white dark:bg-slate-900 rounded-xl shadow-sm">language</span>
                                 <div>
@@ -343,7 +345,7 @@ function InstanceDetail() {
                                                         value={userComment}
                                                         onChange={(e) => setUserComment(e.target.value)}
                                                         disabled={submittingRating}
-                                                        className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-3 text-xs focus:ring-2 focus:ring-primary/20 outline-none min-h-[80px] transition-all"
+                                                        className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-3 text-xs focus:ring-2 focus:ring-primary/20 outline-none min-h-20 transition-all"
                                                     ></textarea>
                                                     <button
                                                         onClick={handleSubmitRating}
@@ -355,7 +357,7 @@ function InstanceDetail() {
                                                         ) : (
                                                             <>
                                                                 <span className="material-symbols-outlined text-sm">send</span>
-                                                                ส่งความแเห็น
+                                                                ส่งความเห็น
                                                             </>
                                                         )}
                                                     </button>
@@ -363,7 +365,7 @@ function InstanceDetail() {
                                             ) : (
                                                 <div className="text-center w-full">
                                                     <div className="p-3 bg-white/50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-700/50 italic text-[11px] text-slate-500 mb-3">
-                                                        "{userComment || 'ไม่มีความแเห็นเพิ่มเติม'}"
+                                                        "{userComment || 'ไม่มีความเห็นเพิ่มเติม'}"
                                                     </div>
                                                     <div className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 text-[10px] font-bold">
                                                         <span className="material-symbols-outlined text-xs">check_circle</span>
@@ -410,14 +412,13 @@ function InstanceDetail() {
                                 <div className="relative rounded-2xl overflow-hidden aspect-video mb-4">
                                     {instance.thumbnail_url ? (
                                         <img
-                                            src={instance.thumbnail_url}
+                                            src={instance.thumbnail_url.startsWith("http") ? instance.thumbnail_url : `${import.meta.env.VITE_API_URL || "http://localhost:3200"}${instance.thumbnail_url}`}
+                                            onError={(e) => { e.target.src = "/images/no-image.png"; }}
                                             alt={instance.title}
                                             className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                                         />
                                     ) : (
-                                        <div className="w-full h-full flex items-center justify-center">
-                                            <span className="material-symbols-outlined text-5xl text-slate-300">school</span>
-                                        </div>
+                                        <img src="/images/no-image.png" alt="No thumbnail" className="w-full h-full object-cover" />
                                     )}
                                     <div className="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
                                         <Link to={`/mycourses/${id}`} className="w-16 h-16 bg-white rounded-full flex items-center justify-center text-primary shadow-2xl">

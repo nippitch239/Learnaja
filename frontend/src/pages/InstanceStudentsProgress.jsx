@@ -174,7 +174,7 @@ function InstanceStudentsProgress() {
               <div className="mt-6 space-y-2">
                 <button
                   onClick={() => navigate(`/mycourses/${id}/view`)}
-                  className="bg-slate-900 text-white dark:bg-white dark:text-slate-900 px-4 py-2 rounded-xl font-bold hover:opacity-90 transition-opacity flex items-center space-x-2 w-full justify-center text-sm shadow-sm"
+                  className="bg-slate-900 text-white dark:bg-white dark:text-slate-900 px-4 py-2 rounded-xl cursor-pointer font-bold hover:opacity-90 transition-opacity flex items-center space-x-2 w-full justify-center text-sm shadow-sm"
                 >
                   <span className="material-symbols-outlined text-sm">arrow_back</span>
                   <span>กลับไปหน้าคอร์ส</span>
@@ -192,8 +192,8 @@ function InstanceStudentsProgress() {
                     <span className="inline-block text-xs font-bold text-primary bg-primary/10 px-3 py-1 rounded-full uppercase tracking-wider">
                       Progress Overview
                     </span>
-                    <span className="px-3 py-1 bg-slate-100 border border-slate-200 dark:bg-slate-800 text-slate-500 text-xs font-bold rounded-full uppercase tracking-wider">
-                      Instance #{instance.id}
+                    <span className="px-3 py-1 bg-slate-100 border border-slate-200 dark:bg-slate-800 text-slate-500 dark:border-slate-600 text-xs font-bold rounded-full uppercase tracking-wider">
+                      #{instance.id}
                     </span>
                   </div>
                   <h1 className="text-2xl font-bold">ความคืบหน้าการเรียนของนักเรียน</h1>
@@ -202,7 +202,7 @@ function InstanceStudentsProgress() {
                   </p>
                 </div>
 
-                <div className="flex flex-col items-start lg:items-end gap-4 min-w-[260px]">
+                <div className="flex flex-col items-start lg:items-end gap-4 min-w-65">
                   <div className="flex gap-3 w-full">
                     <div className="flex-1 bg-white/90 dark:bg-slate-900 px-4 py-3 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm flex items-center justify-between">
                       <div>
@@ -231,7 +231,7 @@ function InstanceStudentsProgress() {
                     type="button"
                     onClick={reloadProgress}
                     disabled={loadingProgress}
-                    className="px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold flex items-center gap-2 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-60"
+                    className="px-4 py-2 rounded-xl border border-slate-200 cursor-pointer dark:border-slate-700 text-xs font-bold flex items-center gap-2 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-60"
                   >
                     <span className="material-symbols-outlined text-sm">refresh</span>
                     รีเฟรชข้อมูล

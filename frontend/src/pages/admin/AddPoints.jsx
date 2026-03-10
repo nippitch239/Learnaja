@@ -1,6 +1,7 @@
 import { useState, useContext } from "react";
 import api from "../../services/api";
 import UserDropdown from "../../components/UserDropdown";
+import Swal from "sweetalert2";
 import { AuthContext } from "../../context/AuthContext";
 
 function AddPoints() {
@@ -10,19 +11,36 @@ function AddPoints() {
     const [message, setMessage] = useState("");
 
     const handleAddPoints = async () => {
-        if (!selectedUser || !points) return;
-        const amount = Number(points) || 0;
-        await api.post(`/admin/users/${selectedUser.id}/add-points`, { points: amount });
-
-        setSelectedUser(prev => prev ? { ...prev, points: (prev.points || 0) + amount } : prev);
-
-        if (user && selectedUser.id === user.id) {
-            window.dispatchEvent(new Event("profileUpdated"));
+        if (!selectedUser || !points) {
+            Swal.fire({ icon: 'warning', title: 'แจ้งเตือน', text: 'กรุณาเลือกผู้ใช้และระบุคะแนน' });
+            return;
         }
+        try {
+            const amount = Number(points) || 0;
+            await api.post(`/admin/users/${selectedUser.id}/add-points`, { points: amount });
 
-        setMessage("เพิ่มคะแนนสำเร็จ!");
-        setPoints(0);
-        setTimeout(() => setMessage(""), 3000);
+            setSelectedUser(prev => prev ? { ...prev, points: (prev.points || 0) + amount } : prev);
+
+            if (user && selectedUser.id === user.id) {
+                window.dispatchEvent(new Event("profileUpdated"));
+            }
+
+            setMessage("เพิ่มคะแนนสำเร็จ!");
+            setPoints(0);
+            setTimeout(() => setMessage(""), 3000);
+            Swal.fire({
+                icon: 'success',
+                title: 'สำเร็จ',
+                text: 'เพิ่มคะแนนสำเร็จ!'
+            });
+        } catch (err) {
+            console.error(err);
+            Swal.fire({
+                icon: 'error',
+                title: 'เกิดข้อผิดพลาด',
+                text: err.response?.data?.message || 'ไม่สามารถเพิ่มคะแนนได้'
+            });
+        }
     };
 
     const newTotal = selectedUser ? selectedUser.points + (points || 0) : 0;

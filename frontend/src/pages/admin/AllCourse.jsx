@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import api from "../../services/api";
 import { fetchCourses } from "../../store/courseSlice";
 import { useDispatch, useSelector } from "react-redux";
+import Swal from "sweetalert2";
 
 function AllCourse() {
     const navigate = useNavigate();
@@ -14,23 +15,35 @@ function AllCourse() {
     }, [dispatch]);
 
     const handleDelete = async (id) => {
-        try {
-            if (confirm("Are you sure you want to delete this course?")) {
+        const result = await Swal.fire({
+            title: "คุณแน่ใจหรือไม่?",
+            text: "คุณต้องการลบคอร์สเรียนนี้ใช่หรือไม่? การกระทำนี้ไม่สามารถย้อนกลับได้",
+            icon: "warning",
+            showCancelButton: true,
+            confirmButtonColor: "#ef4444",
+            cancelButtonColor: "#64748b",
+            confirmButtonText: "ลบคอร์ส!",
+            cancelButtonText: "ยกเลิก"
+        });
+
+        if (result.isConfirmed) {
+            try {
                 await api.delete(`/courses/${id}`);
                 dispatch(fetchCourses());
+                Swal.fire({ title: "สำเร็จ", text: "ลบคอร์สสำเร็จ", icon: "success", timer: 1500, showConfirmButton: false });
+            } catch (err) {
+                const msg = err.response?.data?.message || "เกิดข้อผิดพลาดในการลบคอร์ส";
+                Swal.fire("ข้อผิดพลาด", msg, "error");
+                console.error(err);
             }
-        } catch (err) {
-            const msg = err.response?.data?.message || "เกิดข้อผิดพลาดในการลบคอร์ส";
-            alert(msg);
-            console.error(err);
         }
     };
 
     if (loading) return <p>Loading...</p>;
     if (!courses || courses.length === 0) return (
         <div className="container mx-auto px-4 mt-10">
-            <h1 className="text-xl font-bold text-primary">All Course</h1>
-            <p className="mt-5">No courses found.</p>
+            <h1 className="text-xl font-bold text-primary">คอร์สเรียนทั้งหมด</h1>
+            <p className="mt-5">ไม่พบคอร์สเรียน</p>
         </div>
     );
 
@@ -53,9 +66,7 @@ function AllCourse() {
                                     loading="lazy"
                                 />
                             ) : (
-                                <div className="w-full h-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center text-slate-400 text-sm">
-                                    ไม่มีรูปภาพ
-                                </div>
+                                <img src="/images/no-image.png" alt="No thumbnail" className="w-full h-full object-cover" />
                             )}
                         </div>
 
