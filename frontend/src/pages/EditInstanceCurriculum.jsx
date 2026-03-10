@@ -341,12 +341,6 @@ function EditInstanceCurriculum() {
                     passing_score: finalContent.passing_score,
                     order_index: nextOrder
                 });
-            } else if (contentType === 'assignment') {
-                await api.post(`/modules/${moduleId}/assignments`, {
-                    title: contentTitle,
-                    description: contentBody,
-                    order_index: nextOrder
-                });
             } else {
                 await api.post(`/modules/${moduleId}/lessons`, {
                     title: contentTitle,
@@ -472,8 +466,7 @@ function EditInstanceCurriculum() {
     const getSortedModuleItems = (module) => {
         const items = [
             ...(module.lessons || []).map(l => ({ ...l, itemType: 'lesson' })),
-            ...(module.quizzes || []).map(q => ({ ...q, itemType: 'quiz' })),
-            ...(module.assignments || []).map(a => ({ ...a, itemType: 'assignment' }))
+            ...(module.quizzes || []).map(q => ({ ...q, itemType: 'quiz' }))
         ];
         return items.sort((a, b) => (a.order_index || 0) - (b.order_index || 0));
     };
@@ -951,7 +944,7 @@ function EditInstanceCurriculum() {
                                                                 </div>
                                                             )}
                                                         </div>
-                                                    ) : item.itemType === 'quiz' ? (
+                                                    ) : (
                                                         <div className="space-y-2">
                                                             <div className="flex flex-col p-4 bg-white dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-700 hover:border-primary/30 transition-colors group">
                                                                 {editQuizId === item.id ? (
@@ -1208,50 +1201,7 @@ function EditInstanceCurriculum() {
                                                                 </div>
                                                             )}
                                                         </div>
-                                                    ) : (
-                                                        /* Assignment branch */
-                                                        <div className="flex flex-col p-4 bg-white dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-700 hover:border-primary/30 transition-colors group">
-                                                            {editAssignmentId === item.id ? (
-                                                                <div className="space-y-3">
-                                                                    <input type="text" value={editAssignmentTitle} onChange={(e) => setEditAssignmentTitle(e.target.value)} className="w-full p-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 font-bold text-sm rounded-lg" placeholder="ชื่องาน" autoFocus />
-                                                                    <textarea value={editAssignmentDescription} onChange={(e) => setEditAssignmentDescription(e.target.value)} className="w-full p-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 text-xs rounded-lg min-h-20" placeholder="คำอธิบายงาน" />
-                                                                    <div className="flex gap-2 justify-end">
-                                                                        <button onClick={() => setEditAssignmentId(null)} className="px-3 py-1 bg-slate-200 text-xs font-bold rounded-lg dark:text-slate-800">ยกเลิก</button>
-                                                                        <button onClick={submitEditAssignment} disabled={isSaving} className="px-3 py-1 bg-blue-500 text-white text-xs font-bold rounded-lg hover:bg-blue-600">บันทึกงาน</button>
-                                                                    </div>
-                                                                </div>
-                                                            ) : (
-                                                                <div className="flex items-center justify-between">
-                                                                    <div className="flex items-center space-x-4">
-                                                                        <div className="flex flex-col items-center gap-1 mr-1">
-                                                                            <button onClick={() => handleMoveItem(module.id, 'assignment', item.id, 'up')} className="text-slate-300 hover:text-primary transition-colors disabled:opacity-30" disabled={itemIdx === 0 || isSaving}>
-                                                                                <span className="material-symbols-outlined text-[18px]">keyboard_arrow_up</span>
-                                                                            </button>
-                                                                            <button onClick={() => handleMoveItem(module.id, 'assignment', item.id, 'down')} className="text-slate-300 hover:text-primary transition-colors disabled:opacity-30" disabled={itemIdx === getSortedModuleItems(module).length - 1 || isSaving}>
-                                                                                <span className="material-symbols-outlined text-[18px]">keyboard_arrow_down</span>
-                                                                            </button>
-                                                                        </div>
-                                                                        <span className="material-symbols-outlined text-blue-400">assignment</span>
-                                                                        <div>
-                                                                            <p className="font-semibold text-slate-700 dark:text-slate-200">
-                                                                                งาน: {item.title}
-                                                                            </p>
-                                                                            <p className="text-xs text-slate-400">Assignment</p>
-                                                                        </div>
-                                                                    </div>
-                                                                    <div className="flex items-center space-x-4">
-                                                                        <button onClick={() => {
-                                                                            setEditAssignmentId(item.id);
-                                                                            setEditAssignmentTitle(item.title);
-                                                                            setEditAssignmentDescription(item.description || "");
-                                                                        }} className="material-symbols-outlined text-slate-300 hover:text-slate-500 transition-colors">edit</button>
-                                                                        <button onClick={() => handleDeleteAssignment(item.id)} className="text-slate-300 hover:text-red-500 transition-colors" disabled={isSaving}>
-                                                                            <span className="material-symbols-outlined">delete</span>
-                                                                        </button>
-                                                                    </div>
-                                                                </div>
-                                                            )}
-                                                        </div>
+
                                                     )}
                                                 </div>
                                             ))}

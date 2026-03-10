@@ -948,6 +948,8 @@ router.post("/instances/:id/customize", verifyToken, verifyInstanceOwner, async 
 
         const [modules] = await connection.query("select * from course_modules where course_id = ? order by order_index", [templateId]);
 
+        const quizIdMap = new Map(); // Map old template quiz IDs to new instance quiz IDs
+
         for (let mod of modules) {
             const [modRes] = await connection.query(
                 "insert into course_modules (instance_id, title, order_index, template_module_id) values (?, ?, ?, ?)",
@@ -957,25 +959,29 @@ router.post("/instances/:id/customize", verifyToken, verifyInstanceOwner, async 
 
             const [lessons] = await connection.query("select * from course_lessons where module_id = ? order by order_index", [mod.id]);
             for (let less of lessons) {
+                const contentVal = typeof less.content === 'string' ? less.content : JSON.stringify(less.content);
                 await connection.query(
                     "insert into course_lessons (module_id, title, type, duration_minutes, content, order_index) values (?, ?, ?, ?, ?, ?)",
-                    [newModId, less.title, less.type, less.duration_minutes, JSON.stringify(less.content), less.order_index]
+                    [newModId, less.title, less.type, less.duration_minutes, contentVal, less.order_index]
                 );
             }
 
             const [quizzes] = await connection.query("select * from course_quizzes where module_id = ? order by order_index", [mod.id]);
             for (let quiz of quizzes) {
+                const oldQuizId = quiz.id;
                 const [quizRes] = await connection.query(
                     "insert into course_quizzes (module_id, title, passing_score, order_index) values (?, ?, ?, ?)",
                     [newModId, quiz.title, quiz.passing_score, quiz.order_index || 0]
                 );
                 const newQuizId = quizRes.insertId;
+                quizIdMap.set(oldQuizId, newQuizId); // Store mapping for later migration
 
                 const [questions] = await connection.query("select * from course_quiz_questions where quiz_id = ?", [quiz.id]);
                 for (let q of questions) {
+                    const choicesVal = typeof q.choices === 'string' ? q.choices : JSON.stringify(q.choices);
                     await connection.query(
                         "insert into course_quiz_questions (quiz_id, question, type, choices, correct_answer, points) values (?, ?, ?, ?, ?, ?)",
-                        [newQuizId, q.question, q.type, JSON.stringify(q.choices), q.correct_answer, q.points]
+                        [newQuizId, q.question, q.type, choicesVal, q.correct_answer, q.points]
                     );
                 }
             }
@@ -986,6 +992,25 @@ router.post("/instances/:id/customize", verifyToken, verifyInstanceOwner, async 
                     "insert into course_assignments (module_id, title, description, max_score, submission_type, order_index) values (?, ?, ?, ?, ?, ?)",
                     [newModId, ass.title, ass.description, ass.max_score, ass.submission_type, ass.order_index || 0]
                 );
+            }
+        }
+
+        // Migrate quiz results to use new quiz IDs
+        if (quizIdMap.size > 0) {
+            const [existingResults] = await connection.query(
+                "SELECT DISTINCT quiz_id FROM course_quiz_results WHERE instance_id = ?",
+                [instanceId]
+            );
+            
+            for (const result of existingResults) {
+                const oldQuizId = result.quiz_id;
+                const newQuizId = quizIdMap.get(oldQuizId);
+                if (newQuizId) {
+                    await connection.query(
+                        "UPDATE course_quiz_results SET quiz_id = ? WHERE instance_id = ? AND quiz_id = ?",
+                        [newQuizId, instanceId, oldQuizId]
+                    );
+                }
             }
         }
 

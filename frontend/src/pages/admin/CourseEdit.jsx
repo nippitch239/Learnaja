@@ -514,8 +514,7 @@ function CourseEdit() {
   const getSortedModuleItems = (module) => {
     const items = [
       ...(module.lessons || []).map((l) => ({ ...l, itemType: "lesson" })),
-      ...(module.quizzes || []).map((q) => ({ ...q, itemType: "quiz" })),
-      ...(module.assignments || []).map((a) => ({ ...a, itemType: "assignment" })),
+      ...(module.quizzes || []).map((q) => ({ ...q, itemType: "quiz" }))
     ];
     return items.sort((a, b) => (a.order_index || 0) - (b.order_index || 0));
   };
@@ -588,12 +587,6 @@ function CourseEdit() {
         await api.post(`/modules/${moduleId}/quizzes`, {
           title: contentTitle,
           passing_score: finalContent.passing_score,
-          order_index: nextOrder,
-        });
-      } else if (contentType === "assignment") {
-        await api.post(`/modules/${moduleId}/assignments`, {
-          title: contentTitle,
-          description: contentBody,
           order_index: nextOrder,
         });
       } else {

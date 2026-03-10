@@ -648,6 +648,7 @@ function MyDetailCourse() {
                                             if (typeof choices === 'string') {
                                                 try { choices = JSON.parse(choices); } catch (e) { /* ignore */ }
                                             }
+                                            if (!Array.isArray(choices)) choices = [];
 
                                             return (
                                                 <div className="space-y-6">
