@@ -22,7 +22,7 @@
 ## 🚀 วิธีรันโปรเจกต์
 
 ให้พิมพ์ `run` ใน command prompt (CMD) **เท่านั้น**
-1. (cd Learnaja/)
+1. cd Learnaja/
 2. run
 
 หรือสามารถรันโปรแกรมผ่าน ```.\Learnaja\run.bat```
