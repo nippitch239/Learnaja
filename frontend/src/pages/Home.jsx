@@ -67,8 +67,8 @@ function Home() {
                             {[
                                 { name: "Programming", icon: "code" },
                                 { name: "Design", icon: "palette" },
-                                { name: "Business", icon: "business" },
-                                { name: "Math", icon: "network_check" },
+                                { name: "Math", icon: "calculate" },
+                                { name: "Networking", icon: "network_check" },
                                 { name: "Data Science", icon: "bar_chart" },
                                 { name: "Cyber Security", icon: "security" },
                                 { name: "Language", icon: "translate" }
